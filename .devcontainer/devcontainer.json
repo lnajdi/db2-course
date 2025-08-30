@@ -7,7 +7,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "ms-ossdata.vscode-postgresql",
+        "ms-ossdata.vscode-pgsql",
         "ms-vscode.vscode-json",
         "redhat.vscode-yaml",
         "mechatroner.rainbow-csv"

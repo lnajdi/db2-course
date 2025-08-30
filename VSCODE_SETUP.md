@@ -2,7 +2,7 @@
 
 ## Extension Installation Status
 The following extensions should be automatically installed in your Codespace:
-- **PostgreSQL** (`ms-ossdata.vscode-postgresql`) - Main database extension
+- **PostgreSQL** (`ms-ossdata.vscode-pgsql`) - Main database extension
 - **YAML** (`redhat.vscode-yaml`) - For YAML file editing
 - **JSON** (`ms-vscode.vscode-json`) - For JSON file editing  
 - **Rainbow CSV** (`mechatroner.rainbow-csv`) - For CSV file viewing
@@ -43,6 +43,11 @@ SELECT table_name
 FROM information_schema.tables 
 WHERE table_schema = 'public' 
 ORDER BY table_name;
+```
+
+**Alternative: Use the helper script**
+```bash
+./test-db-connection.sh
 ```
 
 ### 5. Explore the Pagila Database

@@ -17,6 +17,16 @@ echo "⚙️ Configuring VS Code settings..."
 mkdir -p /workspace/.vscode
 cat > /workspace/.vscode/settings.json << 'EOF'
 {
+  "pgsql.connections": [
+    {
+      "host": "postgres",
+      "port": "5432",
+      "dbname": "pagila",
+      "username": "student",
+      "password": "password",
+      "connectionName": "Pagila Database"
+    }
+  ],
   "postgresql.connections": [
     {
       "host": "postgres",
@@ -30,9 +40,37 @@ cat > /workspace/.vscode/settings.json << 'EOF'
   ],
   "files.associations": {
     "*.sql": "sql"
-  }
+  },
+  "sql.connections": [
+    {
+      "server": "postgres",
+      "database": "pagila",
+      "user": "student",
+      "password": "password",
+      "port": 5432
+    }
+  ]
 }
 EOF
+
+# Create a simple connection test script
+echo "📝 Creating database connection helper script..."
+cat > /workspace/test-db-connection.sh << 'EOF'
+#!/bin/bash
+echo "🔍 Testing PostgreSQL connection..."
+PGPASSWORD=password psql -h postgres -U student -d pagila -c "
+SELECT 
+    'Connection successful!' as status,
+    version() as postgresql_version,
+    current_database() as database_name,
+    current_user as username;
+"
+EOF
+chmod +x /workspace/test-db-connection.sh
+
+echo "📋 VS Code Extension Information:"
+echo "Main PostgreSQL extension ID: ms-ossdata.vscode-pgsql"
+echo "If extensions don't auto-install, manually install from Extensions marketplace"
 
 # Wait for PostgreSQL to be ready
 echo "⏳ Waiting for PostgreSQL to be ready..."
