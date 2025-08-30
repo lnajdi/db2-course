@@ -19,12 +19,14 @@ cat > /workspace/.vscode/settings.json << 'EOF'
 {
   "pgsql.connections": [
     {
-      "host": "postgres",
+      "id": "pagila-db",
+      "profileName": "Pagila Database",
+      "server": "postgres",
       "port": "5432",
-      "dbname": "pagila",
-      "username": "student",
+      "database": "pagila",
+      "user": "student",
       "password": "password",
-      "connectionName": "Pagila Database"
+      "groupId": "default"
     }
   ],
   "files.associations": {
@@ -98,3 +100,10 @@ if [ -f "/workspace/.devcontainer/test-connection.sh" ]; then
 else
     echo "⚠️  Test connection script not found, skipping test"
 fi
+
+echo ""
+echo "📋 VS Code Extension Information:"
+echo "Main PostgreSQL extension ID: ms-ossdata.vscode-pgsql"
+echo "✅ Connection configured: Pagila Database (postgres:5432/pagila)"
+echo "💡 If connection doesn't appear automatically, try reloading VS Code window"
+echo "   Use Ctrl+Shift+P -> 'Developer: Reload Window'"

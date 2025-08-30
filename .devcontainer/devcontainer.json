@@ -15,12 +15,14 @@
       "settings": {
         "pgsql.connections": [
           {
-            "host": "postgres",
+            "id": "pagila-db",
+            "profileName": "Pagila Database",
+            "server": "postgres",
             "port": "5432",
-            "dbname": "pagila",
-            "username": "student",
+            "database": "pagila", 
+            "user": "student",
             "password": "password",
-            "connectionName": "Pagila Database"
+            "groupId": "default"
           }
         ],
         "files.associations": {
