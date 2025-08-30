@@ -10,7 +10,7 @@
         "ms-ossdata.vscode-postgresql",
         "ms-vscode.vscode-json",
         "redhat.vscode-yaml"
-      ],
+            ],
       "settings": {
         "postgresql.connections": [
           {

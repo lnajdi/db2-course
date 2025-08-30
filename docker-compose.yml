@@ -1,24 +1,47 @@
+# Docker Compose configuration for PostgreSQL database lab environment
+# This setup provides a PostgreSQL 15 instance with the Pagila sample database
+# for educational purposes and database exercises
+
 services:
   postgres:
+    # Use PostgreSQL version 15 official image
     image: postgres:15
+    
+    # Give the container a friendly name for easier identification
     container_name: postgres-lab
+    
+    # Environment variables to configure the PostgreSQL instance
     environment:
-      POSTGRES_DB: pagila
-      POSTGRES_USER: student
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: pagila          # Default database name
+      POSTGRES_USER: student       # Default username for database access
+      POSTGRES_PASSWORD: password  # Default password (change for production!)
       # Remove POSTGRES_HOST_AUTH_METHOD for better security
+    
+    # Port mapping: host:container
+    # Maps host port 5432 to container port 5432 (PostgreSQL default)
     ports:
       - "5432:5432"
+    
+    # Volume mounts for data persistence and initialization
     volumes:
+      # Persistent storage for PostgreSQL data files
       - postgres_data:/var/lib/postgresql/data
+      # Mount sample database scripts for automatic initialization
+      # Scripts in this directory are executed when the container starts for the first time
       - ./data/pagila:/docker-entrypoint-initdb.d:ro
+    
+    # Health check to monitor container status
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U student -d pagila"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      interval: 10s      # Check every 10 seconds
+      timeout: 5s        # Wait up to 5 seconds for response
+      retries: 5         # Try 5 times before marking as unhealthy
+      start_period: 30s  # Wait 30 seconds before starting health checks
+    
+    # Restart policy: restart container unless explicitly stopped
     restart: unless-stopped
 
+# Named volumes for persistent data storage
 volumes:
+  # Volume to persist PostgreSQL data between container restarts
   postgres_data:

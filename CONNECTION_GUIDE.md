@@ -269,3 +269,29 @@ This database is perfect for learning SQL queries, joins, aggregations, and data
 ## Security Note
 
 ⚠️ **Important**: These credentials are for learning purposes only. Never use simple passwords like "password" in production environments.
+
+
+
+
+
+# chacj after docke 
+Main Steps Summary
+1. Read Docker Config 📖
+Analyzed docker-compose.yml
+Identified PostgreSQL 15 + Pagila database setup
+2. Navigate to Project 📁
+cd "c:\Enseignement\New folder\db2-course"
+3. Launch Docker Compose 🚀
+docker-compose up -d
+✅ Started postgres-lab container
+4. Verify Status ✅
+docker-compose ps
+✅ Container running and healthy
+5. Test Connection 🔌
+docker exec -it postgres-lab psql -U student -d pagila
+✅ Connected to database
+🎉 Result:
+Database environment fully operational!
+
+PostgreSQL 15 running on localhost:5432
+Pagila database ready for lab exercises
