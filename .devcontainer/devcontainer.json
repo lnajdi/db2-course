@@ -1,7 +1,7 @@
 {
   "name": "PostgreSQL Database Lab Environment",
   "dockerComposeFile": "../docker-compose.yml",
-  "service": "app",
+  "service": "postgres",
   "workspaceFolder": "/workspace",
   
   "customizations": {
@@ -36,7 +36,7 @@
   
   "postCreateCommand": "bash .devcontainer/setup.sh",
   
-  "remoteUser": "vscode",
+  "remoteUser": "root",
   
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}

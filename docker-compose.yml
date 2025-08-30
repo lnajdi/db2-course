@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
@@ -8,27 +6,19 @@ services:
       POSTGRES_DB: pagila
       POSTGRES_USER: student
       POSTGRES_PASSWORD: password
-      POSTGRES_HOST_AUTH_METHOD: trust
+      # Remove POSTGRES_HOST_AUTH_METHOD for better security
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./sql:/docker-entrypoint-initdb.d
+      - ./data/pagila:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U student -d pagila"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  app:
-    image: mcr.microsoft.com/devcontainers/base:ubuntu
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ..:/workspace:cached
-    command: sleep infinity
-    network_mode: service:postgres
+      start_period: 30s
+    restart: unless-stopped
 
 volumes:
   postgres_data:
