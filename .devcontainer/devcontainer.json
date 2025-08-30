@@ -1,7 +1,7 @@
 {
   "name": "PostgreSQL Database Lab Environment",
   "dockerComposeFile": "../docker-compose.yml",
-  "service": "postgres",
+  "service": "devcontainer",
   "workspaceFolder": "/workspace",
   
   "customizations": {
@@ -10,12 +10,12 @@
         "ms-ossdata.vscode-postgresql",
         "ms-vscode.vscode-json",
         "redhat.vscode-yaml"
-            ],
+      ],
       "settings": {
         "postgresql.connections": [
           {
-            "host": "localhost",
-            "hostaddr": "127.0.0.1",
+            "host": "postgres",
+            "hostaddr": "postgres",
             "port": "5432",
             "dbname": "pagila",
             "username": "student",
@@ -36,9 +36,5 @@
   
   "postCreateCommand": "bash .devcontainer/setup.sh",
   
-  "remoteUser": "root",
-  
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-  }
+  "remoteUser": "vscode"
 }

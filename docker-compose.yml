@@ -41,6 +41,31 @@ services:
     # Restart policy: restart container unless explicitly stopped
     restart: unless-stopped
 
+  devcontainer:
+    # Use custom Dockerfile for the development environment
+    build:
+      context: .devcontainer
+      dockerfile: Dockerfile
+    
+    # Give the container a friendly name
+    container_name: db2-course-devcontainer
+    
+    # Mount the workspace
+    volumes:
+      - ..:/workspace:cached
+    
+    # Keep the container running
+    command: sleep infinity
+    
+    # Depend on postgres service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+    # Environment variables
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+
 # Named volumes for persistent data storage
 volumes:
   # Volume to persist PostgreSQL data between container restarts
