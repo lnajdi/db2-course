@@ -34,7 +34,7 @@
     }
   },
   
-  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postCreateCommand": "cd /workspace && bash .devcontainer/setup.sh",
   
   "remoteUser": "vscode"
 }
