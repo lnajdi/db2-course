@@ -2,6 +2,8 @@
 
 # Setup script for PostgreSQL Database Lab Environment
 echo "🚀 Setting up PostgreSQL Database Lab Environment..."
+echo "📂 Current directory: $(pwd)"
+echo "📂 Workspace contents: $(ls -la)"
 
 # Install PostgreSQL client tools
 echo "📦 Installing PostgreSQL client tools..."
