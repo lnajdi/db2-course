@@ -26,8 +26,8 @@ Thumbs.db
 # Labs directory (as mentioned in to do)
 labs/
 
-# To-do files
-to-do.qmd
+# Private files
+private/
 
 # PostgreSQL specific
 postgresql/
