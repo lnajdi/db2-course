@@ -1,0 +1,34 @@
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.sql.bak
+*.dump
+*.log
+
+# Docker
+.env
+
+# Temporary files
+*.tmp
+*.temp
+
+# Lab solutions (keep student work private)
+**/solutions.sql
+
+# Labs directory (as mentioned in to do)
+labs/
+
+# To-do files
+to-do.qmd
+
+# PostgreSQL specific
+postgresql/
+pgdata/

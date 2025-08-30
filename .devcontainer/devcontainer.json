@@ -1,0 +1,44 @@
+{
+  "name": "PostgreSQL Database Lab Environment",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-ossdata.vscode-postgresql",
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "postgresql.connections": [
+          {
+            "host": "localhost",
+            "hostaddr": "127.0.0.1",
+            "port": "5432",
+            "dbname": "pagila",
+            "username": "student",
+            "password": "password"
+          }
+        ]
+      }
+    }
+  },
+  
+  "forwardPorts": [5432],
+  "portsAttributes": {
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "notify"
+    }
+  },
+  
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  
+  "remoteUser": "vscode",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  }
+}
