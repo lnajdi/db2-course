@@ -9,7 +9,8 @@
       "extensions": [
         "ms-ossdata.vscode-postgresql",
         "ms-vscode.vscode-json",
-        "redhat.vscode-yaml"
+        "redhat.vscode-yaml",
+        "mechatroner.rainbow-csv"
       ],
       "settings": {
         "postgresql.connections": [
@@ -21,7 +22,10 @@
             "username": "student",
             "password": "password"
           }
-        ]
+        ],
+        "files.associations": {
+          "*.sql": "sql"
+        }
       }
     }
   },
@@ -35,6 +39,8 @@
   },
   
   "postCreateCommand": "chmod +x /workspace/.devcontainer/setup.sh && /workspace/.devcontainer/setup.sh",
+  
+  "postStartCommand": "echo '✅ Codespace ready! Check the PostgreSQL extension in the sidebar.'",
   
   "remoteUser": "vscode"
 }

@@ -12,6 +12,28 @@ ls -la /workspace/.devcontainer/ || echo "❌ .devcontainer directory not found"
 echo "📦 Installing PostgreSQL client tools..."
 sudo apt-get update && sudo apt-get install -y postgresql-client
 
+# Configure VS Code settings for PostgreSQL
+echo "⚙️ Configuring VS Code settings..."
+mkdir -p /workspace/.vscode
+cat > /workspace/.vscode/settings.json << 'EOF'
+{
+  "postgresql.connections": [
+    {
+      "host": "postgres",
+      "hostaddr": "postgres", 
+      "port": "5432",
+      "dbname": "pagila",
+      "username": "student",
+      "password": "password",
+      "connectionName": "Pagila Database"
+    }
+  ],
+  "files.associations": {
+    "*.sql": "sql"
+  }
+}
+EOF
+
 # Wait for PostgreSQL to be ready
 echo "⏳ Waiting for PostgreSQL to be ready..."
 until pg_isready -h postgres -p 5432 -U student; do
