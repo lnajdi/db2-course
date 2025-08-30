@@ -52,7 +52,7 @@ services:
     
     # Mount the workspace
     volumes:
-      - ..:/workspace:cached
+      - .:/workspace:cached
     
     # Keep the container running
     command: sleep infinity

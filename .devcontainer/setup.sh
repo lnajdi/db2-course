@@ -3,11 +3,14 @@
 # Setup script for PostgreSQL Database Lab Environment
 echo "🚀 Setting up PostgreSQL Database Lab Environment..."
 echo "📂 Current directory: $(pwd)"
-echo "📂 Workspace contents: $(ls -la)"
+echo "📂 Workspace contents:"
+ls -la /workspace/
+echo "📂 .devcontainer contents:"
+ls -la /workspace/.devcontainer/ || echo "❌ .devcontainer directory not found"
 
 # Install PostgreSQL client tools
 echo "📦 Installing PostgreSQL client tools..."
-apt-get update && apt-get install -y postgresql-client
+sudo apt-get update && sudo apt-get install -y postgresql-client
 
 # Wait for PostgreSQL to be ready
 echo "⏳ Waiting for PostgreSQL to be ready..."
@@ -49,5 +52,9 @@ echo "Host: postgres | Port: 5432 | Database: pagila"
 echo "Username: student | Password: password"
 echo ""
 echo "🧪 Running connection test..."
-chmod +x .devcontainer/test-connection.sh
-bash .devcontainer/test-connection.sh
+if [ -f "/workspace/.devcontainer/test-connection.sh" ]; then
+    chmod +x /workspace/.devcontainer/test-connection.sh
+    bash /workspace/.devcontainer/test-connection.sh
+else
+    echo "⚠️  Test connection script not found, skipping test"
+fi
