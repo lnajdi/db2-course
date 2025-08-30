@@ -27,29 +27,9 @@ cat > /workspace/.vscode/settings.json << 'EOF'
       "connectionName": "Pagila Database"
     }
   ],
-  "postgresql.connections": [
-    {
-      "host": "postgres",
-      "hostaddr": "postgres", 
-      "port": "5432",
-      "dbname": "pagila",
-      "username": "student",
-      "password": "password",
-      "connectionName": "Pagila Database"
-    }
-  ],
   "files.associations": {
     "*.sql": "sql"
-  },
-  "sql.connections": [
-    {
-      "server": "postgres",
-      "database": "pagila",
-      "user": "student",
-      "password": "password",
-      "port": 5432
-    }
-  ]
+  }
 }
 EOF
 

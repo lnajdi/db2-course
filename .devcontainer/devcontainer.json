@@ -13,14 +13,14 @@
         "mechatroner.rainbow-csv"
       ],
       "settings": {
-        "postgresql.connections": [
+        "pgsql.connections": [
           {
             "host": "postgres",
-            "hostaddr": "postgres",
             "port": "5432",
             "dbname": "pagila",
             "username": "student",
-            "password": "password"
+            "password": "password",
+            "connectionName": "Pagila Database"
           }
         ],
         "files.associations": {
