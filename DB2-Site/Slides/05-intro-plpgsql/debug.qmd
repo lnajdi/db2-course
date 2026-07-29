@@ -1,0 +1,642 @@
+---
+title: "PostgreSQL Message Levels "
+subtitle: "For Complete Beginners"
+format: 
+  revealjs:
+    theme: moon
+    slide-number: true
+---
+
+# PostgreSQL Messages
+- In order to communicate with users, PostgreSQL uses different message levels to indicate the severity and nature of events that occur during database operations. - Understanding these message levels is crucial for effective database management and debugging.
+
+
+## The 6 Message Types
+
+::: {.incremental}
+1. 🔴 **EXCEPTION** - It failed!
+2. ⚠️ **WARNING** - Be careful!
+3. 💬 **NOTICE** - FYI
+4. ℹ️ **INFO** - Here's what happened
+5. 📋 **LOG** - (Admin only)
+6. 🔍 **DEBUG** - (Admin only)
+:::
+
+---
+
+
+## 🔴 EXCEPTION
+
+- **"It broke!"**
+
+- **Your command FAILED**
+
+    - ❌ Query stopped
+    - ❌ Nothing saved
+    - ❌ You must fix it
+
+---
+
+## Example 1: Table Missing
+
+```sql
+SELECT * FROM customers;
+```
+
+**Error:**
+```
+ERROR: relation "customers" does not exist
+```
+
+**Fix:** Use the correct table name
+
+---
+
+## Example 2: Wrong Data Type
+
+```sql
+INSERT INTO film (film_id, title) 
+VALUES ('ABC', 'New Movie');
+```
+
+**Error:**
+```
+ERROR: invalid input syntax for type integer: "ABC"
+```
+
+**Fix:** film_id needs a NUMBER, not text
+
+---
+
+## Example 3: Duplicate Key
+
+```sql
+INSERT INTO film (film_id, title) 
+VALUES (1, 'Test');
+```
+
+**Error:**
+```
+ERROR: duplicate key value violates unique constraint
+DETAIL: Key (film_id)=(1) already exists
+```
+
+**Fix:** Use a different film_id
+
+---
+
+## ⚠️ WARNING
+
+- **"Something's wrong, but I'll try"**
+
+- **A problem, but query might finish**
+
+    - ⚠️ Something concerning
+    - 🤔 Might be slow
+    - ⚠️ Check it!
+
+---
+
+## Example: Low Memory
+
+```sql
+SELECT * FROM huge_table 
+ORDER BY created_at;
+```
+
+**Warning:**
+```
+WARNING: out of shared memory
+```
+
+**Meaning:** Running low on memory, might be slow
+
+---
+
+## Example: Restart Needed
+
+```sql
+ALTER SYSTEM SET shared_buffers = '2GB';
+```
+
+**Warning:**
+```
+WARNING: setting requires restart to take effect
+```
+
+**Meaning:** Change saved, but restart database to use it
+
+---
+
+## 💬 NOTICE
+
+- **"For Your Information: I did something extra"**
+
+- **Everything is fine!**
+
+    - ✅ Query worked
+    - 💬 Just telling you extra info
+    - ✅ No problem at all
+
+---
+
+## Example: Auto-Created Stuff
+
+```sql
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name TEXT
+);
+```
+
+**Notice:**
+```
+NOTICE: CREATE TABLE will create implicit sequence 
+        "products_id_seq"
+NOTICE: CREATE TABLE / PRIMARY KEY will create 
+        implicit index "products_pkey"
+```
+
+---
+
+## What Does That Mean?
+
+**You asked for 1 thing:**
+- Create a table ✅
+
+**PostgreSQL gave you 3 things:**
+- Table ✅
+- Sequence (auto number generator) ✅
+- Index (makes searches fast) ✅
+
+**It's doing YOU a favor!**
+
+---
+
+## ℹ️ INFO
+
+- **"Here's what I did"**
+
+- **Confirming the result**
+
+- ✅ Query worked
+- ℹ️ Telling you what happened
+- ✅ All good
+
+---
+
+## Example: Nothing to Delete
+
+```sql
+DROP TABLE IF EXISTS old_table;
+```
+
+**Info:**
+```
+INFO: table "old_table" does not exist, skipping
+```
+
+**Meaning:** You said "delete if exists", it doesn't exist, so I skipped it. No problem!
+
+---
+
+## Example: Already Exists
+
+```sql
+CREATE TABLE IF NOT EXISTS film (...);
+```
+
+**Info:**
+```
+INFO: relation "film" already exists, skipping
+```
+
+**Meaning:** Table already there, didn't create again
+
+---
+
+## Info vs Notice
+- **NOTICE**: Extra info about what PostgreSQL did to help you
+- **INFO**: Confirmation of what you asked for, even if nothing changed
+
+---
+
+## 📋 LOG
+
+- **"Admin notes only"**
+
+- **Server activity - YOU DON'T SEE IT**
+
+- 📋 Background work
+- 🔇 Not shown to you
+- 👨‍💼 Only admins see it in log files
+
+---
+
+## What Gets Logged?
+
+```
+LOG: database system is ready
+LOG: checkpoint starting
+LOG: connection received
+LOG: automatic vacuum started
+LOG: checkpoint complete
+```
+
+**You see:** Nothing  
+**Admin sees:** Everything in `/var/log/postgresql/`
+
+---
+
+## Why LOG Exists
+
+**Think of a restaurant:**
+
+- You (customer) don't see kitchen notes
+- Staff writes everything in logbook
+- "Started oven at 3pm"
+- "Cleaned freezer"
+
+**LOG = Kitchen logbook**
+
+---
+
+##  🔍 DEBUG
+
+- **"Super detailed notes"**
+
+- **Extreme technical details**
+
+- 🔍 Very detailed
+- 🔇 You DON'T see it
+- 🐛 Only for debugging problems
+- 📚 Creates huge log files
+
+---
+
+## DEBUG Examples
+
+```
+DEBUG: rehashing catalog cache
+DEBUG: building index on table
+DEBUG: forked new backend, pid=12345
+DEBUG: StartTransaction(1)
+DEBUG: CommitTransaction(1)
+```
+
+**You see:** Nothing  
+**Developer debugging sees:** Everything
+
+---
+
+# Using Messages in Code
+
+**PL/pgSQL Functions**
+
+---
+
+## Syntax
+
+```sql
+RAISE EXCEPTION 'Error message';
+RAISE WARNING 'Warning message';
+RAISE NOTICE 'Notice message';
+RAISE INFO 'Info message';
+RAISE LOG 'Log message';
+RAISE DEBUG 'Debug message';
+```
+
+---
+
+## Simple Example
+
+```sql
+CREATE FUNCTION check_stock(p_film_id INT)
+RETURNS TEXT AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM film 
+                   WHERE film_id = p_film_id) THEN
+        RAISE EXCEPTION 'Film % not found', p_film_id;
+    END IF;
+    
+    RETURN 'Film exists';
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+## Testing It
+
+```sql
+-- This works
+SELECT check_stock(1);
+```
+**Result:** `Film exists`
+
+```sql
+-- This fails
+SELECT check_stock(9999);
+```
+**Result:** `ERROR: Film 9999 not found`
+
+---
+
+## Using NOTICE
+
+```sql
+CREATE FUNCTION update_prices()
+RETURNS INT AS $$
+DECLARE
+    v_count INT;
+BEGIN
+    RAISE NOTICE 'Starting price update...';
+    
+    UPDATE film SET rental_rate = rental_rate * 1.10;
+    
+    GET DIAGNOSTICS v_count = ROW_COUNT;
+    
+    RAISE NOTICE 'Updated % films', v_count;
+    
+    RETURN v_count;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+## Output
+
+```sql
+SELECT update_prices();
+```
+
+**Result:**
+```
+NOTICE: Starting price update...
+NOTICE: Updated 1000 films
+
+ update_prices 
+---------------
+          1000
+```
+
+---
+
+## Catching Errors
+
+```sql
+CREATE FUNCTION safe_insert(p_title TEXT)
+RETURNS TEXT AS $$
+BEGIN
+    INSERT INTO film (film_id, title, language_id)
+    VALUES (2000, p_title, 1);
+    
+    RETURN 'Success';
+    
+EXCEPTION
+    WHEN unique_violation THEN
+        RAISE NOTICE 'Film already exists';
+        RETURN 'Duplicate';
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Error: %', SQLERRM;
+        RETURN 'Failed';
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+## How It Works
+
+```sql
+-- First time: works
+SELECT safe_insert('New Film');
+```
+**Result:** `Success`
+
+```sql
+-- Second time: caught error
+SELECT safe_insert('New Film');
+```
+**Result:** 
+```
+NOTICE: Film already exists
+Duplicate
+```
+
+---
+
+# Real Example
+
+**Complete function with all message types**
+
+---
+
+## Function Code
+
+```sql
+CREATE FUNCTION process_rental(p_customer_id INT)
+RETURNS TEXT AS $$
+BEGIN
+    RAISE LOG 'Processing started for customer %', p_customer_id;
+    RAISE NOTICE 'Processing your rental...';
+    
+    -- Check customer
+    IF NOT EXISTS (SELECT 1 FROM customer 
+                   WHERE customer_id = p_customer_id) THEN
+        RAISE EXCEPTION 'Customer % not found', p_customer_id;
+    END IF;
+    
+    RAISE INFO 'Customer verified';
+    
+    -- Check rentals
+    IF (SELECT COUNT(*) FROM rental 
+        WHERE customer_id = p_customer_id) > 50 THEN
+        RAISE WARNING 'Customer has many rentals';
+    END IF;
+    
+    RAISE NOTICE 'Rental complete!';
+    RAISE LOG 'Processing completed';
+    
+    RETURN 'OK';
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+## What You See
+
+```sql
+SELECT process_rental(1);
+```
+
+**Your screen:**
+```
+NOTICE: Processing your rental...
+INFO: Customer verified
+WARNING: Customer has many rentals
+NOTICE: Rental complete!
+OK
+```
+
+**Server log file:**
+```
+LOG: Processing started for customer 1
+LOG: Processing completed
+```
+
+---
+
+# Summary
+
+---
+
+## What Each Type Does
+
+**EXCEPTION** 🔴
+- Command FAILED
+- Fix the error!
+
+**WARNING** ⚠️
+- Be careful
+- Might be a problem
+
+**NOTICE** 💬
+- FYI, extra info
+- Everything is fine
+
+---
+
+## What Each Type Does
+
+**INFO** ℹ️
+- Here's what happened
+- Confirmation message
+
+**LOG** 📋
+- Admin only
+- You don't see it
+
+**DEBUG** 🔍
+- Developer only
+- Super detailed
+
+---
+
+## When to Use Each
+
+**In your functions:**
+
+```sql
+-- Stop everything
+RAISE EXCEPTION 'Bad data';
+
+-- Warn user
+RAISE WARNING 'Be careful';
+
+-- Tell user what's happening
+RAISE NOTICE 'Processing...';
+
+-- Confirm action
+RAISE INFO 'Done';
+
+-- Audit trail
+RAISE LOG 'Action logged';
+```
+
+---
+
+## Remember
+
+::: {.incremental}
+- EXCEPTION = ❌ Stops
+- WARNING = ⚠️ Careful
+- NOTICE = 💬 FYI
+- INFO = ℹ️ Status
+- LOG = 📋 Hidden
+- DEBUG = 🔍 Hidden
+:::
+
+---
+
+## Questions?
+
+**Key points:**
+1. EXCEPTION stops your query
+2. WARNING/NOTICE/INFO keep going
+3. LOG/DEBUG you never see (admins only)
+
+---
+
+# Practice Examples
+
+---
+
+## Exercise 1
+
+**What message will this show?**
+
+```sql
+SELECT * FROM movies;
+```
+
+::: {.fragment}
+**Answer:** ERROR (EXCEPTION)  
+Table "movies" doesn't exist
+:::
+
+---
+
+## Exercise 2
+
+**What messages will this show?**
+
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email TEXT
+);
+```
+
+::: {.fragment}
+**Answer:** NOTICE (2 times)
+- Creating sequence for SERIAL
+- Creating index for PRIMARY KEY
+:::
+
+---
+
+## Exercise 3
+
+**What will you see?**
+
+```sql
+DROP TABLE IF EXISTS old_data;
+```
+
+(Assume table doesn't exist)
+
+::: {.fragment}
+**Answer:** INFO  
+"table old_data does not exist, skipping"
+:::
+
+---
+
+## Exercise 4
+
+**Will this stop?**
+
+```sql
+RAISE WARNING 'Low disk space';
+```
+
+::: {.fragment}
+**Answer:** NO  
+WARNING shows message but continues
+:::
+
+---
+

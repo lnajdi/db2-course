@@ -1,0 +1,109 @@
+
+### Getting Started with the PostgreSQL Extension in VS Code: A Complete Tutorial
+
+Welcome! The new PostgreSQL extension for Visual Studio Code brings powerful database management tools directly into your editor. This tutorial will walk you through setting up servers, writing queries, and even using advanced AI features to interact with your data in natural language.
+
+---
+
+#### **Prerequisites**
+
+Before you begin, make sure you have the following installed and configured:
+*   **Visual Studio Code**: The latest version.
+*   **PostgreSQL Extension for VS Code**: Install it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-ossdata.vscode-postgresql).
+*   **Docker Desktop**: Required for creating local database servers. Ensure it is running.
+*   **GitHub Copilot Chat** (Optional): Required for the "Chat with this database" and "Agent mode" features.
+
+---
+
+### **Part 1: Creating and Managing a Local Server**
+
+Let's start by creating a PostgreSQL server that runs locally in a Docker container.
+
+#### **Step 1: Create a New Local Server**
+1.  Open VS Code and click the **PostgreSQL** icon in the Activity Bar on the left.
+2.  In the PostgreSQL panel, click the **Create New Server** icon (a database symbol with a plus sign).
+3.  Select **Create a local Docker PostgreSQL Server**.
+4.  Click **Get Started**. The extension will check if Docker is installed and running.
+
+#### **Step 2: Configure the Server Connection**
+Once the prerequisites are checked, you'll be prompted to set up your connection. Fill in the fields as follows:
+*   **Connection Name**: `local-postgres`
+*   **Container Name**: `local-postgres`
+*   **Username**: `postgres`
+*   **Password**: `postgres` (or your own secure password)
+*   Check the **Save password** box.
+*   Click **Advanced** and set the **Bound Port** to `54876`.
+*   Click **Create**.
+
+The extension will now pull the necessary Docker image and configure your local PostgreSQL server. Once complete, you will see `local-postgres` appear under the **Servers** list.
+
+#### **Step 3: Create a Database and Load Data**
+1.  Expand the `local-postgres` server in the tree view.
+2.  Right-click on the default **postgres** database and select **New Query**.
+3.  In the new query editor, type the following command and click the green "Play" button in the top right to execute it:
+    ```sql
+    CREATE DATABASE pagila;
+    ```
+4.  Now, we'll load some sample data. Open a new terminal in VS Code (`Terminal` > `New Terminal`) and run the following commands to restore the schema and data (assuming you've cloned the repository from the video):
+    ```bash
+    # Restore the schema
+    psql -d "postgres://postgres:postgres@localhost:54876/pagila" -f data/pagila/pagila-schema.sql
+    
+    # Restore the data
+    psql -d "postgres://postgres:postgres@localhost:54876/pagila" -f data/pagila/pagila-data.sql
+    ```
+5.  Back in the PostgreSQL panel, right-click on the **Databases** folder and select **Refresh**. You should now see the `pagila` database.
+
+---
+
+### **Part 2: Exploring Your Database**
+
+Now that we have a database with data, let's explore some of the extension's key features.
+
+#### **1. Visualize the Schema**
+Get a bird's-eye view of your database structure.
+*   Right-click the `pagila` database and select **Visualize Schema**.
+*   A new tab will open with an interactive diagram showing all the tables, their columns, and the relationships between them. You can zoom and pan to explore.
+
+#### **2. Write and Run Queries**
+The integrated query editor makes it easy to interact with your data.
+1.  Right-click the `pagila` database and select **New Query**.
+2.  Start typing a query. Notice the intelligent auto-complete for SQL keywords, schemas, and table names. For example:
+    ```sql
+    SELECT title, description, release_year FROM film LIMIT 10;
+    ```
+3.  Execute the query by clicking the "Play" button.
+4.  The results will appear in a table at the bottom. From here, you can sort the data or use the icons on the right to **Save as CSV**, **Save as JSON**, or **Save as Excel**.
+
+---
+
+### **Part 3: Using AI Features with GitHub Copilot**
+
+If you have GitHub Copilot Chat, you can use natural language to query and manage your database.
+
+#### **1. Chat with Your Database**
+Ask questions about your data without writing any SQL.
+1.  Right-click on your `pagila` database.
+2.  Select **Chat with this database**.
+3.  A chat window will open. You can now ask a question in plain English. For example:
+    > @pgsql For each film, find the film that generated the highest total revenue during the first half of 2022. For each, report the total number of rentals, total rental revenue, and percentage of total revenue for each category. Order by highest revenue. Format as a table.
+4.  The AI will analyze your request, generate the correct SQL query, execute it, and return a formatted answer with key insights. You can see the query it generated in the **Query History** panel on the left.
+
+#### **2. Use Agent Mode for Complex Tasks**
+Agent mode can automate multi-step tasks from a single instruction. We'll ask it to create a new database, enable an extension, create a table from a CSV file, and load the data.
+
+1.  First, create a new local server named `local-postgis` with PostGIS enabled. Use the following advanced settings:
+    *   **Port**: `56453`
+    *   **Image name**: `postgis/postgis` (or `imresamu/postgis` for ARM machines)
+    *   **Image version**: `16` (or `16-3.4-bundle0-bookworm` for ARM)
+2.  Open the **GitHub Copilot Chat** panel.
+3.  At the bottom of the chat input, click where it says "Ask" and switch to **Agent** mode.
+4.  Enter a multi-step prompt like this:
+    > Create a new database in "local-postgis" server called "observations" and enable postgis for it. Then, use the data/observations/pennsylvania-insects.csv from my workspace to create a new table called "pennsylvania" in the "local-postgis" server and load the data in.
+5.  The agent will break this down into a plan with several steps (e.g., list servers, connect, create database, enable extension, create table, bulk load data). You will be prompted to approve each step by clicking **Continue**.
+
+The agent will execute each step, showing you its work along the way. In just a few moments, you'll have a fully configured database and table ready to go, all from a single natural language command.
+
+---
+
+You now have a solid foundation for using the PostgreSQL extension in VS Code. Enjoy exploring its powerful features

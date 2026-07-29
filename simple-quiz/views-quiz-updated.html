@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Views and Materialized Views Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 20px;
+            animation: fadeIn 0.5s ease-in;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .quiz-header h1 {
+            color: #667eea;
+            font-size: 1.6em;
+            margin-bottom: 8px;
+        }
+
+        .quiz-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .question-counter, .score-display {
+            font-size: 0.95em;
+            font-weight: 600;
+        }
+
+        .question-counter { color: #666; }
+        .score-display { color: #667eea; }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .question-section { margin-bottom: 15px; }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .difficulty-easy { background: #d4edda; color: #155724; }
+        .difficulty-medium { background: #fff3cd; color: #856404; }
+        .difficulty-hard { background: #f8d7da; color: #721c24; }
+
+        .question-text {
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-button {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 0.95em;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option-button:hover:not(:disabled) {
+            background: #e9ecef;
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .option-button:disabled { cursor: not-allowed; }
+        .option-button.selected { background: #667eea; color: white; border-color: #667eea; }
+        .option-button.correct { background: #4CAF50; color: white; border-color: #4CAF50; }
+        .option-button.incorrect { background: #f44336; color: white; border-color: #f44336; }
+
+        .fill-blank-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .fill-blank-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .ordering-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .ordering-item {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .ordering-item.correct-position {
+            background: #d4edda;
+            border-color: #4CAF50;
+            animation: correctPulse 0.5s ease;
+        }
+
+        .ordering-item.incorrect-position {
+            background: #f8d7da;
+            border-color: #f44336;
+            animation: incorrectShake 0.5s ease;
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .ordering-item-text {
+            flex: 1;
+            font-size: 0.95em;
+            color: #333;
+        }
+
+        .ordering-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .ordering-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+
+        .ordering-btn:hover:not(:disabled) {
+            background: #764ba2;
+        }
+
+        .ordering-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .drag-drop-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .drag-column h4 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .drag-item {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: move;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .drag-item:hover { background: #e9ecef; border-color: #667eea; }
+        .drag-item.dragging { opacity: 0.5; }
+
+        .drop-zone {
+            background: #f8f9fa;
+            border: 2px dashed #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            min-height: 50px;
+            margin-bottom: 8px;
+        }
+
+        .drop-zone.drag-over { background: #e7f3ff; border-color: #667eea; }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+            margin-bottom: 15px;
+            white-space: pre;
+        }
+
+        .hint-section { margin: 12px 0; }
+
+        .hint-button {
+            background: #ffc107;
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .hint-button:hover { background: #ffca28; transform: scale(1.05); }
+
+        .hint-text {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            display: none;
+            animation: slideDown 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .hint-text.show { display: block; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 5px;
+            display: none;
+            animation: slideDown 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .explanation.show { display: block; }
+        .explanation h3 { color: #2196F3; margin-bottom: 8px; font-size: 1em; }
+        .explanation p { margin-bottom: 8px; line-height: 1.5; }
+        .explanation .incorrect-reasons { margin-top: 10px; }
+        .explanation .incorrect-reasons h4 { color: #666; margin-bottom: 6px; font-size: 0.95em; }
+        .explanation .incorrect-reasons ul { list-style-position: inside; color: #666; }
+        .explanation .incorrect-reasons li { margin-bottom: 4px; }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .nav-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .nav-button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+        .results-container { display: none; text-align: center; }
+        .results-container.show { display: block; animation: fadeIn 0.5s ease; }
+        .results-score { font-size: 2.5em; color: #667eea; font-weight: bold; margin: 20px 0; }
+        .results-message { font-size: 1.2em; color: #666; margin-bottom: 20px; }
+
+        .performance-breakdown {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .performance-breakdown h3 { color: #667eea; margin-bottom: 15px; }
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .performance-item:last-child { border-bottom: none; }
+
+        .flashcards-section { margin-top: 20px; display: none; }
+        .flashcards-section.show { display: block; animation: fadeIn 0.5s ease; }
+
+        .flashcard-container {
+            perspective: 1000px;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+
+        .flashcard {
+            width: 100%;
+            min-height: 250px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+
+        .flashcard.flipped { transform: rotateY(180deg); }
+
+        .flashcard-face {
+            position: absolute;
+            width: 100%;
+            min-height: 250px;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .flashcard-front {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .flashcard-back {
+            background: white;
+            color: #333;
+            transform: rotateY(180deg);
+            border: 2px solid #667eea;
+        }
+
+        .flashcard-front h2 { font-size: 1.8em; margin-bottom: 15px; }
+        .flashcard-back p { font-size: 1.1em; line-height: 1.6; }
+
+        .flashcard-nav {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .flashcard-counter {
+            text-align: center;
+            font-size: 1em;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .study-guide {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .study-guide.show { display: block; animation: fadeIn 0.5s ease; }
+        .study-guide h2 { color: #667eea; margin-bottom: 15px; font-size: 1.5em; }
+        .study-guide h3 { color: #764ba2; margin-top: 20px; margin-bottom: 12px; font-size: 1.2em; }
+        .study-guide p { line-height: 1.7; color: #333; margin-bottom: 12px; font-size: 0.95em; }
+        .study-guide ul { margin-left: 20px; margin-bottom: 12px; }
+        .study-guide li { margin-bottom: 6px; line-height: 1.5; font-size: 0.95em; }
+
+        @media (max-width: 768px) {
+            .quiz-container { padding: 15px; }
+            .quiz-header h1 { font-size: 1.4em; }
+            .question-text { font-size: 1em; }
+            .option-button { font-size: 0.9em; padding: 10px 12px; }
+            .nav-button { padding: 10px 25px; font-size: 0.9em; }
+            .results-score { font-size: 2em; }
+            .drag-drop-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1>📊 Views and Materialized Views Quiz</h1>
+            <div class="quiz-info">
+                <div class="question-counter" id="questionCounter">Question 1 of 22</div>
+                <div class="score-display" id="scoreDisplay">Score: 0/22</div>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div id="quizSection">
+            <div class="question-section">
+                <span class="difficulty-badge" id="difficultyBadge">Easy</span>
+                <div class="question-text" id="questionText"></div>
+                <div class="options-container" id="optionsContainer"></div>
+            </div>
+
+            <div class="hint-section">
+                <button class="hint-button" id="hintButton">💡 Show Hint</button>
+                <div class="hint-text" id="hintText"></div>
+            </div>
+
+            <div class="explanation" id="explanation"></div>
+
+            <div class="navigation">
+                <button class="nav-button" id="nextButton" disabled>Next Question →</button>
+            </div>
+        </div>
+
+        <div class="results-container" id="resultsSection">
+            <h2>🎉 Quiz Complete!</h2>
+            <div class="results-score" id="finalScore"></div>
+            <div class="results-message" id="resultsMessage"></div>
+            
+            <div class="performance-breakdown">
+                <h3>📈 Performance Breakdown</h3>
+                <div class="performance-item">
+                    <span>Easy Questions:</span>
+                    <span id="easyScore"></span>
+                </div>
+                <div class="performance-item">
+                    <span>Medium Questions:</span>
+                    <span id="mediumScore"></span>
+                </div>
+                <div class="performance-item">
+                    <span>Hard Questions:</span>
+                    <span id="hardScore"></span>
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="nav-button" id="showFlashcardsButton">📚 Study Flashcards</button>
+                <button class="nav-button" id="showStudyGuideButton">📖 View Study Guide</button>
+            </div>
+        </div>
+
+        <div class="flashcards-section" id="flashcardsSection">
+            <h2 style="text-align: center; color: #667eea; margin-bottom: 20px;">📚 Study Flashcards</h2>
+            <div class="flashcard-container">
+                <div class="flashcard" id="flashcard">
+                    <div class="flashcard-face flashcard-front">
+                        <h2 id="flashcardTerm"></h2>
+                        <p style="font-size: 0.9em; margin-top: 15px;">Click to reveal answer</p>
+                    </div>
+                    <div class="flashcard-face flashcard-back">
+                        <p id="flashcardDefinition"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="flashcard-counter" id="flashcardCounter"></div>
+            <div class="flashcard-nav">
+                <button class="nav-button" id="prevFlashcard">← Previous</button>
+                <button class="nav-button" id="nextFlashcard">Next →</button>
+            </div>
+            <div class="navigation" style="margin-top: 20px;">
+                <button class="nav-button" id="backToResultsButton">← Back to Results</button>
+            </div>
+        </div>
+
+        <div class="study-guide" id="studyGuideSection">
+            <h2>📖 Comprehensive Study Guide</h2>
+            
+            <h3>🎯 Overview</h3>
+            <p>Views and Materialized Views are essential database objects that provide powerful abstraction layers in SQL databases. They serve as virtual or physical representations of query results, offering solutions for simplifying complex queries, enhancing security, maintaining consistency, and optimizing performance. Understanding when and how to use each type is crucial for effective database design and management.</p>
+
+            <h3>🔑 Key Concepts</h3>
+            <p><strong>Regular Views (Virtual Tables):</strong></p>
+            <ul>
+                <li>Store only the query definition, not the actual data</li>
+                <li>Execute the underlying query every time they are accessed</li>
+                <li>Always provide real-time, up-to-date data</li>
+                <li>No additional storage required beyond the query definition</li>
+                <li>Ideal for simplifying complex queries and enforcing security</li>
+            </ul>
+
+            <p><strong>Materialized Views (Physical Snapshots):</strong></p>
+            <ul>
+                <li>Store pre-computed results physically on disk</li>
+                <li>Provide fast query performance by avoiding repeated computation</li>
+                <li>Data can become stale and must be explicitly refreshed</li>
+                <li>Require additional storage space</li>
+                <li>Perfect for reporting, analytics, and reducing load on source tables</li>
+            </ul>
+
+            <h3>💡 Practical Applications</h3>
+            <p><strong>When to Use Regular Views:</strong></p>
+            <ul>
+                <li>Simplifying frequently used complex joins and aggregations</li>
+                <li>Implementing row-level or column-level security</li>
+                <li>Providing a stable API layer that shields applications from schema changes</li>
+                <li>When real-time data accuracy is critical</li>
+            </ul>
+
+            <p><strong>When to Use Materialized Views:</strong></p>
+            <ul>
+                <li>Dashboard and reporting systems where slight data lag is acceptable</li>
+                <li>Complex aggregations over large datasets that are expensive to compute</li>
+                <li>Data warehouse scenarios where queries need to run quickly</li>
+                <li>When the underlying data doesn't change frequently</li>
+            </ul>
+
+            <h3>⚠️ Common Misconceptions</h3>
+            <ul>
+                <li><strong>Misconception:</strong> "Views store data." → <strong>Truth:</strong> Regular views store only query definitions; materialized views store actual data.</li>
+                <li><strong>Misconception:</strong> "All views can be updated." → <strong>Truth:</strong> Only simple views meeting specific criteria are updatable.</li>
+                <li><strong>Misconception:</strong> "Materialized views update automatically." → <strong>Truth:</strong> They must be explicitly refreshed using REFRESH MATERIALIZED VIEW.</li>
+                <li><strong>Misconception:</strong> "Views always improve performance." → <strong>Truth:</strong> Regular views don't improve performance; materialized views do, but at the cost of storage and staleness.</li>
+            </ul>
+
+            <h3>🎓 Key Takeaways</h3>
+            <ul>
+                <li>Views are powerful abstraction tools that separate logical data representation from physical storage</li>
+                <li>The choice between regular and materialized views involves trade-offs between freshness, performance, and storage</li>
+                <li>Use WITH CHECK OPTION to enforce data integrity when updating through views</li>
+                <li>Simple, single-table views without aggregations are typically updatable</li>
+                <li>Views enable schema evolution without breaking dependent applications</li>
+                <li>Materialized views trade freshness for speed—refresh them strategically based on your data change patterns</li>
+            </ul>
+
+            <div class="navigation" style="margin-top: 20px;">
+                <button class="nav-button" id="backToResultsFromGuideButton">← Back to Results</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Quiz Data - 22 questions total (shuffled each time)
+        const allQuizData = [
+            // MULTIPLE CHOICE - Easy
+            {
+                type: "multiple-choice",
+                question: "What is the primary characteristic of a regular SQL view?",
+                options: [
+                    "It stores data physically on disk for fast retrieval",
+                    "It stores only the query definition and executes it each time the view is accessed",
+                    "It automatically updates whenever underlying tables change",
+                    "It requires manual refresh to show current data"
+                ],
+                correct: 1,
+                difficulty: "easy",
+                hint: "Think about whether a regular view stores actual data or just a query.",
+                explanation: "A regular view is a virtual table that stores only the query definition, not the actual data. When you query a view, the database executes the stored query against the underlying tables in real-time.",
+                incorrectReasons: [
+                    "Option A describes a materialized view, not a regular view.",
+                    "Option C is misleading—views don't 'update' because they don't store data; they simply re-execute the query.",
+                    "Option D describes materialized views, which must be manually refreshed."
+                ]
+            },
+            {
+                type: "multiple-choice",
+                question: "What command is used to create a view in SQL?",
+                options: [
+                    "INSERT VIEW view_name AS SELECT ...",
+                    "CREATE VIEW view_name AS SELECT ...",
+                    "MAKE VIEW view_name FROM SELECT ...",
+                    "DEFINE VIEW view_name WITH SELECT ..."
+                ],
+                correct: 1,
+                difficulty: "easy",
+                hint: "The standard SQL syntax for creating database objects starts with a specific keyword.",
+                explanation: "The correct syntax is CREATE VIEW view_name AS SELECT ... This is the standard SQL command for creating a view.",
+                incorrectReasons: [
+                    "INSERT is used for adding data to tables, not creating views.",
+                    "MAKE is not a valid SQL command for creating views.",
+                    "DEFINE is not the correct SQL keyword for view creation."
+                ]
+            },
+            {
+                type: "multiple-choice",
+                question: "Which system catalog in PostgreSQL stores information about regular views?",
+                options: [
+                    "pg_tables",
+                    "pg_views",
+                    "pg_database",
+                    "pg_catalog"
+                ],
+                correct: 1,
+                difficulty: "easy",
+                hint: "The name of the catalog directly indicates what it stores.",
+                explanation: "pg_views is the PostgreSQL system catalog that stores information about regular views, including their definitions and schemas.",
+                incorrectReasons: [
+                    "pg_tables stores information about tables, not views.",
+                    "pg_database stores database-level information.",
+                    "pg_catalog is the schema name containing system catalogs, not a specific catalog."
+                ]
+            },
+            // MULTIPLE CHOICE - Medium
+            {
+                type: "multiple-choice",
+                question: "Which of the following is NOT a primary benefit of using views?",
+                options: [
+                    "Simplifying complex queries",
+                    "Enhancing security by restricting data access",
+                    "Improving query performance automatically",
+                    "Providing a consistent interface despite schema changes"
+                ],
+                correct: 2,
+                difficulty: "medium",
+                hint: "Consider whether views actually store computed results or just re-run queries.",
+                explanation: "Regular views do NOT automatically improve query performance. They re-execute the underlying query each time they're accessed. Materialized views can improve performance by storing pre-computed results, but this comes with the cost of data staleness.",
+                incorrectReasons: [
+                    "Option A is correct—views simplify complex queries by encapsulating them.",
+                    "Option B is correct—views can restrict access to specific columns or rows.",
+                    "Option D is correct—views provide abstraction, allowing schema changes without breaking applications."
+                ]
+            },
+            {
+                type: "multiple-choice",
+                question: "How do you update the data in a materialized view in PostgreSQL?",
+                options: [
+                    "It updates automatically whenever the underlying tables change",
+                    "By running REFRESH MATERIALIZED VIEW view_name;",
+                    "By running UPDATE view_name SET ... WHERE ...;",
+                    "By dropping and recreating the materialized view"
+                ],
+                correct: 1,
+                difficulty: "medium",
+                hint: "Materialized views require an explicit command to refresh their stored data.",
+                explanation: "You must explicitly run REFRESH MATERIALIZED VIEW view_name; to update the data in a materialized view. PostgreSQL does not automatically refresh materialized views when underlying data changes.",
+                incorrectReasons: [
+                    "Option A is incorrect—materialized views do NOT auto-update.",
+                    "Option C is incorrect—you cannot UPDATE a materialized view directly like a table.",
+                    "Option D is inefficient and unnecessary; use REFRESH instead."
+                ]
+            },
+            {
+                type: "multiple-choice",
+                question: "What does the WITH CHECK OPTION clause do when creating a view?",
+                options: [
+                    "It validates that the view syntax is correct before creation",
+                    "It ensures that INSERT or UPDATE operations through the view cannot create rows that violate the view's WHERE clause",
+                    "It automatically refreshes the view whenever underlying data changes",
+                    "It prevents the view from being dropped accidentally"
+                ],
+                correct: 1,
+                difficulty: "medium",
+                hint: "Think about data integrity when modifying data through a view.",
+                explanation: "WITH CHECK OPTION ensures that any INSERT or UPDATE performed through the view cannot create or modify rows that wouldn't be visible in the view due to its WHERE clause. This maintains data integrity and prevents 'disappearing' rows.",
+                incorrectReasons: [
+                    "Option A is incorrect—syntax validation happens regardless of CHECK OPTION.",
+                    "Option C is incorrect—this applies to materialized views and triggers, not CHECK OPTION.",
+                    "Option D is incorrect—CHECK OPTION doesn't prevent view deletion."
+                ]
+            },
+            {
+                type: "multiple-choice",
+                question: "How can you check if a materialized view currently contains data in PostgreSQL?",
+                options: [
+                    "SELECT * FROM pg_views WHERE matviewname = 'view_name';",
+                    "SELECT ispopulated FROM pg_matviews WHERE matviewname = 'view_name';",
+                    "SHOW MATERIALIZED VIEW view_name;",
+                    "DESCRIBE view_name;"
+                ],
+                correct: 1,
+                difficulty: "medium",
+                hint: "PostgreSQL has a specific system catalog for materialized views.",
+                explanation: "You check the pg_matviews system catalog and look at the ispopulated column. If ispopulated is true, the view contains data; if false, it's empty.",
+                incorrectReasons: [
+                    "Option A is incorrect—pg_views is for regular views, not materialized views.",
+                    "Option C is incorrect—SHOW MATERIALIZED VIEW is not valid PostgreSQL syntax.",
+                    "Option D is incorrect—DESCRIBE is MySQL syntax, not PostgreSQL."
+                ]
+            },
+            {
+                type: "multiple-choice",
+                question: "Which statement best describes the trade-off between regular views and materialized views?",
+                options: [
+                    "Regular views are faster but require more storage space",
+                    "Materialized views provide real-time data but consume more CPU",
+                    "Regular views always provide current data but can be slower for complex queries",
+                    "Materialized views are updatable while regular views are read-only"
+                ],
+                correct: 2,
+                difficulty: "medium",
+                hint: "Think about the balance between data freshness and query performance.",
+                explanation: "Regular views always provide current, real-time data because they re-execute the underlying query each time. However, for complex queries involving large datasets, this can be slow. Materialized views trade freshness for speed.",
+                incorrectReasons: [
+                    "Option A is backwards—materialized views require storage, not regular views.",
+                    "Option B is incorrect—materialized views don't provide real-time data.",
+                    "Option D is incorrect—simple regular views can be updatable; materialized views generally aren't."
+                ]
+            },
+            // MULTIPLE CHOICE - Hard
+            {
+                type: "multiple-choice",
+                question: "Which scenario is the BEST use case for a materialized view instead of a regular view?",
+                options: [
+                    "Enforcing row-level security on sensitive employee data",
+                    "Simplifying a complex join for easier application queries",
+                    "Generating a daily sales dashboard from millions of transaction records",
+                    "Ensuring users always see the latest real-time inventory data"
+                ],
+                correct: 2,
+                difficulty: "hard",
+                hint: "Consider scenarios where query speed is critical and slight data staleness is acceptable.",
+                explanation: "A daily sales dashboard is perfect for a materialized view because it involves complex aggregations over large datasets, and slight data lag (e.g., refreshed once per day) is acceptable. This provides fast query performance without repeatedly computing expensive aggregations.",
+                incorrectReasons: [
+                    "Option A is better served by a regular view, which enforces security in real-time.",
+                    "Option B can use a regular view—no need for materialized storage if simplification is the goal.",
+                    "Option D requires real-time data, so a regular view is more appropriate than a stale snapshot."
+                ]
+            },
+            {
+                type: "multiple-choice",
+                question: "Which of the following views is considered updatable in PostgreSQL?",
+                options: [
+                    "A view that joins three tables together",
+                    "A view that uses DISTINCT on a single table",
+                    "A view that selects specific columns from a single table with a WHERE clause",
+                    "A view that uses GROUP BY and aggregate functions"
+                ],
+                correct: 2,
+                difficulty: "hard",
+                hint: "Updatable views must be simple: single table, no aggregations, no DISTINCT.",
+                explanation: "Option C is updatable because it's a simple view: it selects from a single table without aggregations, DISTINCT, or complex operations. PostgreSQL can unambiguously determine which rows in the underlying table to update.",
+                incorrectReasons: [
+                    "Option A is not updatable—views with JOINs are generally not updatable.",
+                    "Option B is not updatable—DISTINCT makes it impossible to identify which underlying row to update.",
+                    "Option D is not updatable—GROUP BY and aggregations prevent direct updates."
+                ]
+            },
+            // SQL Query-based questions
+            {
+                type: "sql-query",
+                question: "Given the following SQL command, what will happen?<div class='code-block'>CREATE VIEW active_customers AS\nSELECT customer_id, name, email\nFROM customers\nWHERE status = 'active';</div>",
+                options: [
+                    "A new table named active_customers is created with copied data",
+                    "A virtual view is created that will show active customers when queried",
+                    "All inactive customers are deleted from the customers table",
+                    "The customers table is renamed to active_customers"
+                ],
+                correct: 1,
+                difficulty: "medium",
+                hint: "Focus on what CREATE VIEW actually does versus creating tables.",
+                explanation: "CREATE VIEW creates a virtual view (not a physical table) that stores only the query definition. When you query active_customers, it will execute the SELECT statement and show only customers with status = 'active'.",
+                incorrectReasons: [
+                    "Views don't create new tables with copied data—that would require CREATE TABLE AS or SELECT INTO.",
+                    "CREATE VIEW doesn't modify the underlying data; it just provides a filtered view.",
+                    "CREATE VIEW doesn't rename tables; it creates a new database object."
+                ]
+            },
+            {
+                type: "sql-query",
+                question: "Examine this code:<div class='code-block'>CREATE VIEW west_customers AS\nSELECT *\nFROM customers\nWHERE region = 'West'\nWITH LOCAL CHECK OPTION;\n\nINSERT INTO west_customers (name, region)\nVALUES ('Acme Corp', 'East');</div>What will happen?",
+                options: [
+                    "The row is inserted into customers table successfully",
+                    "The INSERT fails with a CHECK OPTION violation error",
+                    "The region is automatically changed to 'West' before insertion",
+                    "A new view called west_customers_east is created"
+                ],
+                correct: 1,
+                difficulty: "hard",
+                hint: "WITH CHECK OPTION enforces the view's WHERE condition on modifications.",
+                explanation: "WITH LOCAL CHECK OPTION prevents INSERTs that would create rows not visible in the view. Since region = 'East' violates the WHERE region = 'West' condition, the INSERT fails with an error.",
+                incorrectReasons: [
+                    "The CHECK OPTION prevents insertion of rows that don't match the view's filter.",
+                    "PostgreSQL doesn't automatically modify your data to match the view's conditions.",
+                    "No new view is created; the operation simply fails."
+                ]
+            },
+            // TRUE/FALSE - Easy
+            {
+                type: "true-false",
+                question: "A materialized view stores pre-computed query results physically on disk.",
+                options: ["True", "False"],
+                correct: 0,
+                difficulty: "easy",
+                hint: "Think about the word 'materialized'—what does it imply?",
+                explanation: "True. A materialized view physically stores the results of a query on disk, making subsequent queries much faster. This is the key difference from regular views, which only store the query definition.",
+                incorrectReasons: [
+                    "This is true, not false. Materialized views are 'materialized' because they store actual data."
+                ]
+            },
+            {
+                type: "true-false",
+                question: "A materialized view provides real-time, always up-to-date data just like a regular view.",
+                options: ["True", "False"],
+                correct: 1,
+                difficulty: "easy",
+                hint: "Recall the key trade-off: performance vs. freshness.",
+                explanation: "False. Materialized views store a snapshot of data at the time of their last refresh. They can become stale and do not reflect real-time changes until explicitly refreshed with REFRESH MATERIALIZED VIEW.",
+                incorrectReasons: [
+                    "This is false. Materialized views sacrifice freshness for performance."
+                ]
+            },
+            {
+                type: "true-false",
+                question: "Views can only be created from a single table.",
+                options: ["True", "False"],
+                correct: 1,
+                difficulty: "easy",
+                hint: "Think about whether views can include JOINs.",
+                explanation: "False. Views can be created from complex queries involving multiple tables with JOINs, as well as aggregations, subqueries, and more. However, only simple single-table views are typically updatable.",
+                incorrectReasons: [
+                    "Views can absolutely join multiple tables—that's one of their main benefits for simplification."
+                ]
+            },
+            {
+                type: "true-false",
+                question: "The CREATE OR REPLACE VIEW command is safer than DROP VIEW followed by CREATE VIEW.",
+                options: ["True", "False"],
+                correct: 0,
+                difficulty: "medium",
+                hint: "Consider what happens to permissions and dependencies.",
+                explanation: "True. CREATE OR REPLACE VIEW updates the view definition without dropping it first, which preserves permissions, grants, and dependencies. DROP followed by CREATE would lose these.",
+                incorrectReasons: [
+                    "CREATE OR REPLACE is indeed safer as it maintains permissions and dependencies."
+                ]
+            },
+            {
+                type: "true-false",
+                question: "All views that use JOINs are not updatable in PostgreSQL.",
+                options: ["True", "False"],
+                correct: 0,
+                difficulty: "hard",
+                hint: "Think about the requirements for updatable views.",
+                explanation: "True. In PostgreSQL, views with JOINs are generally not automatically updatable because the database cannot unambiguously determine which underlying table rows to modify. Only simple, single-table views are typically updatable.",
+                incorrectReasons: [
+                    "This is true—JOINs make views non-updatable in standard PostgreSQL."
+                ]
+            },
+            // FILL IN THE BLANK
+            {
+                type: "fill-blank",
+                question: "To update the stored data in a materialized view named 'sales_summary', you would use the command: REFRESH _________ _________ sales_summary;",
+                correct: ["MATERIALIZED VIEW", "materialized view"],
+                difficulty: "easy",
+                hint: "What two words identify the type of view being refreshed?",
+                explanation: "The correct command is REFRESH MATERIALIZED VIEW sales_summary; This explicitly tells PostgreSQL to re-execute the view's query and update the stored results.",
+            },
+            {
+                type: "fill-blank",
+                question: "The clause _________ _________ _________ ensures that INSERT or UPDATE operations through a view cannot violate the view's WHERE condition.",
+                correct: ["WITH CHECK OPTION", "with check option", "WITH LOCAL CHECK OPTION", "with local check option"],
+                difficulty: "medium",
+                hint: "This three-word clause enforces the view's filtering rules on data modifications.",
+                explanation: "WITH CHECK OPTION (or WITH LOCAL CHECK OPTION) ensures that any data modifications through the view must satisfy the view's WHERE clause, maintaining data integrity.",
+            },
+            {
+                type: "fill-blank",
+                question: "In PostgreSQL, information about materialized views is stored in the system catalog named _________.",
+                correct: ["pg_matviews", "PG_MATVIEWS"],
+                difficulty: "medium",
+                hint: "The catalog name combines 'pg_' with an abbreviation for materialized views.",
+                explanation: "pg_matviews is the PostgreSQL system catalog that stores information about materialized views, including their definitions and whether they are populated (ispopulated column).",
+            },
+            // DRAG AND DROP
+            {
+                type: "drag-drop",
+                question: "Drag each characteristic to the correct view type:",
+                items: [
+                    "Stores only query definition",
+                    "Stores pre-computed results",
+                    "Always shows current data",
+                    "Requires manual refresh"
+                ],
+                categories: [
+                    { name: "Regular View", correctItems: ["Stores only query definition", "Always shows current data"] },
+                    { name: "Materialized View", correctItems: ["Stores pre-computed results", "Requires manual refresh"] }
+                ],
+                difficulty: "medium",
+                hint: "Think about what each view type stores and how it updates.",
+                explanation: "Regular views store only the query definition and always execute it on demand (showing current data). Materialized views store the actual query results physically and require manual refresh to update.",
+            },
+            {
+                type: "ordering",
+                question: "Arrange these steps in the correct order for properly modifying a view definition:",
+                items: [
+                    "Identify the existing view to modify",
+                    "Write the new query definition",
+                    "Execute CREATE OR REPLACE VIEW",
+                    "Verify the view works correctly"
+                ],
+                difficulty: "easy",
+                hint: "Consider the logical order from planning to verification.",
+                explanation: "The proper sequence is: identify the view, write the new definition, execute CREATE OR REPLACE VIEW (which preserves permissions), then verify it works correctly."
+            },
+            // Additional questions to reach 22
+            {
+                type: "multiple-choice",
+                question: "What happens if you try to INSERT data into a view with WITH CHECK OPTION when the new row violates the view's WHERE clause?",
+                options: [
+                    "The row is inserted into the base table but not visible in the view",
+                    "The INSERT operation fails with an error",
+                    "The row is automatically modified to satisfy the WHERE clause",
+                    "The WHERE clause is temporarily disabled for the INSERT"
+                ],
+                correct: 1,
+                difficulty: "hard",
+                hint: "CHECK OPTION enforces the view's filtering conditions.",
+                explanation: "WITH CHECK OPTION prevents INSERTs or UPDATEs that would create rows not visible in the view. The operation fails with an error, maintaining data integrity and preventing 'disappearing' rows.",
+                incorrectReasons: [
+                    "Option A is what would happen WITHOUT CHECK OPTION—the row would be inserted but hidden from the view.",
+                    "Option C is incorrect—the database doesn't automatically modify your data.",
+                    "Option D is incorrect—the WHERE clause is never disabled; it's enforced."
+                ]
+            },
+            {
+                type: "multiple-choice",
+                question: "In what order should you approach schema changes when views provide an abstraction layer for your applications?",
+                options: [
+                    "Change application code first, then modify tables, then update views",
+                    "Modify underlying tables first, update views to match, applications remain unchanged",
+                    "Drop all views first, change tables, recreate views, update applications",
+                    "Change everything simultaneously in a single transaction"
+                ],
+                correct: 1,
+                difficulty: "hard",
+                hint: "Views act as a stable 'contract' between the database and applications.",
+                explanation: "The power of views as an abstraction layer is that you can modify underlying tables and update the view's query logic to maintain the same interface, keeping applications unchanged. This decouples physical storage from logical presentation.",
+                incorrectReasons: [
+                    "Option A is incorrect—changing application code defeats the purpose of using views as abstraction.",
+                    "Option C is risky and causes downtime—views should provide continuity, not require recreation.",
+                    "Option D is impractical and risky for large systems with many dependencies."
+                ]
+            }
+        ];
+
+        // Shuffle questions
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        const quizData = shuffleArray(allQuizData);
+
+        // Flashcards Data
+        const flashcardsData = [
+            { term: "View", definition: "A virtual table that stores only a query definition, not actual data. It executes the underlying query each time it's accessed, always providing current data." },
+            { term: "Materialized View", definition: "A database object that physically stores pre-computed query results on disk, providing fast access but requiring explicit refresh to update the data." },
+            { term: "WITH CHECK OPTION", definition: "A clause that ensures INSERT or UPDATE operations through a view cannot create or modify rows that would be invisible in the view due to its WHERE clause, maintaining data integrity." },
+            { term: "Updatable View", definition: "A simple view (single table, no aggregations, no DISTINCT, no JOINs) through which you can perform INSERT, UPDATE, or DELETE operations that modify the underlying base table." },
+            { term: "REFRESH MATERIALIZED VIEW", definition: "The PostgreSQL command used to update a materialized view's stored data by re-executing its defining query against current base table data." },
+            { term: "pg_views", definition: "A PostgreSQL system catalog table that stores information about regular views, including their definitions and schemas." },
+            { term: "pg_matviews", definition: "A PostgreSQL system catalog table that stores information about materialized views, including whether they are populated (ispopulated column)." },
+            { term: "CREATE OR REPLACE VIEW", definition: "A SQL command that updates an existing view's definition without dropping it first, preserving permissions and dependencies—safer than DROP and recreate." },
+            { term: "View as Abstraction Layer", definition: "Using views to decouple application logic from physical database schema, allowing schema changes (like table decomposition) without breaking dependent applications." },
+            { term: "Performance vs. Freshness Trade-off", definition: "The fundamental choice between regular views (always current but potentially slow) and materialized views (fast but potentially stale), based on application requirements." }
+        ];
+
+        // Quiz State
+        let currentQuestion = 0;
+        let score = 0;
+        let answered = false;
+        let performanceByDifficulty = {
+            easy: { correct: 0, total: 0 },
+            medium: { correct: 0, total: 0 },
+            hard: { correct: 0, total: 0 }
+        };
+        let currentFlashcard = 0;
+        let dragDropAnswer = {};
+
+        // DOM Elements
+        const questionCounter = document.getElementById('questionCounter');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const progressBar = document.getElementById('progressBar');
+        const difficultyBadge = document.getElementById('difficultyBadge');
+        const questionText = document.getElementById('questionText');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const hintButton = document.getElementById('hintButton');
+        const hintText = document.getElementById('hintText');
+        const explanation = document.getElementById('explanation');
+        const nextButton = document.getElementById('nextButton');
+        const quizSection = document.getElementById('quizSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const flashcardsSection = document.getElementById('flashcardsSection');
+        const studyGuideSection = document.getElementById('studyGuideSection');
+
+        function init() {
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            answered = false;
+            dragDropAnswer = {};
+            const question = quizData[currentQuestion];
+
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+            progressBar.style.width = `${((currentQuestion) / quizData.length) * 100}%`;
+
+            difficultyBadge.textContent = question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1);
+            difficultyBadge.className = `difficulty-badge difficulty-${question.difficulty}`;
+
+            questionText.innerHTML = question.question.replace(/\n/g, '<br>');
+
+            optionsContainer.innerHTML = '';
+
+            if (question.type === "fill-blank") {
+                loadFillBlankQuestion(question);
+            } else if (question.type === "drag-drop") {
+                loadDragDropQuestion(question);
+            } else if (question.type === "ordering") {
+                loadOrderingQuestion(question);
+            } else {
+                loadMultipleChoiceQuestion(question);
+            }
+
+            hintText.classList.remove('show');
+            explanation.classList.remove('show');
+            
+            // Enable Next button for ordering and drag-drop, disable for others
+            const currentQ = quizData[currentQuestion];
+            if (currentQ.type === 'ordering' || currentQ.type === 'drag-drop') {
+                nextButton.disabled = false;
+                nextButton.textContent = 'Check Answer →';
+            } else {
+                nextButton.disabled = true;
+                nextButton.textContent = 'Next Question →';
+            }
+        }
+
+        function loadMultipleChoiceQuestion(question) {
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = `${String.fromCharCode(65 + index)}) ${option}`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function loadFillBlankQuestion(question) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'fill-blank-input';
+            input.placeholder = 'Type your answer here...';
+            input.id = 'fillBlankInput';
+            optionsContainer.appendChild(input);
+
+            const submitBtn = document.createElement('button');
+            submitBtn.className = 'nav-button';
+            submitBtn.textContent = 'Submit Answer';
+            submitBtn.onclick = () => checkFillBlankAnswer(question);
+            optionsContainer.appendChild(submitBtn);
+        }
+
+        function loadOrderingQuestion(question) {
+            const container = document.createElement('div');
+            container.className = 'ordering-container';
+            container.id = 'orderingContainer';
+
+            // Shuffle the items for display
+            const shuffledItems = shuffleArray([...question.items]);
+            window.currentOrder = shuffledItems;
+
+            renderOrderingItems(container, shuffledItems);
+            optionsContainer.appendChild(container);
+
+            // Add instruction text
+            const instruction = document.createElement('p');
+            instruction.style.textAlign = 'center';
+            instruction.style.marginTop = '10px';
+            instruction.style.color = '#666';
+            instruction.style.fontSize = '0.9em';
+            instruction.innerHTML = '↑ ↓ Use the buttons to reorder items, then click <strong>"Next Question"</strong>';
+            optionsContainer.appendChild(instruction);
+
+            // Store question reference for later checking
+            window.currentOrderingQuestion = question;
+        }
+
+        function renderOrderingItems(container, items) {
+            container.innerHTML = '';
+            items.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'ordering-item';
+                itemDiv.dataset.index = index;
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'ordering-item-text';
+                textSpan.textContent = `${index + 1}. ${item}`;
+
+                const controls = document.createElement('div');
+                controls.className = 'ordering-controls';
+
+                const upBtn = document.createElement('button');
+                upBtn.className = 'ordering-btn';
+                upBtn.textContent = '↑';
+                upBtn.disabled = index === 0;
+                upBtn.onclick = () => moveItem(index, -1);
+
+                const downBtn = document.createElement('button');
+                downBtn.className = 'ordering-btn';
+                downBtn.textContent = '↓';
+                downBtn.disabled = index === items.length - 1;
+                downBtn.onclick = () => moveItem(index, 1);
+
+                controls.appendChild(upBtn);
+                controls.appendChild(downBtn);
+
+                itemDiv.appendChild(textSpan);
+                itemDiv.appendChild(controls);
+                container.appendChild(itemDiv);
+            });
+        }
+
+        function moveItem(fromIndex, direction) {
+            const toIndex = fromIndex + direction;
+            if (toIndex < 0 || toIndex >= window.currentOrder.length) return;
+
+            // Swap items
+            [window.currentOrder[fromIndex], window.currentOrder[toIndex]] = 
+            [window.currentOrder[toIndex], window.currentOrder[fromIndex]];
+
+            // Re-render
+            const container = document.getElementById('orderingContainer');
+            renderOrderingItems(container, window.currentOrder);
+        }
+
+        function checkOrderingAnswer(question) {
+            answered = true;
+            performanceByDifficulty[question.difficulty].total++;
+
+            // Check if current order matches correct order
+            const isCorrect = window.currentOrder.every((item, index) => 
+                item === question.items[index]
+            );
+
+            if (isCorrect) {
+                score++;
+                performanceByDifficulty[question.difficulty].correct++;
+            }
+
+            // Visual feedback
+            const container = document.getElementById('orderingContainer');
+            const items = container.querySelectorAll('.ordering-item');
+            items.forEach((itemDiv, index) => {
+                const currentItem = window.currentOrder[index];
+                const correctItem = question.items[index];
+                const textSpan = itemDiv.querySelector('.ordering-item-text');
+                
+                if (currentItem === correctItem) {
+                    itemDiv.classList.add('correct-position');
+                    // Add checkmark icon
+                    if (!textSpan.textContent.includes('✅')) {
+                        textSpan.innerHTML = `${index + 1}. ✅ ${currentItem}`;
+                    }
+                } else {
+                    itemDiv.classList.add('incorrect-position');
+                    // Add X icon
+                    if (!textSpan.textContent.includes('❌')) {
+                        textSpan.innerHTML = `${index + 1}. ❌ ${currentItem}`;
+                    }
+                }
+
+                // Disable buttons
+                const buttons = itemDiv.querySelectorAll('.ordering-btn');
+                buttons.forEach(btn => btn.disabled = true);
+            });
+
+            showOrderingExplanation(question, isCorrect);
+            nextButton.disabled = false;
+            nextButton.textContent = 'Next Question →';
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+        }
+
+        function showOrderingExplanation(question, isCorrect) {
+            let explanationHTML = `<h3>${isCorrect ? '✅ Correct!' : '❌ Incorrect'}</h3>`;
+            explanationHTML += `<p><strong>Correct order:</strong></p><ol>`;
+            question.items.forEach(item => {
+                explanationHTML += `<li>${item}</li>`;
+            });
+            explanationHTML += `</ol>`;
+            explanationHTML += `<p><strong>Explanation:</strong> ${question.explanation}</p>`;
+            explanation.innerHTML = explanationHTML;
+            explanation.classList.add('show');
+        }
+
+        function loadDragDropQuestion(question) {
+            const container = document.createElement('div');
+            container.className = 'drag-drop-container';
+
+            // Handle both old pairs format and new category format
+            if (question.pairs) {
+                // Old format with pairs
+                const leftColumn = document.createElement('div');
+                leftColumn.className = 'drag-column';
+                leftColumn.innerHTML = '<h4>Items</h4>';
+
+                const rightColumn = document.createElement('div');
+                rightColumn.className = 'drag-column';
+                rightColumn.innerHTML = '<h4>Match To</h4>';
+
+                const shuffledRight = shuffleArray([...question.pairs.map(p => p.right)]);
+
+                question.pairs.forEach((pair, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'drag-item';
+                    item.textContent = pair.left;
+                    item.draggable = true;
+                    item.dataset.left = pair.left;
+                    item.addEventListener('dragstart', handleDragStart);
+                    item.addEventListener('dragend', handleDragEnd);
+                    leftColumn.appendChild(item);
+                });
+
+                shuffledRight.forEach(right => {
+                    const zone = document.createElement('div');
+                    zone.className = 'drop-zone';
+                    zone.textContent = right;
+                    zone.dataset.right = right;
+                    zone.addEventListener('dragover', handleDragOver);
+                    zone.addEventListener('drop', handleDrop);
+                    zone.addEventListener('dragleave', handleDragLeave);
+                    rightColumn.appendChild(zone);
+                });
+
+                container.appendChild(leftColumn);
+                container.appendChild(rightColumn);
+            } else {
+                // New format with categories
+                const leftColumn = document.createElement('div');
+                leftColumn.className = 'drag-column';
+                leftColumn.innerHTML = '<h4>Characteristics</h4>';
+
+                const rightColumn = document.createElement('div');
+                rightColumn.className = 'drag-column';
+                rightColumn.innerHTML = '<h4>View Types</h4>';
+
+                // Shuffle items
+                const shuffledItems = shuffleArray([...question.items]);
+
+                shuffledItems.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'drag-item';
+                    itemDiv.textContent = item;
+                    itemDiv.draggable = true;
+                    itemDiv.dataset.item = item;
+                    itemDiv.addEventListener('dragstart', handleDragStart);
+                    itemDiv.addEventListener('dragend', handleDragEnd);
+                    leftColumn.appendChild(itemDiv);
+                });
+
+                // Create drop zones for categories
+                question.categories.forEach(category => {
+                    const categoryContainer = document.createElement('div');
+                    categoryContainer.style.marginBottom = '15px';
+
+                    const categoryTitle = document.createElement('h4');
+                    categoryTitle.textContent = category.name;
+                    categoryTitle.style.marginBottom = '8px';
+                    categoryTitle.style.color = '#667eea';
+
+                    const zone = document.createElement('div');
+                    zone.className = 'drop-zone';
+                    zone.dataset.category = category.name;
+                    zone.style.minHeight = '80px';
+                    zone.addEventListener('dragover', handleDragOver);
+                    zone.addEventListener('drop', handleDropCategory);
+                    zone.addEventListener('dragleave', handleDragLeave);
+
+                    categoryContainer.appendChild(categoryTitle);
+                    categoryContainer.appendChild(zone);
+                    rightColumn.appendChild(categoryContainer);
+                });
+
+                container.appendChild(leftColumn);
+                container.appendChild(rightColumn);
+            }
+
+            optionsContainer.appendChild(container);
+
+            // Add instruction text
+            const instruction = document.createElement('p');
+            instruction.style.textAlign = 'center';
+            instruction.style.marginTop = '10px';
+            instruction.style.color = '#666';
+            instruction.style.fontSize = '0.9em';
+            instruction.innerHTML = '↔ Drag items to the correct category, then click <strong>"Next Question"</strong>';
+            optionsContainer.appendChild(instruction);
+
+            // Store question reference for later checking
+            window.currentDragDropQuestion = question;
+        }
+
+        let draggedElement = null;
+
+        function handleDragStart(e) {
+            draggedElement = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.target.classList.add('drag-over');
+            return false;
+        }
+
+        function handleDragLeave(e) {
+            e.target.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) e.stopPropagation();
+            e.target.classList.remove('drag-over');
+
+            if (draggedElement) {
+                const left = draggedElement.dataset.left;
+                const right = e.target.dataset.right;
+                dragDropAnswer[left] = right;
+                draggedElement.style.opacity = '0.5';
+                draggedElement.draggable = false;
+            }
+
+            return false;
+        }
+
+        function handleDropCategory(e) {
+            if (e.stopPropagation) e.stopPropagation();
+            
+            let dropZone = e.target;
+            // Make sure we're dropping on the drop-zone, not a child element
+            if (!dropZone.classList.contains('drop-zone')) {
+                dropZone = dropZone.closest('.drop-zone');
+            }
+            
+            dropZone.classList.remove('drag-over');
+
+            if (draggedElement) {
+                const item = draggedElement.dataset.item;
+                const category = dropZone.dataset.category;
+                
+                // Move the item to the drop zone
+                const clonedItem = draggedElement.cloneNode(true);
+                clonedItem.draggable = false;
+                clonedItem.style.opacity = '1';
+                clonedItem.style.marginBottom = '5px';
+                clonedItem.style.cursor = 'default';
+                dropZone.appendChild(clonedItem);
+                
+                // Hide original item
+                draggedElement.style.display = 'none';
+                
+                // Store answer
+                dragDropAnswer[item] = category;
+            }
+
+            return false;
+        }
+
+        function checkFillBlankAnswer(question) {
+            const input = document.getElementById('fillBlankInput');
+            const userAnswer = input.value.trim();
+            
+            answered = true;
+            performanceByDifficulty[question.difficulty].total++;
+
+            const isCorrect = question.correct.some(ans => 
+                userAnswer.toLowerCase() === ans.toLowerCase()
+            );
+
+            if (isCorrect) {
+                score++;
+                performanceByDifficulty[question.difficulty].correct++;
+                input.style.borderColor = '#4CAF50';
+                input.style.backgroundColor = '#d4edda';
+            } else {
+                input.style.borderColor = '#f44336';
+                input.style.backgroundColor = '#f8d7da';
+            }
+
+            input.disabled = true;
+            showFillBlankExplanation(question, isCorrect);
+            nextButton.disabled = false;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+        }
+
+        function checkDragDropAnswer(question) {
+            answered = true;
+            performanceByDifficulty[question.difficulty].total++;
+
+            let correctCount = 0;
+            let totalCount = 0;
+
+            if (question.pairs) {
+                // Old format
+                question.pairs.forEach(pair => {
+                    if (dragDropAnswer[pair.left] === pair.right) {
+                        correctCount++;
+                    }
+                });
+                totalCount = question.pairs.length;
+            } else {
+                // New category format
+                question.items.forEach(item => {
+                    const userCategory = dragDropAnswer[item];
+                    const correctCategory = question.categories.find(cat => 
+                        cat.correctItems.includes(item)
+                    );
+                    if (correctCategory && userCategory === correctCategory.name) {
+                        correctCount++;
+                    }
+                });
+                totalCount = question.items.length;
+            }
+
+            const isCorrect = correctCount === totalCount;
+
+            if (isCorrect) {
+                score++;
+                performanceByDifficulty[question.difficulty].correct++;
+            }
+
+            // Visual feedback on dropped items
+            if (question.categories) {
+                // New category format - add visual feedback to dropped items
+                question.categories.forEach(category => {
+                    const dropZones = document.querySelectorAll(`[data-category="${category.name}"]`);
+                    dropZones.forEach(zone => {
+                        const droppedItems = zone.querySelectorAll('.drag-item');
+                        droppedItems.forEach(itemDiv => {
+                            const itemText = itemDiv.textContent.trim();
+                            const isCorrectItem = category.correctItems.includes(itemText);
+                            
+                            if (isCorrectItem) {
+                                itemDiv.style.backgroundColor = '#d4edda';
+                                itemDiv.style.borderColor = '#4CAF50';
+                                itemDiv.style.color = '#155724';
+                                itemDiv.innerHTML = '✅ ' + itemText;
+                            } else {
+                                itemDiv.style.backgroundColor = '#f8d7da';
+                                itemDiv.style.borderColor = '#f44336';
+                                itemDiv.style.color = '#721c24';
+                                itemDiv.innerHTML = '❌ ' + itemText;
+                            }
+                        });
+                    });
+                });
+            }
+
+            showDragDropExplanation(question, isCorrect);
+            nextButton.disabled = false;
+            nextButton.textContent = 'Next Question →';
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+        }
+
+        function showFillBlankExplanation(question, isCorrect) {
+            let explanationHTML = `<h3>${isCorrect ? '✅ Correct!' : '❌ Incorrect'}</h3>`;
+            explanationHTML += `<p><strong>Correct answer(s):</strong> ${question.correct.join(' or ')}</p>`;
+            explanationHTML += `<p><strong>Explanation:</strong> ${question.explanation}</p>`;
+            explanation.innerHTML = explanationHTML;
+            explanation.classList.add('show');
+        }
+
+        function showDragDropExplanation(question, isCorrect) {
+            let explanationHTML = `<h3>${isCorrect ? '✅ Correct!' : '❌ Incorrect'}</h3>`;
+            explanationHTML += `<p><strong>Correct matches:</strong></p>`;
+            
+            if (question.pairs) {
+                // Old format
+                explanationHTML += `<ul>`;
+                question.pairs.forEach(pair => {
+                    explanationHTML += `<li>${pair.left} → ${pair.right}</li>`;
+                });
+                explanationHTML += `</ul>`;
+            } else {
+                // New category format
+                question.categories.forEach(category => {
+                    explanationHTML += `<p><strong>${category.name}:</strong></p><ul>`;
+                    category.correctItems.forEach(item => {
+                        const userAnswer = dragDropAnswer[item];
+                        const icon = userAnswer === category.name ? '✅' : '❌';
+                        explanationHTML += `<li>${icon} ${item}</li>`;
+                    });
+                    explanationHTML += `</ul>`;
+                });
+            }
+            
+            explanationHTML += `<p><strong>Explanation:</strong> ${question.explanation}</p>`;
+            explanation.innerHTML = explanationHTML;
+            explanation.classList.add('show');
+        }
+
+        hintButton.onclick = () => {
+            const question = quizData[currentQuestion];
+            hintText.textContent = question.hint;
+            hintText.classList.add('show');
+        };
+
+        function selectAnswer(selectedIndex) {
+            if (answered) return;
+
+            answered = true;
+            const question = quizData[currentQuestion];
+            const buttons = optionsContainer.querySelectorAll('.option-button');
+
+            performanceByDifficulty[question.difficulty].total++;
+
+            if (selectedIndex === question.correct) {
+                score++;
+                performanceByDifficulty[question.difficulty].correct++;
+                buttons[selectedIndex].classList.add('correct');
+            } else {
+                buttons[selectedIndex].classList.add('incorrect');
+                buttons[question.correct].classList.add('correct');
+            }
+
+            buttons.forEach(button => button.disabled = true);
+            showExplanation(question, selectedIndex);
+            nextButton.disabled = false;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+        }
+
+        function showExplanation(question, selectedIndex) {
+            let explanationHTML = `<h3>${selectedIndex === question.correct ? '✅ Correct!' : '❌ Incorrect'}</h3>`;
+            explanationHTML += `<p><strong>Explanation:</strong> ${question.explanation}</p>`;
+
+            if (selectedIndex !== question.correct && question.incorrectReasons) {
+                explanationHTML += `<div class="incorrect-reasons"><h4>Why the other options are incorrect:</h4><ul>`;
+                question.incorrectReasons.forEach(reason => {
+                    explanationHTML += `<li>${reason}</li>`;
+                });
+                explanationHTML += `</ul></div>`;
+            }
+
+            explanation.innerHTML = explanationHTML;
+            explanation.classList.add('show');
+        }
+
+        nextButton.onclick = () => {
+            // Check if we need to evaluate ordering or drag-drop before moving on
+            if (!answered && window.currentOrderingQuestion) {
+                checkOrderingAnswer(window.currentOrderingQuestion);
+                window.currentOrderingQuestion = null;
+                return; // Don't advance yet, let user see the result
+            }
+            if (!answered && window.currentDragDropQuestion) {
+                checkDragDropAnswer(window.currentDragDropQuestion);
+                window.currentDragDropQuestion = null;
+                return; // Don't advance yet, let user see the result
+            }
+            currentQuestion++;
+            loadQuestion();
+        };
+
+        function showResults() {
+            quizSection.style.display = 'none';
+            resultsSection.classList.add('show');
+
+            const percentage = Math.round((score / quizData.length) * 100);
+            document.getElementById('finalScore').textContent = `${score}/${quizData.length} (${percentage}%)`;
+
+            let message = '';
+            if (percentage >= 90) message = '🌟 Outstanding! You have excellent mastery of views and materialized views!';
+            else if (percentage >= 70) message = '👍 Great job! You have a solid understanding of the concepts.';
+            else if (percentage >= 50) message = '📚 Good effort! Review the study guide to strengthen your knowledge.';
+            else message = '💪 Keep learning! Use the flashcards and study guide to improve.';
+
+            document.getElementById('resultsMessage').textContent = message;
+
+            document.getElementById('easyScore').textContent = `${performanceByDifficulty.easy.correct}/${performanceByDifficulty.easy.total}`;
+            document.getElementById('mediumScore').textContent = `${performanceByDifficulty.medium.correct}/${performanceByDifficulty.medium.total}`;
+            document.getElementById('hardScore').textContent = `${performanceByDifficulty.hard.correct}/${performanceByDifficulty.hard.total}`;
+        }
+
+        document.getElementById('showFlashcardsButton').onclick = () => {
+            resultsSection.style.display = 'none';
+            flashcardsSection.classList.add('show');
+            loadFlashcard();
+        };
+
+        function loadFlashcard() {
+            const flashcard = flashcardsData[currentFlashcard];
+            document.getElementById('flashcardTerm').textContent = flashcard.term;
+            document.getElementById('flashcardDefinition').textContent = flashcard.definition;
+            document.getElementById('flashcardCounter').textContent = `Card ${currentFlashcard + 1} of ${flashcardsData.length}`;
+            document.getElementById('flashcard').classList.remove('flipped');
+        }
+
+        document.getElementById('flashcard').onclick = function() {
+            this.classList.toggle('flipped');
+        };
+
+        document.getElementById('prevFlashcard').onclick = () => {
+            if (currentFlashcard > 0) {
+                currentFlashcard--;
+                loadFlashcard();
+            }
+        };
+
+        document.getElementById('nextFlashcard').onclick = () => {
+            if (currentFlashcard < flashcardsData.length - 1) {
+                currentFlashcard++;
+                loadFlashcard();
+            }
+        };
+
+        document.getElementById('backToResultsButton').onclick = () => {
+            flashcardsSection.classList.remove('show');
+            resultsSection.style.display = 'block';
+        };
+
+        document.getElementById('showStudyGuideButton').onclick = () => {
+            resultsSection.style.display = 'none';
+            studyGuideSection.classList.add('show');
+        };
+
+        document.getElementById('backToResultsFromGuideButton').onclick = () => {
+            studyGuideSection.classList.remove('show');
+            resultsSection.style.display = 'block';
+        };
+
+        init();
+    </script>
+</body>
+</html>

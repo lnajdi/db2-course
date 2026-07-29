@@ -1,0 +1,311 @@
+Gotcha — a **PostgreSQL maintenance** mini-course coming up 😄
+You already know backups & monitoring, so I’ll focus on **keeping the DB healthy**:
+
+* Autovacuum & manual `VACUUM`
+* `ANALYZE` (statistics)
+* `REINDEX`
+* Basic “maintenance routine” you can follow
+
+I’ll keep examples in plain SQL so they work on Windows / Linux.
+
+---
+
+## 1. Why maintenance matters
+
+Postgres needs maintenance mainly because of **MVCC** (multi-version concurrency):
+
+* When you `UPDATE` or `DELETE`, old row versions stay on disk as **dead tuples**.
+* Too many dead tuples = **bloat**:
+
+  * Tables/indexes grow
+  * Queries slow down
+  * More disk + I/O
+
+**VACUUM** removes dead tuples, and **ANALYZE** updates stats so the planner picks good query plans.
+
+Postgres has **autovacuum** running in the background, but you should **understand + help it**.
+
+---
+
+## 2. Autovacuum: your automatic cleaner
+
+Autovacuum:
+
+* Watch tables for dead tuples
+* Runs `VACUUM` and `ANALYZE` automatically in the background
+
+You can see when it last vacuumed/analyzed a table:
+
+```sql
+SELECT
+  schemaname,
+  relname,
+  last_vacuum,
+  last_autovacuum,
+  last_analyze,
+  last_autoanalyze,
+  n_dead_tup
+FROM pg_stat_user_tables
+ORDER BY n_dead_tup DESC;
+```
+
+Watch for:
+
+* Tables with **lots of `n_dead_tup`**
+* Tables with `last_autovacuum` / `last_autoanalyze` = NULL (never run)
+
+If autovacuum isn’t keeping up, you might:
+
+* Need to **tune** it (later)
+* Or run manual `VACUUM` on heavy tables
+
+---
+
+## 3. Manual VACUUM (cleaning dead rows)
+
+### 3.1 Basic VACUUM
+
+```sql
+VACUUM;
+```
+
+* Cleans dead tuples for the **current database**
+* Does *not* reclaim space to the OS (but reuses it inside the table)
+
+For one table:
+
+```sql
+VACUUM public.customer;
+```
+
+### 3.2 VACUUM FULL (heavy but shrinks files)
+
+```sql
+VACUUM FULL public.customer;
+```
+
+* Rewrites the table into a new compact file
+* Actually shrinks file size
+* **Exclusive lock** on the table while running (blocks reads/writes)
+
+So:
+
+* Use **plain VACUUM** more often
+* Use **VACUUM FULL** sparingly, during maintenance windows, on very bloated tables
+
+You can check bloat roughly via table size vs row count (or with extensions / external scripts if needed).
+
+---
+
+## 4. ANALYZE: statistics for the planner
+
+Postgres stores **statistics** on data distribution (value frequency, nulls, etc.) per column.
+Planner uses this to choose indexes, join methods, etc.
+
+`ANALYZE` updates those stats.
+
+### 4.1 Basic ANALYZE
+
+```sql
+ANALYZE;
+```
+
+Whole database.
+
+Or:
+
+```sql
+ANALYZE public.rental;
+ANALYZE public.customer;
+```
+
+You should run `ANALYZE`:
+
+* After **big bulk loads**
+* After **massive deletes/updates**
+* When adding indexes or changing queries significantly
+
+Autovacuum does `autoanalyze` automatically once enough rows change, but you can **force it** if you know you just changed a lot.
+
+---
+
+## 5. REINDEX: fixing or refreshing indexes
+
+Over time, indexes can:
+
+* Get **bloated**
+* Rarely, get **corrupted** due to hardware issues
+* Become inefficient if data distribution changed a lot
+
+### 5.1 Reindex one index
+
+```sql
+REINDEX INDEX idx_customer_email;
+```
+
+### 5.2 Reindex a table
+
+```sql
+REINDEX TABLE public.customer;
+```
+
+### 5.3 Reindex the whole database
+
+```sql
+REINDEX DATABASE pagilla;
+```
+
+In modern Postgres versions there’s also `REINDEX CONCURRENTLY` (less blocking, but slower); if you’re on an older version, standard `REINDEX` locks the target.
+
+Use REINDEX when:
+
+* You observe index bloat
+* You suspect corruption
+* You’re doing “big clean-up” and want fresh, compact indexes
+
+---
+
+## 6. Routine checks you can actually run
+
+Here’s a simple **maintenance checklist** you can run weekly or monthly.
+
+### 6.1 Check dead tuples & last vacuum/analyze
+
+```sql
+SELECT
+  schemaname,
+  relname,
+  n_live_tup,
+  n_dead_tup,
+  last_autovacuum,
+  last_autoanalyze
+FROM pg_stat_user_tables
+ORDER BY n_dead_tup DESC
+LIMIT 20;
+```
+
+If you see:
+
+* Huge `n_dead_tup`
+* `last_autovacuum` is NULL or very old
+
+→ Consider:
+
+```sql
+VACUUM (VERBOSE) public.big_table;
+ANALYZE public.big_table;
+```
+
+### 6.2 Check biggest tables & think about bloat
+
+```sql
+SELECT
+  schemaname,
+  relname,
+  pg_size_pretty(pg_total_relation_size(format('%I.%I', schemaname, relname))) AS total_size
+FROM pg_stat_user_tables
+ORDER BY pg_total_relation_size(format('%I.%I', schemaname, relname)) DESC
+LIMIT 20;
+```
+
+If a table is huge and mostly old/deleted data, you might:
+
+* Archive old rows
+* `VACUUM FULL` during low traffic
+* Or partition it (more advanced)
+
+### 6.3 Reindex occasionally
+
+For very high-write tables (lots of insert/update/delete):
+
+```sql
+REINDEX TABLE public.rental;
+```
+
+Maybe during low traffic once in a while.
+
+---
+
+## 7. Autovacuum tuning (only the idea)
+
+Default autovacuum settings are **okay for many small/medium DBs**, but if you have:
+
+* Many writes, or
+* Very large tables
+
+you might need to tune:
+
+* `autovacuum_vacuum_scale_factor`
+* `autovacuum_analyze_scale_factor`
+* `autovacuum_max_workers`
+* `autovacuum_naptime`
+
+Conceptually:
+
+* **Scale factors** decide “run vacuum when X% of rows changed”
+* Lower scale factor = autovacuum runs **more often** on that table
+* You can set **per-table** parameters with `ALTER TABLE ... SET (...)`
+
+Example:
+
+```sql
+ALTER TABLE public.rental
+  SET (autovacuum_vacuum_scale_factor = 0.05); -- 5% instead of 20%
+```
+
+So autovacuum will clean it more aggressively.
+
+---
+
+## 8. A very simple maintenance plan you can follow
+
+You can adapt this to `pagilla` or your real DB.
+
+### Every day (or few hours in prod)
+
+* Monitor:
+
+  * Long-running queries
+  * Connection count
+  * Disk usage
+
+### Weekly
+
+1. **Check dead tuples & autovacuum**
+
+   ```sql
+   SELECT schemaname, relname, n_live_tup, n_dead_tup,
+          last_autovacuum, last_autoanalyze
+   FROM pg_stat_user_tables
+   ORDER BY n_dead_tup DESC
+   LIMIT 20;
+   ```
+
+2. For “worst offenders”:
+
+   ```sql
+   VACUUM public.big_table;
+   ANALYZE public.big_table;
+   ```
+
+### Monthly (or as needed)
+
+1. Check biggest tables:
+
+   ```sql
+   SELECT schemaname, relname,
+          pg_size_pretty(pg_total_relation_size(format('%I.%I', schemaname, relname))) AS total_size
+   FROM pg_stat_user_tables
+   ORDER BY pg_total_relation_size(format('%I.%I', schemaname, relname)) DESC
+   LIMIT 20;
+   ```
+
+2. If you see extreme growth with lots of dead tuples → consider:
+
+   * `VACUUM (VERBOSE)` to see what’s going on
+   * `VACUUM FULL` in a maintenance window
+   * `REINDEX` heavily-used indexes
+
+---
+
+If you tell me **which database you’re mostly working with (pagilla or your own)**, I can give you a **ready-to-run SQL “maintenance script”** you can save and run periodically.

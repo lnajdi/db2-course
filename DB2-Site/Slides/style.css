@@ -1,0 +1,220 @@
+/* =================================================================== */
+/*             COMPLETE & CONSOLIDATED STYLESHEET V2.2                 */
+/*         With Forceful Overrides for Framework Compatibility         */
+/*     (Includes fix for stretched images and title case preservation)     */
+/* =================================================================== */
+
+/*-- scss:defaults --*/
+:root {
+  /* --- CONTROL PANEL --- */
+  --font-family-base: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --font-size-base: 22px;
+  --font-size-h1: 2.2rem;
+  --font-size-h2: 1.8rem;
+  /* Increased code font size for readability on slides (reduced by 20%) */
+  --font-size-code: 1.44rem;
+  --font-size-footer: 0.8rem;
+
+  --color-text-base: #333;
+  --color-text-heading: #111;
+  --color-background: white;
+  --color-code-background: #f5f5f5;
+  --color-code-text: #2c3e50;
+
+  --line-height-base: 1.6;
+  --spacing-unit: 1em;
+  --list-indentation: 1.5em;
+}
+
+
+/*-- scss:rules --*/
+
+/* --- 1. GLOBAL SETUP --- */
+.reveal {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  background: var(--color-background);
+  color: var(--color-text-base);
+}
+
+.reveal .slides {
+  text-align: left;
+}
+
+
+/* --- 2. SLIDE LAYOUT ENGINE V2.0 (Forceful Override) --- */
+/* This version is designed to definitively override the framework's defaults. */
+
+.reveal .slides section {
+  /* This is the key change to force our layout */
+  display: flex !important; 
+  
+  flex-direction: column;
+  min-height: 100%; /* More robust than height: 100% */
+  justify-content: center; /* THE DEFAULT: Vertically centered */
+  padding: var(--spacing-unit) calc(var(--spacing-unit) * 1.5);
+}
+
+/* EXCEPTION CLASS: Add '.top-aligned' to a slide for top alignment */
+.reveal .slides section.top-aligned {
+  justify-content: flex-start !important; /* Force top alignment */
+  padding-top: 1.5em;
+}
+
+/* UTILITY CLASS: For side-by-side content (e.g., text and an image) */
+.reveal .layout-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: calc(var(--spacing-unit) * 1.5);
+  align-items: center;
+}
+
+/* --- FIX FOR STRETCHED IMAGES IN FLEX LAYOUT --- */
+/* This rule allows images with .r-stretch to work inside our flexbox slides */
+.reveal .slides section > img.r-stretch {
+  flex-grow: 1; /* Allows the image to grow and fill the available vertical space */
+  object-fit: contain; /* Ensures the image scales correctly without distortion */
+  width: 100%; /* Constrain the width to the slide's boundaries */
+  min-height: 0; /* A flexbox fix to prevent images from overflowing their container */
+}
+
+
+/* --- 3. TYPOGRAPHY --- */
+
+.reveal h1, .reveal h2, .reveal h3 {
+  font-weight: 600;
+  color: var(--color-text-heading);
+  margin: 0 0 calc(var(--spacing-unit) / 2) 0;
+  line-height: 1.2;
+  text-transform: none !important; /* Prevents the theme from forcing uppercase titles */
+}
+.reveal h1 { font-size: var(--font-size-h1); }
+.reveal h2 { font-size: var(--font-size-h2); }
+
+.reveal p {
+  line-height: var(--line-height-base);
+  margin: 0 0 var(--spacing-unit) 0;
+}
+
+.reveal ul, .reveal ol {
+  padding-left: var(--list-indentation);
+  margin-bottom: var(--spacing-unit);
+}
+.reveal li {
+  line-height: var(--line-height-base);
+  margin-bottom: calc(var(--spacing-unit) / 4);
+  padding-left: calc(var(--spacing-unit) / 4);
+}
+
+
+/* --- 4. COMPONENTS --- */
+
+.reveal pre code {
+  display: block;
+  background: var(--color-code-background);
+  padding: 0.9em 1.1em;
+  border-radius: 6px;
+  font-size: var(--font-size-code);
+  line-height: 1.6;
+  font-weight: 500;
+  color: var(--color-code-text);
+  white-space: pre-wrap;
+}
+
+/* Make SQL fenced code blocks larger specifically */
+/* Match Quarto/Pandoc's generated classes: e.g. <pre class="sourceCode ... sql"> and <code class="sourceCode sql"> */
+.reveal pre.sourceCode.sql,
+.reveal pre.sourceCode.sql code,
+.reveal code.sourceCode.sql,
+.reveal .sourceCode.sql,
+.reveal .sourceCode.sql code {
+  font-family: SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Segoe UI Mono", "Courier New", monospace;
+  font-size: 2.74rem !important; /* reduced another 10% */
+  line-height: 1.05 !important;
+}
+
+/* Responsive fallback so very large fonts don't overflow on small screens */
+@media (max-width: 900px) {
+  .reveal pre.sourceCode.sql,
+  .reveal pre.sourceCode.sql code,
+  .reveal code.sourceCode.sql,
+  .reveal .sourceCode.sql,
+  .reveal .sourceCode.sql code {
+    font-size: 1.58rem !important;
+  }
+}
+
+/* Extremely specific overrides to force larger SQL code text: target the inner spans created by the highlighter */
+.reveal pre.sourceCode.sql code span,
+.reveal pre.sourceCode.sql code span > span,
+.reveal .sourceCode.sql span,
+.reveal code.sourceCode.sql span {
+  font-family: inherit;
+  font-size: 2.16rem !important;
+  line-height: 1.05 !important;
+}
+
+@media (max-width: 900px) {
+  .reveal pre.sourceCode.sql code span,
+  .reveal pre.sourceCode.sql code span > span,
+  .reveal .sourceCode.sql span,
+  .reveal code.sourceCode.sql span {
+    font-size: 1.58rem !important;
+    line-height: 1.15 !important;
+  }
+}
+
+/* Also force the container elements to use the larger font-size so nested spans inherit if possible */
+.reveal pre.sourceCode.sql,
+.reveal div.sourceCode.numberSource.sql,
+.reveal div.sourceCode.numberSource.sql pre,
+.reveal div.sourceCode.numberSource.sql code {
+  font-size: 2.16rem !important;
+}
+
+@media (max-width: 900px) {
+  .reveal pre.sourceCode.sql,
+  .reveal div.sourceCode.numberSource.sql,
+  .reveal div.sourceCode.numberSource.sql pre,
+  .reveal div.sourceCode.numberSource.sql code {
+    font-size: 1.58rem !important;
+  }
+}
+
+/* Broad fallback: force all Quarto-generated code containers and their children to scale up
+   This is intentionally heavy-handed to override other stylesheet rules when needed. */
+.reveal .sourceCode,
+.reveal pre.sourceCode,
+.reveal pre.sourceCode code,
+.reveal div.sourceCode,
+.reveal div.sourceCode pre,
+.reveal div.sourceCode code,
+.reveal .code-with-copy,
+.reveal .sourceCode * {
+  font-size: 2.74rem !important;
+  line-height: 1.1 !important;
+}
+
+@media (max-width: 900px) {
+  .reveal .sourceCode,
+  .reveal pre.sourceCode,
+  .reveal pre.sourceCode code,
+  .reveal div.sourceCode,
+  .reveal div.sourceCode pre,
+  .reveal div.sourceCode code,
+  .reveal .code-with-copy,
+  .reveal .sourceCode * {
+    font-size: 1.3rem !important;
+    line-height: 1.2 !important;
+  }
+}
+
+.reveal .footer {
+  font-size: var(--font-size-footer);
+  position: fixed;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #888;
+  z-index: 1000;
+}

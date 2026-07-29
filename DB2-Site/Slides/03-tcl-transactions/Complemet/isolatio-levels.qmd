@@ -1,0 +1,77 @@
+### PostgreSQL Transaction Isolation Levels — Recap with Explanation
+
+PostgreSQL manages concurrent transactions using **MVCC (Multi-Version Concurrency Control)**, which lets readers and writers work without blocking each other. Each transaction sees a consistent snapshot of the database depending on the **isolation level**.
+
+---
+
+#### 🟢 1. Read Uncommitted
+
+* **Behavior:** Technically exists, but PostgreSQL treats it the same as *Read Committed* (no dirty reads).
+* **Visibility:** Can only see committed data.
+* **Use case:** Rarely used; same as Read Committed.
+* **Prevents:** Dirty reads.
+* **Allows:** Non-repeatable reads, phantom reads.
+
+**Example:**
+Transaction A updates a row but doesn’t commit yet. Transaction B tries to read it → B will **not** see the uncommitted change.
+
+---
+
+#### 🟡 2. Read Committed *(Default Level)*
+
+* **Behavior:** Each SQL statement sees only data committed before that statement starts.
+* **Visibility:** A new snapshot is taken at the start of every statement.
+* **Prevents:** Dirty reads.
+* **Allows:** Non-repeatable reads, phantom reads.
+
+**Example:**
+
+1. T1 reads Alice’s balance = 100.
+2. T2 updates it to 150 and commits.
+3. T1 reads again → now sees 150 (changed value).
+   → ✅ No dirty read, ❌ Non-repeatable read.
+
+---
+
+#### 🔵 3. Repeatable Read
+
+* **Behavior:** The entire transaction sees data as it looked when the transaction began.
+* **Visibility:** One consistent snapshot for the whole transaction.
+* **Prevents:** Dirty reads and non-repeatable reads.
+* **Allows:** Phantom reads.
+* **Conflict rule:** If two transactions modify the same row, PostgreSQL aborts one with `could not serialize access due to concurrent update`.
+
+**Example:**
+
+1. T1 reads Alice’s balance = 100.
+2. T2 changes Alice’s balance to 150 and commits.
+3. T1 reads again → still sees 100.
+   → ✅ Stable snapshot, ❌ New inserted rows might appear elsewhere (phantoms).
+
+---
+
+#### 🔴 4. Serializable
+
+* **Behavior:** PostgreSQL ensures results are as if all transactions ran **one after another** (serially).
+* **Visibility:** Uses Serializable Snapshot Isolation (SSI).
+* **Prevents:** Dirty reads, non-repeatable reads, phantom reads.
+* **Cost:** May roll back conflicting transactions that can’t be safely ordered.
+* **Action:** Application should retry rolled-back transactions.
+
+**Example:**
+Two transactions both calculate a total and insert based on that total → could conflict. PostgreSQL may rollback one to keep serial consistency.
+
+---
+
+### 🧩 Summary Table
+
+| Level            | Dirty Reads | Non-repeatable Reads | Phantom Reads | Snapshot Type   | Notes                       |
+| ---------------- | ----------- | -------------------- | ------------- | --------------- | --------------------------- |
+| Read Uncommitted | ❌           | ❌                    | ❌             | Per statement   | Acts same as Read Committed |
+| Read Committed   | ✅ prevented | ❌ possible           | ❌ possible    | Per statement   | Default level               |
+| Repeatable Read  | ✅ prevented | ✅ prevented          | ❌ possible    | Per transaction | Stable snapshot             |
+| Serializable     | ✅ prevented | ✅ prevented          | ✅ prevented   | Per transaction | Safest, may rollback        |
+
+---
+
+✅ **Key Tip:** Start with *Read Committed* for performance. Use *Repeatable Read* or *Serializable* when you need guaranteed consistency and can handle retries.

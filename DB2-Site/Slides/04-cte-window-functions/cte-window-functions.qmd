@@ -1,0 +1,687 @@
+---
+title: "CTEs & Window Functions: Advanced SQL Magic"
+subtitle: "A comprehensive guide to Common Table Expressions and Window Functions"
+author: "Database Course"
+format: 
+  clean-revealjs:
+    transition: slide
+    incremental: false
+---
+
+## What are CTEs? {.center}
+
+:::{.fragment}
+**CTE** stands for **Common Table Expression**
+:::
+
+:::{.fragment}
+It's a **temporary named result set** that exists only during query execution
+:::
+
+:::{.fragment}
+Think of it as a **"temporary view"** 📋
+:::
+
+:::{.fragment}
+*Makes complex queries more readable and maintainable*
+:::
+
+---
+
+## A Simple Analogy 🧩
+
+:::{.center}
+Think of CTEs as **building blocks** or **puzzle pieces**.
+:::
+
+:::{.fragment}
+- Instead of one giant, complex query
+- Break it into smaller, named pieces
+- Each piece has a clear purpose
+- Combine pieces to solve the bigger problem
+:::
+
+:::{.fragment}
+**Like organizing your thoughts before writing an essay**
+:::
+
+---
+
+## Basic CTE Syntax
+
+### Simple CTE structure
+```sql
+WITH cte_name AS (
+    -- Your query here
+    SELECT column1, column2
+    FROM table_name
+    WHERE condition
+)
+SELECT * FROM cte_name;
+```
+
+:::{.fragment}
+### Real example
+```sql
+WITH high_value_customers AS (
+    SELECT customer_id, SUM(order_total) as total_spent
+    FROM orders
+    WHERE order_date >= '2024-01-01'
+    GROUP BY customer_id
+    HAVING SUM(order_total) > 1000
+)
+SELECT * FROM high_value_customers
+ORDER BY total_spent DESC;
+```
+:::
+
+---
+
+## Multiple CTEs
+
+### Chaining CTEs together
+```sql
+WITH 
+monthly_sales AS (
+    SELECT 
+        DATE_TRUNC('month', order_date) as month,
+        SUM(total) as monthly_revenue
+    FROM orders
+    GROUP BY DATE_TRUNC('month', order_date)
+),
+avg_monthly AS (
+    SELECT AVG(monthly_revenue) as avg_revenue
+    FROM monthly_sales
+)
+SELECT 
+    m.month,
+    m.monthly_revenue,
+    a.avg_revenue,
+    CASE 
+        WHEN m.monthly_revenue > a.avg_revenue THEN 'Above Average'
+        ELSE 'Below Average'
+    END as performance
+FROM monthly_sales m
+CROSS JOIN avg_monthly a
+ORDER BY m.month;
+```
+
+---
+
+## Recursive CTEs
+
+### For hierarchical data
+```sql
+WITH RECURSIVE employee_hierarchy AS (
+    -- Base case: top-level managers
+    SELECT employee_id, name, manager_id, 1 as level
+    FROM employees
+    WHERE manager_id IS NULL
+    
+    UNION ALL
+    
+    -- Recursive case: employees with managers
+    SELECT e.employee_id, e.name, e.manager_id, eh.level + 1
+    FROM employees e
+    JOIN employee_hierarchy eh ON e.manager_id = eh.employee_id
+)
+SELECT 
+    REPEAT('  ', level - 1) || name as hierarchy,
+    level
+FROM employee_hierarchy
+ORDER BY level, name;
+```
+
+---
+
+## What are Window Functions? {.center}
+
+:::{.fragment}
+Window functions perform calculations **across related rows** without grouping them
+:::
+
+:::{.fragment}
+Think of it as **"looking through a window"** at related data 🪟
+:::
+
+:::{.fragment}
+*You can see individual rows AND aggregate information at the same time*
+:::
+
+---
+
+## Window Functions Analogy 🏃‍♂️
+
+:::{.center}
+Imagine a **race with runners**.
+:::
+
+:::{.fragment}
+- You want to see each runner's time (individual data)
+- AND their rank compared to others (aggregate data)
+- WITHOUT losing the individual runner details
+:::
+
+:::{.fragment}
+**Window functions let you see both perspectives simultaneously**
+:::
+
+---
+
+## Basic Window Function Syntax
+
+### The OVER clause is key
+```sql
+SELECT 
+    column1,
+    column2,
+    WINDOW_FUNCTION() OVER (
+        PARTITION BY partition_column
+        ORDER BY order_column
+    ) as result
+FROM table_name;
+```
+
+:::{.fragment}
+### Simple ranking example
+```sql
+SELECT 
+    employee_name,
+    salary,
+    RANK() OVER (ORDER BY salary DESC) as salary_rank
+FROM employees;
+```
+:::
+
+---
+
+## Aggregate Functions as Window Functions
+
+### You know these aggregates from GROUP BY:
+```sql
+-- Traditional GROUP BY aggregation
+SELECT 
+    department,
+    COUNT(*) as total_employees,
+    AVG(salary) as avg_salary
+FROM employees
+GROUP BY department;
+```
+
+:::{.fragment}
+### Now as window functions (keeping individual rows):
+```sql
+-- Same aggregates, but as window functions
+SELECT 
+    employee_name,
+    department,
+    salary,
+    COUNT(*) OVER (PARTITION BY department) as total_employees,
+    AVG(salary) OVER (PARTITION BY department) as avg_salary
+FROM employees;
+```
+:::
+
+---
+
+## Common Window Functions
+
+### Aggregate Functions (You already know these!)
+:::{.fragment}
+- **SUM() OVER()** - Running totals
+- **AVG() OVER()** - Moving averages
+- **COUNT() OVER()** - Running counts
+- **MIN() OVER()** - Rolling minimum values
+- **MAX() OVER()** - Rolling maximum values
+:::
+
+### Ranking Functions
+:::{.fragment}
+- **ROW_NUMBER()** - Unique sequential number
+- **RANK()** - Rank with gaps for ties
+- **DENSE_RANK()** - Rank without gaps
+- **NTILE(n)** - Divide into n buckets
+:::
+
+---
+
+## Ranking Examples
+
+### Different ranking approaches
+```sql
+SELECT 
+    product_name,
+    price,
+    ROW_NUMBER() OVER (ORDER BY price DESC) as row_num,
+    RANK() OVER (ORDER BY price DESC) as rank_with_gaps,
+    DENSE_RANK() OVER (ORDER BY price DESC) as rank_no_gaps,
+    NTILE(4) OVER (ORDER BY price DESC) as quartile
+FROM products
+ORDER BY price DESC;
+```
+
+:::{.fragment}
+Results might look like:
+```
+product_name | price | row_num | rank | dense_rank | quartile
+iPhone       | 999   | 1       | 1    | 1          | 1
+MacBook      | 999   | 2       | 1    | 1          | 1
+iPad         | 799   | 3       | 3    | 2          | 2
+```
+:::
+
+---
+
+## PARTITION BY: Groups Within Windows
+
+### Ranking within categories
+```sql
+SELECT 
+    category,
+    product_name,
+    price,
+    RANK() OVER (
+        PARTITION BY category 
+        ORDER BY price DESC
+    ) as category_rank
+FROM products
+ORDER BY category, category_rank;
+```
+
+:::{.fragment}
+This ranks products **within each category** separately:
+- Best electronics product gets rank 1
+- Best clothing product also gets rank 1
+:::
+
+---
+
+## Running Totals and Moving Averages
+
+### Cumulative calculations
+```sql
+SELECT 
+    order_date,
+    daily_sales,
+    SUM(daily_sales) OVER (
+        ORDER BY order_date
+        ROWS UNBOUNDED PRECEDING
+    ) as running_total,
+    AVG(daily_sales) OVER (
+        ORDER BY order_date
+        ROWS 6 PRECEDING
+    ) as seven_day_avg
+FROM daily_sales_summary
+ORDER BY order_date;
+```
+
+---
+
+## Frame Specifications
+
+### Controlling the "window frame"
+:::{.fragment}
+**ROWS BETWEEN** - Physical rows
+```sql
+-- Last 3 rows including current
+ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+```
+:::
+
+:::{.fragment}
+**RANGE BETWEEN** - Logical range
+```sql
+-- All rows with same ORDER BY value
+RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+```
+:::
+
+:::{.fragment}
+**Common patterns**:
+- `ROWS UNBOUNDED PRECEDING` - From start to current
+- `ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING` - Previous, current, next
+:::
+
+---
+
+## Lag and Lead Functions
+
+### Accessing previous/next row values
+```sql
+SELECT 
+    order_date,
+    revenue,
+    LAG(revenue, 1) OVER (ORDER BY order_date) as prev_day_revenue,
+    LEAD(revenue, 1) OVER (ORDER BY order_date) as next_day_revenue,
+    revenue - LAG(revenue, 1) OVER (ORDER BY order_date) as daily_change
+FROM daily_revenue
+ORDER BY order_date;
+```
+
+:::{.fragment}
+Perfect for calculating:
+- Day-over-day changes
+- Month-over-month growth
+- Sequential comparisons
+:::
+
+---
+
+## Combining CTEs and Window Functions
+
+### Powerful combination for complex analysis
+```sql
+WITH monthly_metrics AS (
+    SELECT 
+        DATE_TRUNC('month', order_date) as month,
+        SUM(total) as monthly_revenue,
+        COUNT(*) as order_count
+    FROM orders
+    GROUP BY DATE_TRUNC('month', order_date)
+),
+monthly_analysis AS (
+    SELECT 
+        month,
+        monthly_revenue,
+        order_count,
+        LAG(monthly_revenue) OVER (ORDER BY month) as prev_month_revenue,
+        AVG(monthly_revenue) OVER (
+            ORDER BY month 
+            ROWS 2 PRECEDING
+        ) as three_month_avg
+    FROM monthly_metrics
+)
+SELECT 
+    month,
+    monthly_revenue,
+    prev_month_revenue,
+    monthly_revenue - prev_month_revenue as month_over_month_change,
+    three_month_avg,
+    CASE 
+        WHEN monthly_revenue > three_month_avg THEN 'Above Trend'
+        ELSE 'Below Trend'
+    END as trend_status
+FROM monthly_analysis
+ORDER BY month;
+```
+
+---
+
+## Real-World Example: Sales Analysis
+
+### Top customers per region with percentiles
+```sql
+WITH customer_totals AS (
+    SELECT 
+        c.customer_id,
+        c.customer_name,
+        c.region,
+        SUM(o.total) as total_spent
+    FROM customers c
+    JOIN orders o ON c.customer_id = o.customer_id
+    WHERE o.order_date >= '2024-01-01'
+    GROUP BY c.customer_id, c.customer_name, c.region
+),
+customer_rankings AS (
+    SELECT 
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY region 
+            ORDER BY total_spent DESC
+        ) as region_rank,
+        PERCENT_RANK() OVER (
+            PARTITION BY region 
+            ORDER BY total_spent
+        ) as percentile,
+        NTILE(10) OVER (
+            PARTITION BY region 
+            ORDER BY total_spent
+        ) as decile
+    FROM customer_totals
+)
+SELECT 
+    region,
+    customer_name,
+    total_spent,
+    region_rank,
+    ROUND(percentile * 100, 2) as percentile_score,
+    decile
+FROM customer_rankings
+WHERE region_rank <= 5  -- Top 5 per region
+ORDER BY region, region_rank;
+```
+
+---
+
+## Advanced Window Techniques
+
+### First and Last Value functions
+```sql
+SELECT 
+    employee_name,
+    department,
+    salary,
+    FIRST_VALUE(employee_name) OVER (
+        PARTITION BY department 
+        ORDER BY salary DESC
+        ROWS UNBOUNDED PRECEDING
+    ) as highest_paid_in_dept,
+    LAST_VALUE(employee_name) OVER (
+        PARTITION BY department 
+        ORDER BY salary DESC
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) as lowest_paid_in_dept
+FROM employees;
+```
+
+---
+
+## Performance Considerations
+
+:::{.fragment}
+✅ **Index the ORDER BY columns** - Speeds up window sorting
+:::
+
+:::{.fragment}
+✅ **Use CTEs to reduce complexity** - Easier to optimize
+:::
+
+:::{.fragment}
+✅ **Limit PARTITION BY cardinality** - Too many partitions slow down
+:::
+
+:::{.fragment}
+✅ **Consider materialized views** - For frequently used window calculations
+:::
+
+:::{.fragment}
+⚠️ **Watch memory usage** - Large windows can consume memory
+:::
+
+---
+
+## Common Use Cases
+
+### CTEs are perfect for:
+:::{.fragment}
+- Breaking down complex queries
+- Recursive hierarchies (org charts, categories)
+- Data transformation pipelines
+- Temporary calculations
+:::
+
+### Window functions excel at:
+:::{.fragment}
+- Rankings and percentiles
+- Running totals and moving averages
+- Time series analysis
+- Comparative analysis (lag/lead)
+:::
+
+---
+
+## Best Practices
+
+:::{.fragment}
+✅ **Name CTEs descriptively** - Makes queries self-documenting
+:::
+
+:::{.fragment}
+✅ **Use multiple CTEs** - Better than nested subqueries
+:::
+
+:::{.fragment}
+✅ **Choose appropriate window frames** - ROWS vs RANGE
+:::
+
+:::{.fragment}
+✅ **Test with small datasets first** - Verify logic before scaling
+:::
+
+:::{.fragment}
+✅ **Document complex window logic** - Add comments for clarity
+:::
+
+---
+
+## Common Mistakes to Avoid
+
+:::{.fragment}
+🚫 **Forgetting ORDER BY in window functions** - May get unpredictable results
+:::
+
+:::{.fragment}
+🚫 **Using wrong frame specification** - ROWS vs RANGE confusion
+:::
+
+:::{.fragment}
+🚫 **Overly complex CTEs** - Break them down further
+:::
+
+:::{.fragment}
+🚫 **Not considering NULL handling** - Use NULLS FIRST/LAST
+:::
+
+:::{.fragment}
+🚫 **Ignoring performance** - Index and optimize as needed
+:::
+
+---
+
+## CTE vs Subquery vs Temp Table
+
+### When to use each:
+
+:::{.fragment}
+**CTEs**
+
+- Readability is priority
+- Used once in the query
+- Moderate complexity
+:::
+
+:::{.fragment}
+**Subqueries**
+
+- Simple, single-use logic
+- Performance is critical
+:::
+
+:::{.fragment}
+**Temp Tables**
+
+- Used multiple times
+- Very large datasets
+- Complex transformations
+:::
+
+---
+
+## Real-World Complex Example
+
+### Customer segmentation with growth analysis
+```sql
+WITH customer_monthly_spending AS (
+    SELECT 
+        customer_id,
+        DATE_TRUNC('month', order_date) as month,
+        SUM(total) as monthly_spend
+    FROM orders
+    WHERE order_date >= '2023-01-01'
+    GROUP BY customer_id, DATE_TRUNC('month', order_date)
+),
+customer_trends AS (
+    SELECT 
+        customer_id,
+        month,
+        monthly_spend,
+        LAG(monthly_spend, 1) OVER (
+            PARTITION BY customer_id 
+            ORDER BY month
+        ) as prev_month_spend,
+        AVG(monthly_spend) OVER (
+            PARTITION BY customer_id 
+            ORDER BY month 
+            ROWS 2 PRECEDING
+        ) as three_month_avg
+    FROM customer_monthly_spending
+),
+customer_segments AS (
+    SELECT 
+        customer_id,
+        AVG(monthly_spend) as avg_monthly_spend,
+        STDDEV(monthly_spend) as spend_volatility,
+        COUNT(*) as active_months,
+        NTILE(5) OVER (ORDER BY AVG(monthly_spend)) as spend_quintile
+    FROM customer_monthly_spending
+    GROUP BY customer_id
+)
+SELECT 
+    cs.customer_id,
+    cs.avg_monthly_spend,
+    cs.spend_volatility,
+    cs.active_months,
+    CASE cs.spend_quintile
+        WHEN 5 THEN 'Premium'
+        WHEN 4 THEN 'High Value'
+        WHEN 3 THEN 'Medium Value'
+        WHEN 2 THEN 'Low Value'
+        ELSE 'Basic'
+    END as customer_segment
+FROM customer_segments cs
+ORDER BY cs.avg_monthly_spend DESC;
+```
+
+---
+
+## Summary
+
+:::{.center}
+**CTEs and Window Functions are powerful SQL tools**
+:::
+
+:::{.fragment}
+**CTEs help you**:
+- Write readable, maintainable queries
+- Break complex logic into steps
+- Handle recursive relationships
+:::
+
+:::{.fragment}
+**Window Functions enable**:
+- Advanced analytics without losing detail
+- Ranking, running totals, and comparisons
+- Time series and trend analysis
+:::
+
+:::{.fragment}
+**Together they unlock advanced SQL capabilities!** ✨
+:::
+
+---
+
+## Questions? 🤔
+
+:::{.center}
+Let's explore some hands-on examples with CTEs and window functions!
+:::

@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL Admin Basics Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #5d6d7e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #2c3e50;
+            padding-bottom: 20px;
+        }
+
+        .quiz-title {
+            color: #2d3748;
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .quiz-subtitle {
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .progress-container {
+            margin-bottom: 30px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .question-counter {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        .score-display {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2c3e50, #34495e, #5d6d7e);
+            transition: width 0.3s ease;
+        }
+
+        .question-container {
+            margin-bottom: 30px;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            color: #2d3748;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border-left: 5px solid #2c3e50;
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .options-container {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-button {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px 20px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+            color: #4a5568;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-button:hover {
+            border-color: #2c3e50;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(44, 62, 80, 0.15);
+        }
+
+        .option-button.selected {
+            border-color: #2c3e50;
+            background: #f8fafc;
+        }
+
+        .option-button.correct {
+            border-color: #38a169;
+            background: #f0fff4;
+            color: #22543d;
+        }
+
+        .option-button.incorrect {
+            border-color: #e53e3e;
+            background: #fff5f5;
+            color: #742a2a;
+        }
+
+        .option-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-letter {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-right: 12px;
+        }
+
+        .controls-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(44, 62, 80, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .hint-container {
+            background: #fffbeb;
+            border: 1px solid #f6cc3e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #744210;
+            display: none;
+        }
+
+        .hint-container.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #22543d;
+            display: none;
+        }
+
+        .explanation.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .explanation h4 {
+            color: #22543d;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .explanation p {
+            line-height: 1.6;
+        }
+
+        .results-container {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .final-score {
+            font-size: 3em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .results-message {
+            font-size: 1.3em;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .performance-breakdown {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .performance-item:last-child {
+            border-bottom: none;
+        }
+
+        .restart-btn {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .quiz-container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .quiz-title {
+                font-size: 1.8em;
+            }
+
+            .question-text {
+                font-size: 1.2em;
+                padding: 15px;
+            }
+
+            .option-button {
+                padding: 15px;
+                font-size: 1em;
+            }
+
+            .controls-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .difficulty-easy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .difficulty-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .difficulty-hard {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 class="quiz-title">PostgreSQL Admin Basics</h1>
+            <p class="quiz-subtitle">Master database administration and security fundamentals</p>
+        </div>
+
+        <div id="quiz-content">
+            <div class="progress-container">
+                <div class="progress-info">
+                    <span class="question-counter" id="question-counter">Question 1 of 20</span>
+                    <span class="score-display" id="score-display">Score: 0/20</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <div class="question-container">
+                <div class="question-text" id="question-text">Loading question...</div>
+                <div class="options-container" id="options-container"></div>
+                <div class="hint-container" id="hint-container"></div>
+                <div class="explanation" id="explanation"></div>
+            </div>
+
+            <div class="controls-container">
+                <button class="btn btn-secondary" id="hint-btn" onclick="showHint()">
+                    💡 Show Hint
+                </button>
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>
+                    Next Question →
+                </button>
+            </div>
+        </div>
+
+        <div class="results-container" id="results-container">
+            <div class="final-score" id="final-score">0/20</div>
+            <div class="results-message" id="results-message"></div>
+            <div class="performance-breakdown">
+                <div class="performance-item">
+                    <span>Correct Answers:</span>
+                    <span id="correct-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Incorrect Answers:</span>
+                    <span id="incorrect-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Accuracy:</span>
+                    <span id="accuracy-percent">0%</span>
+                </div>
+            </div>
+            <button class="btn btn-primary restart-btn" onclick="restartQuiz()">
+                🔄 Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What is the primary difference between a USER and a ROLE in PostgreSQL?",
+                options: [
+                    "Users can own objects, roles cannot",
+                    "Users are a type of role that has LOGIN privilege by default",
+                    "Roles are more secure than users",
+                    "Users can be granted to other users, roles cannot"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the relationship between users and roles in terms of login capabilities.",
+                explanation: "In PostgreSQL, a USER is essentially a ROLE with the LOGIN privilege. Both are stored in pg_roles, but CREATE USER automatically grants LOGIN privilege while CREATE ROLE does not.",
+                difficulty: "easy"
+            },
+            {
+                question: "How can you display all roles and their attributes in PostgreSQL?",
+                options: [
+                    "SHOW ROLES;",
+                    "SELECT * FROM pg_users;",
+                    "SELECT * FROM pg_roles;",
+                    "LIST ROLES;"
+                ],
+                correctAnswer: 2,
+                hint: "Think about the system catalog that stores role information.",
+                explanation: "The pg_roles system view contains information about all database roles including their privileges like rolsuper, rolcreatedb, and rolcanlogin.",
+                difficulty: "easy"
+            },
+            {
+                question: "In PostgreSQL, roles can be granted to other roles to create privilege inheritance.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider the concept of role membership and inheritance in PostgreSQL security.",
+                explanation: "True. PostgreSQL supports role hierarchy where roles can be granted to other roles, allowing privilege inheritance. This enables flexible access control patterns.",
+                difficulty: "easy"
+            },
+            {
+                question: "What database-level privilege must be granted for a user to connect to a specific database?",
+                options: [
+                    "SELECT privilege",
+                    "USAGE privilege",
+                    "CONNECT privilege",
+                    "LOGIN privilege"
+                ],
+                correctAnswer: 2,
+                hint: "Think about the specific privilege needed just to establish a database connection.",
+                explanation: "CONNECT privilege on a database allows users to connect to it. LOGIN is a role attribute, but CONNECT is the database-level privilege required for connection.",
+                difficulty: "medium"
+            },
+            {
+                question: "What aspect of data access does Row-Level Security (RLS) manage?",
+                options: [
+                    "Which columns a user can see in a table",
+                    "Which tables a user can access in a schema",
+                    "Which rows a user can see or modify in a table",
+                    "Which functions a user can execute"
+                ],
+                correctAnswer: 2,
+                hint: "Think about the granularity level that RLS operates on.",
+                explanation: "RLS provides fine-grained access control at the row level, allowing policies to determine which specific rows a user can access based on conditions.",
+                difficulty: "medium"
+            },
+            {
+                question: "Which PostgreSQL system view displays information about active database connections?",
+                options: [
+                    "pg_connections",
+                    "pg_stat_activity",
+                    "pg_sessions",
+                    "pg_active_users"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the statistics-related system views for monitoring activity.",
+                explanation: "pg_stat_activity provides information about current database activity, including active connections, running queries, and session details.",
+                difficulty: "medium"
+            },
+            {
+                question: "What occurs by default when you try to DROP a role that owns database objects?",
+                options: [
+                    "The objects are automatically transferred to the postgres superuser",
+                    "The objects are deleted along with the role",
+                    "PostgreSQL prevents the role from being dropped and raises an error",
+                    "The objects become unowned and can be accessed by anyone"
+                ],
+                correctAnswer: 2,
+                hint: "Consider PostgreSQL's approach to preventing orphaned objects.",
+                explanation: "PostgreSQL prevents dropping roles that own objects to avoid orphaned objects. You must first reassign or drop the owned objects, or use CASCADE to force deletion.",
+                difficulty: "hard"
+            },
+            {
+                question: "How do you enable Row-Level Security on a specific table?",
+                options: [
+                    "CREATE POLICY ON table_name;",
+                    "ALTER TABLE table_name ENABLE ROW SECURITY;",
+                    "ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;",
+                    "SET row_security = on FOR table_name;"
+                ],
+                correctAnswer: 2,
+                hint: "Think about the specific ALTER TABLE syntax for enabling RLS.",
+                explanation: "The correct syntax is ALTER TABLE table_name ENABLE ROW LEVEL SECURITY, which must be done before creating policies on the table.",
+                difficulty: "medium"
+            },
+            {
+                question: "Superusers automatically bypass all Row-Level Security policies.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider the privileges that superuser status provides.",
+                explanation: "True. Superusers bypass RLS policies by default unless explicitly forced to follow them with ALTER TABLE table_name FORCE ROW LEVEL SECURITY.",
+                difficulty: "easy"
+            },
+            {
+                question: "What does the ALTER DEFAULT PRIVILEGES command accomplish?",
+                options: [
+                    "Changes privileges on all existing objects",
+                    "Sets privileges that will be automatically granted on future objects",
+                    "Removes all privileges from a role",
+                    "Creates a template for role creation"
+                ],
+                correctAnswer: 1,
+                hint: "Think about automating privilege assignment for objects created in the future.",
+                explanation: "ALTER DEFAULT PRIVILEGES configures privileges that are automatically granted on objects created by specific roles in specific schemas, reducing manual privilege management.",
+                difficulty: "medium"
+            },
+            {
+                question: "What role attribute grants the ability to create and manage other database roles?",
+                options: [
+                    "CREATEROLE",
+                    "ROLEADMIN",
+                    "CREATEUSER",
+                    "ADMIN"
+                ],
+                correctAnswer: 0,
+                hint: "Think about the specific attribute name for role creation privileges.",
+                explanation: "CREATEROLE attribute allows a role to create, alter, and drop other roles, but not superuser roles unless the role is itself a superuser.",
+                difficulty: "medium"
+            },
+            {
+                question: "What is the primary security concern with SECURITY DEFINER functions?",
+                options: [
+                    "They run slower than SECURITY INVOKER functions",
+                    "They execute with the privileges of the function creator, potentially elevating access",
+                    "They cannot access system catalogs",
+                    "They are deprecated and should not be used"
+                ],
+                correctAnswer: 1,
+                hint: "Think about whose privileges are used when the function executes.",
+                explanation: "SECURITY DEFINER functions run with the privileges of the function owner, not the caller, which can lead to privilege escalation if not carefully managed.",
+                difficulty: "hard"
+            },
+            {
+                question: "PostgreSQL supports granting privileges on specific columns within a table.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider the granularity of PostgreSQL's privilege system.",
+                explanation: "True. PostgreSQL supports column-level privileges, allowing you to grant SELECT, INSERT, or UPDATE privileges on specific columns rather than the entire table.",
+                difficulty: "easy"
+            },
+            {
+                question: "Based on this RLS policy, which rows can members of app_users role see?<br><div class='code-block'>CREATE POLICY user_data_policy ON customer_data<br>FOR SELECT TO app_users<br>USING (user_id = current_user);</div>",
+                options: [
+                    "All rows in the customer_data table",
+                    "Only rows where user_id matches their username",
+                    "Only the first 10 rows in the table",
+                    "No rows (the policy denies all access)"
+                ],
+                correctAnswer: 1,
+                hint: "Look at the USING clause condition in the policy.",
+                explanation: "The USING clause specifies that users can only see rows where the user_id column matches their current username (current_user).",
+                difficulty: "medium"
+            },
+            {
+                question: "What does the VALID UNTIL clause accomplish when creating a PostgreSQL user?",
+                options: [
+                    "Sets the maximum number of concurrent connections",
+                    "Sets a password expiration date for the user account",
+                    "Sets the maximum time a session can remain active",
+                    "Sets the date when the user must change their password"
+                ],
+                correctAnswer: 1,
+                hint: "Think about account lifecycle management and security policies.",
+                explanation: "VALID UNTIL sets an expiration date for the user account. After this date, the user cannot log in until their account is renewed by an administrator.",
+                difficulty: "hard"
+            },
+            {
+                question: "How can you view what table privileges have been granted to a specific user?",
+                options: [
+                    "SELECT * FROM pg_user_privileges WHERE user = 'username';",
+                    "SELECT * FROM information_schema.table_privileges WHERE grantee = 'username';",
+                    "SHOW PRIVILEGES FOR username;",
+                    "SELECT * FROM pg_privileges WHERE username = 'user';"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the information_schema views that provide privilege information.",
+                explanation: "The information_schema.table_privileges view contains information about table-level privileges granted to users and roles.",
+                difficulty: "medium"
+            },
+            {
+                question: "When a role is granted to another role, the receiving role automatically inherits all privileges.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider the default behavior of role membership in PostgreSQL.",
+                explanation: "True. By default, roles inherit privileges from roles granted to them. This can be controlled with the NOINHERIT role attribute or WITH INHERIT/NOINHERIT clause.",
+                difficulty: "easy"
+            },
+            {
+                question: "What does setting a CONNECTION LIMIT achieve when creating a user?",
+                options: [
+                    "Limits how long each connection can stay active",
+                    "Controls the maximum number of concurrent connections for that user",
+                    "Sets the maximum number of databases the user can connect to",
+                    "Limits the amount of data the user can retrieve per connection"
+                ],
+                correctAnswer: 1,
+                hint: "Think about resource management and preventing connection exhaustion.",
+                explanation: "CONNECTION LIMIT restricts how many simultaneous database connections a user can have, helping prevent resource exhaustion and managing concurrent access.",
+                difficulty: "medium"
+            },
+            {
+                question: "What is considered the best practice for PostgreSQL privilege management?",
+                options: [
+                    "Grant all users superuser privileges for simplicity",
+                    "Use the principle of least privilege - grant only necessary permissions",
+                    "Grant all privileges to roles and restrict only through application logic",
+                    "Use only database-level privileges and avoid object-level controls"
+                ],
+                correctAnswer: 1,
+                hint: "Think about fundamental security principles and risk minimization.",
+                explanation: "The principle of least privilege minimizes security risk by granting users only the minimum permissions necessary to perform their required tasks.",
+                difficulty: "hard"
+            },
+            {
+                question: "Which type of information can you obtain from the pg_stat_activity system view?",
+                options: [
+                    "Historical query performance over time",
+                    "Database size and growth statistics",
+                    "Current active connections and running queries",
+                    "User login and logout events"
+                ],
+                correctAnswer: 2,
+                hint: "Think about real-time activity monitoring capabilities.",
+                explanation: "pg_stat_activity provides real-time information about database activity including active connections, current queries, session state, and connection details for monitoring purposes.",
+                difficulty: "medium"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+        let quizCompleted = false;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            const question = quizData[currentQuestion];
+            const questionCounter = document.getElementById('question-counter');
+            const scoreDisplay = document.getElementById('score-display');
+            const progressFill = document.getElementById('progress-fill');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const hintContainer = document.getElementById('hint-container');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Update progress
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+            progressFill.style.width = `${((currentQuestion + 1) / quizData.length) * 100}%`;
+
+            // Load question
+            const difficultyClass = `difficulty-${question.difficulty}`;
+            const difficultyBadge = `<span class="difficulty-badge ${difficultyClass}">${question.difficulty.toUpperCase()}</span>`;
+            questionText.innerHTML = question.question + difficultyBadge;
+
+            // Load options
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}.</span>${option}`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+
+            // Reset controls
+            selectedAnswer = null;
+            hintContainer.classList.remove('show');
+            explanation.classList.remove('show');
+            nextBtn.disabled = true;
+            hintBtn.style.display = 'block';
+
+            if (currentQuestion === quizData.length - 1) {
+                nextBtn.textContent = 'Show Results';
+            }
+        }
+
+        function selectAnswer(answerIndex) {
+            if (selectedAnswer !== null) return;
+
+            selectedAnswer = answerIndex;
+            const question = quizData[currentQuestion];
+            const options = document.querySelectorAll('.option-button');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Disable all options
+            options.forEach(option => option.classList.add('disabled'));
+
+            // Show correct/incorrect styling
+            options[question.correctAnswer].classList.add('correct');
+            if (answerIndex !== question.correctAnswer) {
+                options[answerIndex].classList.add('incorrect');
+            } else {
+                score++;
+                document.getElementById('score-display').textContent = `Score: ${score}/${quizData.length}`;
+            }
+
+            // Show explanation
+            explanation.innerHTML = `
+                <h4>🛡️ Explanation</h4>
+                <p><strong>Correct Answer:</strong> ${question.explanation}</p>
+            `;
+            explanation.classList.add('show');
+
+            // Enable next button and hide hint button
+            nextBtn.disabled = false;
+            hintBtn.style.display = 'none';
+        }
+
+        function showHint() {
+            const question = quizData[currentQuestion];
+            const hintContainer = document.getElementById('hint-container');
+            hintContainer.innerHTML = `<strong>💡 Hint:</strong> ${question.hint}`;
+            hintContainer.classList.add('show');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+            const finalScore = document.getElementById('final-score');
+            const resultsMessage = document.getElementById('results-message');
+            const correctCount = document.getElementById('correct-count');
+            const incorrectCount = document.getElementById('incorrect-count');
+            const accuracyPercent = document.getElementById('accuracy-percent');
+
+            quizContent.style.display = 'none';
+            resultsContainer.classList.add('show');
+
+            const accuracy = Math.round((score / quizData.length) * 100);
+            
+            finalScore.textContent = `${score}/${quizData.length}`;
+            correctCount.textContent = score;
+            incorrectCount.textContent = quizData.length - score;
+            accuracyPercent.textContent = `${accuracy}%`;
+
+            let message = '';
+            if (accuracy >= 90) {
+                message = '🏆 Outstanding! You have mastered PostgreSQL administration and are ready to manage production databases!';
+            } else if (accuracy >= 80) {
+                message = '⭐ Excellent! You understand database administration fundamentals and security principles well.';
+            } else if (accuracy >= 70) {
+                message = '📈 Good work! You grasp the basics but should review advanced security features and monitoring.';
+            } else if (accuracy >= 60) {
+                message = '📚 Keep studying! Focus on user management, privilege systems, and security policies.';
+            } else {
+                message = '🔄 Review the fundamentals! Study roles, privileges, and basic security concepts carefully.';
+            }
+
+            resultsMessage.textContent = message;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            selectedAnswer = null;
+            quizCompleted = false;
+
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+
+            resultsContainer.classList.remove('show');
+            quizContent.style.display = 'block';
+
+            loadQuestion();
+        }
+
+        // Initialize quiz
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>

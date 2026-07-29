@@ -1,0 +1,238 @@
+# Interactive Quiz Generator Prompt
+
+Generate a comprehensive, interactive, and educational quiz from the provided content, then package it into a single, self-contained, interactive HTML file.
+
+---
+
+## Configuration Settings (Customize Before Use)
+
+### Total Number of Questions
+**Total Questions:** [22]
+
+### Question Type Distribution
+- **Multiple Choice Questions:** [10]
+  - Each should have one correct answer and three plausible but incorrect distractors
+- **True/False Questions:** [5]
+- **Fill in the Blank Questions:** [3]
+- **Drag and Drop Questions:** [2] (for matching or ordering concepts)
+- multiple choice questions based on sql query examples [2]
+
+### Difficulty Level Distribution
+- **Easy (Basic recall and definitions):** [40]%
+- **Medium (Comprehension and connections):** [40]%
+- **Hard (Analysis and application):** [20]%
+
+*Note: Percentages should total 100%*
+
+### Additional Options
+- **Number of Flashcards:** [Enter number, e.g., 10]
+- **Study Guide Paragraphs:** [Enter number, e.g., 4-5]
+
+---
+
+## Part 1: Quiz Requirements
+
+### Content Analysis
+- First, analyze the lab content to identify key concepts and learning objectives
+- Ensure questions capture the essential concepts from the lab
+- Maintain a pedagogical and clear approach in all explanations
+
+### Quiz Composition
+Use the configuration settings specified above to determine:
+- Total number of questions
+- Distribution across question types (Multiple Choice, True/False, Fill in the Blank, Drag and Drop)
+- Difficulty level percentages (Easy, Medium, Hard)
+
+## Part 2: Detailed Output Structure
+
+First, generate the quiz content in a structured text format for review. For each question, provide:
+
+**Question Structure:**
+
+1. **Question Number:** 
+2. **Key Concept Tested:** Identify the core topic from the content this question addresses
+3. **Question Type:** [Multiple Choice | True/False | Fill in the Blank | Drag and Drop]
+5. **Question Text:** Clear, concise question statement
+6. **Options:** 
+   - For Multiple Choice: Four options (A, B, C, D)
+   - For True/False: True or False
+   - For Fill in the Blank: Expected answer(s)
+   - For Drag and Drop: Items to match or order
+7. **Correct Answer:** Index or identifier of the correct answer
+8. **Hint:** A brief, one-sentence hint that guides without revealing the answer
+9. **Feedback & Explanations:**
+   - **Correct Answer Explanation:** Clear explanation of why the correct answer is right
+   - **Incorrect Answers Explanations:** For each incorrect option, explain why it is wrong
+10. questions should be shuffled for each attempt
+11. Apply category-based drag-and-drop format to ALL drag-and-drop questions in the quiz.
+12. For all question types, want to remove the "Submit Answer" button for all question types EXCEPT fill-in-the-blank questions.
+
+13. Instant feedback to be provided in the options themselves with appropriate styling.
+
+## Part 3: Interactive HTML File Generation
+
+After generating the structured quiz content, create the final deliverable: a single, self-contained HTML file named `quiz.html`.
+
+### Technical Requirements
+
+**Self-Contained Structure:**
+- All CSS and JavaScript must be embedded directly into the HTML file
+- No external dependencies or links to external stylesheets/scripts
+- File should work offline and standalone
+
+### HTML Structure Requirements
+
+**User Interface Elements:**
+
+1. **Quiz Header:**
+   - Clear, descriptive title
+   - Current question number (e.g., "Question 2 of 15")
+   - Visual progress bar showing completion percentage
+
+2. **Question Display:**
+   - Display one question at a time
+   - Clear question text with appropriate formatting
+   - Answer options as clickable buttons or interactive elements
+   - Hint button (reveals hint when clicked, without giving away the answer)
+
+3. **Navigation:**
+   - "Next Question" button (initially disabled until an answer is selected)
+   - Question counter and progress indicator
+
+4. **Results Screen:**
+   - Final score display (e.g., "You scored 12/15 - 80%")
+   - Performance breakdown by difficulty level
+   - Option to review incorrect answers
+
+5. Reduce padding so all content fits on one screen without scrolling
+
+
+### Styling Requirements (Embedded CSS)
+
+**Design Principles:**
+- Clean, modern, and professional appearance
+- Fully responsive design (mobile, tablet, and desktop)
+- Accessible color contrast and readable fonts
+- Smooth transitions and animations
+
+**Visual Feedback System:**
+- **Correct Answer:** Highlight in green (#4CAF50)
+- **Incorrect Answer:** Highlight selected answer in red (#f44336), show correct answer in green
+- **Hover Effects:** Clear indication that elements are clickable
+- **Disabled State:** Visual indication when buttons are inactive
+- **Explanation Display:** Show detailed feedback after answer selection
+
+### JavaScript Functionality Requirements
+
+**Core Logic:**
+1. **Answer Validation:**
+   - Check selected answer against correct answer
+   - Update score counter
+   - Provide immediate visual feedback
+
+2. **Navigation Control:**
+   - Enable "Next Question" button after answer selection
+   - Prevent changing answers after selection
+   - Progress to next question or results screen
+
+3. **Feedback Display:**
+   - Show correct/incorrect answer highlighting
+   - Display detailed explanation after answer selection
+   - Show hint when hint button is clicked
+
+4. **Score Tracking:**
+   - Calculate total score
+   - Track performance by difficulty level
+   - Display final results with percentage
+
+5. **Progress Management:**
+   - Update progress bar dynamically
+   - Track current question number
+   - Handle completion and results display
+
+
+
+## Part 4: Question Format Template
+
+Format each question using this structure:
+
+```
+**Question [Number]/15**
+- **Key Concept:** [e.g., "LLM Context Window," "Retrieval-Augmented Generation"]
+- **Type:** [Multiple Choice | True/False | Fill in the Blank | Drag and Drop]
+- **Difficulty:** [Easy | Medium | Hard]
+
+**Question:**
+[Clear, concise question text]
+
+**Options:**
+A) [Option A text]
+B) [Option B text]
+C) [Option C text]
+D) [Option D text]
+
+**Correct Answer:** [A/B/C/D or True/False]
+
+**Hint:** [Brief, guiding hint without revealing the answer]
+
+**Explanations:**
+- **Correct Answer:** [Clear explanation of why this is correct]
+- **Why A is incorrect:** [Brief explanation]
+- **Why B is incorrect:** [Brief explanation]
+- **Why C is incorrect:** [Brief explanation]
+- **Why D is incorrect:** [Brief explanation]
+```
+
+## Part 5: Post-Quiz Learning Resources
+
+After generating the complete quiz, create the following supplementary materials:
+
+### A) Performance Analysis Summary
+
+**Strengths Section:**
+- List key concepts the user demonstrates mastery of (based on correct answers)
+- Group by topic areas
+- Provide positive reinforcement
+
+**Areas to Improve Section:**
+- Identify concepts requiring additional review (based on incorrect answers)
+- Suggest specific topics to revisit
+- Provide constructive guidance
+
+### B) Interactive Flashcards
+
+Create a set of **[Number specified in configuration]** key-term flashcards covering the most important concepts from the content.
+
+**Flashcard Design Requirements:**
+- Display **one card at a time** (not all simultaneously)
+- Large, rectangular card format for readability
+- **Front:** Display the term or question
+- **Back:** Reveal the definition or answer when clicked
+- **Navigation:** "Next" and "Previous" buttons to move between cards
+- **Progress Indicator:** Show current card number (e.g., "Card 3 of 10")
+- **Flip Animation:** Smooth transition when revealing the answer
+
+**Format:**
+```
+Card [Number]:
+- **Term:** [Key term or concept]
+- **Definition:** [Clear, concise explanation]
+```
+
+### C) Study Guide
+
+Generate a comprehensive study guide (**[Number specified in configuration] paragraphs**) that includes:
+- **Overview:** Brief introduction to the main topic
+- **Key Concepts:** Summary of the most critical information
+- **Practical Applications:** How to apply this knowledge
+- **Common Misconceptions:** Important clarifications
+- **Takeaways:** Main points to remember
+
+## Final Deliverable
+
+The complete package should include:
+1. **quiz.html** - Self-contained interactive quiz
+2. **flashcards.html** - Interactive flashcard system (embedded in quiz.html or separate)
+3. **Study guide section** - Integrated into the results page or as separate content
+
+All components should maintain consistent styling and be fully self-contained with embedded CSS and JavaScript.

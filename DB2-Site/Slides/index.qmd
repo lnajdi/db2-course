@@ -1,0 +1,16 @@
+---
+title: "Slides"
+---
+
+Here are the slides for the course:
+
+- [Chapter 1: Views](./01-views/views.html)
+- [Chapter 2: Indexes](./02-indexes/indexes.html)
+- [Chapter 3: TCL Transactions](./03-tcl-transactions/tcl-transactions.html)
+- [Chapter 4: CTE & Window Functions](./04-cte-window-functions/cte-window-functions.html)
+- [Chapter 5: Introduction to PL/pgSQL](./05-intro-plpgsql/intro-PL-pgSQL.html)
+- [Chapter 6: Cursors](./06-cursors/cursors.html)
+- [Chapter 7: Procedures & Functions](./07-procedures-functions/procedures-functions.html)
+- [Chapter 8: Triggers](./08-triggers/triggers.html)
+- [Chapter 9: Database Management & Security](./09-db-management-security/db-management-security.html)
+- [Chapter 10: Admin Tasks](./10-admin-tasks/admin-tasks.html)

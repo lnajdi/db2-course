@@ -1,0 +1,269 @@
+
+
+## 0. Big picture: kinds of Postgres backups
+
+PostgreSQL has three main backup approaches:
+
+1. **SQL dump** – logical backup (`pg_dump` / `pg_restore`)
+2. **File-system (physical) backup** – copy the actual data files
+3. **Continuous archiving + PITR** – base backup + WAL logs so you can “rewind time”
+
+You already looked at logical backups; here we focus on **physical** and explain **PITR**.
+
+---
+
+## 1. Core concepts (must understand these)
+
+### 1.1 Data directory (cluster)
+
+Postgres stores everything in a **data directory**, e.g.:
+
+* Linux: `/var/lib/postgresql/16/main` or `/var/lib/pgsql/data`
+* Windows: `C:\Program Files\PostgreSQL\16\data`
+
+You can ask Postgres:
+
+```sql
+SHOW data_directory;
+```
+
+A **physical backup** is basically **a copy of this whole directory** (plus WAL).
+
+---
+
+### 1.2 WAL (Write-Ahead Log)
+
+Postgres uses a **Write-Ahead Log (WAL)**: every change is written to WAL files *before* it’s applied to the data files.
+
+* WAL lives in `pg_wal/` inside your data dir.
+* If the server crashes, Postgres replays WAL to get the DB consistent.
+* WAL is also what makes **PITR** possible.
+
+---
+
+### 1.3 Base backup
+
+A **base backup** is a snapshot of the data directory at a point in time.
+
+You can get one by:
+
+* Stopping Postgres and copying the data dir (offline backup), or
+* Using **`pg_basebackup`** on a running server (online backup).
+
+---
+
+### 1.4 What is Point-In-Time Recovery (PITR)?
+
+**PITR = “rewind the database to how it looked at an exact time in the past.”**
+
+Example:
+At **15:00** someone runs `DROP TABLE important_table;`
+With PITR you can restore the database to **14:59:59** – like the mistake never happened.
+
+Technically, PITR combines:
+
+1. A **base backup** (a snapshot at some time)
+2. **All WAL files** generated after that backup
+3. On restore, Postgres **replays the WAL** and stops at the time you choose.
+
+So think:
+
+> **Base backup** = starting point
+> **WAL archive** = movie of changes
+> **PITR** = restore snapshot, then play movie until chosen timestamp
+
+---
+
+## 2. Simple physical backup – the “stop & copy” way (offline)
+
+This is the **easiest** physical backup, but requires **downtime**.
+
+### 2.1 Steps
+
+1. **Find the data directory**
+
+   Run in `psql`:
+
+   ```sql
+   SHOW data_directory;
+   ```
+
+2. **Stop PostgreSQL**
+
+   * Linux (systemd):
+
+     ```bash
+     sudo systemctl stop postgresql
+     # or: sudo systemctl stop postgresql-16
+     ```
+
+   * Windows:
+
+     * Open **Services**
+     * Find `postgresql-x64-16` (or similar)
+     * Right-click → **Stop**
+
+3. **Copy the entire directory**
+
+   * Linux example:
+
+     ```bash
+     sudo cp -a /var/lib/postgresql/16/main /backups/pg_backup_2025_12_03
+     ```
+
+   * Windows (PowerShell):
+
+     ```powershell
+     Copy-Item "C:\Program Files\PostgreSQL\16\data" `
+       -Destination "D:\pg_backups\pg_backup_2025_12_03" `
+       -Recurse
+     ```
+
+4. **Start PostgreSQL again**
+
+   * Linux:
+
+     ```bash
+     sudo systemctl start postgresql
+     ```
+
+   * Windows: Services → PostgreSQL → **Start**
+
+Now `/backups/pg_backup_2025_12_03` (or `D:\pg_backups\...`) is a **physical backup**: a copy of the cluster at that moment.
+
+### 2.2 Restoring from this backup (offline)
+
+> This replaces the **whole cluster** with the backup snapshot.
+
+1. Stop Postgres.
+2. Move current (broken) data dir away.
+3. Copy backup into place.
+4. Start Postgres.
+
+Linux example:
+
+```bash
+sudo systemctl stop postgresql
+sudo mv /var/lib/postgresql/16/main /var/lib/postgresql/16/main.broken
+sudo cp -a /backups/pg_backup_2025_12_03 /var/lib/postgresql/16/main
+sudo chown -R postgres:postgres /var/lib/postgresql/16/main
+sudo systemctl start postgresql
+```
+
+On Windows, same idea: stop service → rename `data` → copy backup back as `data` → start service.
+
+This gives you the DB **exactly as it was when you copied the folder**.
+No PITR here: you can’t choose “rewind to 14:59” unless that’s **exactly** when you took the copy.
+
+---
+
+## 3. Online physical backup with `pg_basebackup`
+
+If you don’t want downtime, use `pg_basebackup` on a running server. It:
+
+* Connects using the replication protocol
+* Copies the entire cluster (all DBs)
+* Can include WAL needed for a consistent backup
+* Is often the starting point for PITR or replicas
+
+### 3.1 Basic `pg_basebackup` example
+
+```bash
+pg_basebackup -h localhost -p 5432 -U replication_user \
+  -D /backups/basebackup_2025_12_03 \
+  -Fp -Xs -P
+```
+
+* `-h`, `-p`, `-U` – host, port, user (user must have `REPLICATION` or be superuser)
+* `-D` – destination directory for the backup
+* `-Fp` – plain directory format
+* `-Xs` – stream WAL so backup is consistent
+* `-P` – show progress
+
+Same idea on Windows (PowerShell):
+
+```powershell
+pg_basebackup -h localhost -p 5432 -U replication_user `
+  -D "D:\pg_backups\basebackup_2025_12_03" `
+  -Fp -Xs -P
+```
+
+To use this, you need:
+
+* A role with `REPLICATION` (or superuser)
+* `pg_hba.conf` entry allowing replication connections
+* `max_wal_senders` high enough for backup streams
+
+Restoring from this base backup is similar to file copy:
+
+* Stop the server
+* Move old data dir
+* Move the `basebackup_...` into place as the new data dir
+* Start server
+
+---
+
+## 4. How PITR fits in (conceptual)
+
+Now, connect the dots:
+
+### 4.1 Ingredients for PITR
+
+To do **Point-In-Time Recovery**, you need:
+
+1. **Base backup** (from offline copy or `pg_basebackup`)
+2. **WAL archiving enabled** from the time of that backup onward
+   (Postgres keeps all WAL segments somewhere safe)
+3. On restore, you:
+
+   * Restore the base backup
+   * Tell Postgres **which time** to stop replaying WAL
+   * Start in recovery mode
+
+Postgres then replays WAL records up to that timestamp and stops.
+Result: database exactly as it looked at that time.
+
+---
+
+### 4.2 Very high-level PITR example (story style)
+
+Imagine:
+
+* 13:00 – you take a base backup with `pg_basebackup`.
+* 13:00–17:00 – WAL is being archived (every change recorded).
+* 16:45 – someone runs `DELETE FROM transactions;` by mistake.
+* 17:00 – you notice.
+
+With PITR, you can:
+
+1. Restore the **13:00 base backup**.
+2. Tell Postgres “Replay WAL until **16:44:59**”.
+3. Start the DB: your `transactions` table is back as it was at 16:44:59, before the bad `DELETE`.
+
+Technically, docs describe this as **continuous archiving + recovery**: you continuously archive WAL files and can recover to any time after the base backup, up to the last archived WAL.
+
+---
+
+### 4.3 What you *don’t* need for the “simple” tutorial
+
+A full PITR setup involves:
+
+* Editing `postgresql.conf` (`wal_level`, `archive_mode`, `archive_command`, etc.)
+* Having a directory or system where WAL files are archived
+* On restore, configuring recovery target time and a `restore_command`
+
+That’s more advanced; the key for you right now is:
+
+> **Physical backup** = copy of the data directory (often from `pg_basebackup`).
+> **PITR** = that base backup + WAL archiving + replay logs to a chosen time.
+
+Once you’re comfortable with simple physical backups, you can slowly add WAL archiving and recovery configuration.
+
+---
+
+## 5. Summary in one breath
+
+* Physical backup: **copy the Postgres data dir**, usually via `pg_basebackup` (online) or stop-&-copy (offline).
+* WAL: log of every change; with archived WAL, you can **replay history**.
+* PITR: **restore a base backup + replay WAL up to a chosen timestamp**, so you can undo mistakes like dropped tables or bad deletes.
+

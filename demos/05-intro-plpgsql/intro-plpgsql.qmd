@@ -1,0 +1,1489 @@
+---
+title: "PostgreSQL PL/pgSQL - Live Demo with Pagila Database"
+subtitle: "Hands-on demonstration of Procedural Language for PostgreSQL"
+author: "Database Course - Live Demo Session"
+format: 
+  html:
+    theme: default
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-overflow: wrap
+    highlight-style: github
+    code-block-bg: true
+    code-block-border-left: "#31BAE9"
+    number-sections: true
+---
+
+# Introduction to PL/pgSQL - Real Definitions and Concepts
+
+## What is PL/pgSQL? 🎯
+
+> **Definition**: **PL/pgSQL** (Procedural Language/PostgreSQL) is PostgreSQL's native procedural programming language that extends SQL with procedural constructs like variables, loops, conditionals, and exception handling.
+
+### Key Characteristics:
+- **SQL Extension**: Adds programming logic to SQL
+- **Declarative Variables**: Store and manipulate data
+- **Control Structures**: IF/ELSE, loops, exception handling
+- **Database Integration**: Direct access to all PostgreSQL features
+- **Performance**: Executes close to the data
+
+## The Power Tool Analogy 🔧
+
+Think of SQL vs PL/pgSQL like **hand tools vs power tools**:
+
+- **SQL**: **Hammer** - Great for direct, simple tasks
+  - SELECT, INSERT, UPDATE, DELETE
+  - One operation at a time
+  - Straightforward and reliable
+
+- **PL/pgSQL**: **Multi-tool drill** - Handles complex, multi-step operations
+  - Variables, logic, loops, error handling
+  - Multi-step procedures
+  - Conditional processing
+
+**Same goal (working with data), different capabilities**
+
+## Why Use PL/pgSQL? 
+
+### **Four Core Superpowers:**
+
+1. **📦 Variables & Data Storage** - Hold values temporarily
+2. **🧠 Logic & Decision Making** - IF/ELSE, conditional processing
+3. **🔄 Iteration & Loops** - Process data repeatedly
+4. **⚠️ Error Handling** - Graceful failure management
+
+### **When to Use PL/pgSQL:**
+- Complex business logic that spans multiple SQL statements
+- Data validation and transformation
+- Batch processing operations
+- Error handling requirements
+- Performance optimization (reduce round trips)
+
+---
+
+# Setting Up Our Demo Environment
+
+Let's explore the Pagila database and understand how PL/pgSQL can enhance our data operations:
+
+```{sql}
+-- Connect to Pagila database
+-- \c pagila
+
+-- Check PL/pgSQL language availability
+SELECT lanname FROM pg_language WHERE lanname = 'plpgsql';
+
+-- Explore the structure we'll work with
+SELECT 
+    table_name,
+    column_name,
+    data_type,
+    is_nullable
+FROM information_schema.columns 
+WHERE table_schema = 'public' 
+    AND table_name IN ('customer', 'film', 'rental', 'payment', 'inventory')
+ORDER BY table_name, ordinal_position;
+```
+
+```{sql}
+-- Check our data ranges for realistic examples
+SELECT 
+    'customers' as table_name,
+    COUNT(*) as row_count,
+    MIN(customer_id) as min_id,
+    MAX(customer_id) as max_id
+FROM customer
+UNION ALL
+SELECT 
+    'films',
+    COUNT(*),
+    MIN(film_id),
+    MAX(film_id)
+FROM film
+UNION ALL
+SELECT 
+    'rentals',
+    COUNT(*),
+    MIN(rental_id),
+    MAX(rental_id)
+FROM rental;
+```
+
+---
+
+# Part 1: PL/pgSQL Basics - Your First Programs
+
+## Demo 1: Hello World - Anonymous Blocks
+
+```{sql}
+-- Demo 1a: The simplest PL/pgSQL block
+DO $$
+BEGIN
+    RAISE NOTICE 'Hello from PL/pgSQL!';
+    RAISE NOTICE 'Welcome to procedural programming in PostgreSQL!';
+END $$;
+```
+
+```{sql}
+-- Demo 1b: Adding current database information
+DO $$
+BEGIN
+    RAISE NOTICE 'Connected to database: %', current_database();
+    RAISE NOTICE 'Current user: %', current_user;
+    RAISE NOTICE 'Current timestamp: %', NOW();
+    RAISE NOTICE 'Server version: %', version();
+END $$;
+```
+
+```{sql}
+-- Demo 1c: Basic arithmetic and string operations
+DO $$
+BEGIN
+    RAISE NOTICE 'Simple math: % + % = %', 5, 3, 5 + 3;
+    RAISE NOTICE 'String concatenation: % || % = %', 'Hello', ' World', 'Hello' || ' World';
+    RAISE NOTICE 'Current date arithmetic: % + 30 days = %', 
+                 CURRENT_DATE, CURRENT_DATE + INTERVAL '30 days';
+END $$;
+```
+
+## Demo 2: Variables and Data Types
+
+```{sql}
+-- Demo 2a: Declaring and using variables
+DO $$
+DECLARE
+    -- Basic data types
+    customer_name VARCHAR(100);
+    customer_count INTEGER;
+    average_payment DECIMAL(8,2);
+    is_active BOOLEAN;
+    rental_date TIMESTAMP;
+    
+    -- Initialize some variables during declaration
+    store_id INTEGER := 1;
+    today_date DATE := CURRENT_DATE;
+BEGIN
+    -- Assign values to variables
+    customer_name := 'John Doe';
+    customer_count := 0;
+    average_payment := 0.0;
+    is_active := TRUE;
+    rental_date := NOW();
+    
+    -- Display variable values
+    RAISE NOTICE 'Customer Name: %', customer_name;
+    RAISE NOTICE 'Customer Count: %', customer_count;
+    RAISE NOTICE 'Average Payment: $%', average_payment;
+    RAISE NOTICE 'Is Active: %', is_active;
+    RAISE NOTICE 'Rental Date: %', rental_date;
+    RAISE NOTICE 'Store ID: %', store_id;
+    RAISE NOTICE 'Today: %', today_date;
+END $$;
+```
+
+```{sql}
+-- Demo 2b: Variables with database column types
+DO $$
+DECLARE
+    -- Variables matching database column types
+    cust_id customer.customer_id%TYPE;
+    cust_email customer.email%TYPE;
+    film_title film.title%TYPE;
+    rental_rate film.rental_rate%TYPE;
+BEGIN
+    -- Assign values
+    cust_id := 1;
+    cust_email := 'customer@example.com';
+    film_title := 'ACADEMY DINOSAUR';
+    rental_rate := 0.99;
+    
+    RAISE NOTICE 'Customer ID: % (type: %)', cust_id, pg_typeof(cust_id);
+    RAISE NOTICE 'Email: % (type: %)', cust_email, pg_typeof(cust_email);
+    RAISE NOTICE 'Film: % (type: %)', film_title, pg_typeof(film_title);
+    RAISE NOTICE 'Rate: $% (type: %)', rental_rate, pg_typeof(rental_rate);
+END $$;
+```
+
+## Demo 3: Getting Data from Database - SELECT INTO
+
+```{sql}
+-- Demo 3a: Simple SELECT INTO
+DO $$
+DECLARE
+    total_customers INTEGER;
+    total_films INTEGER;
+    total_rentals INTEGER;
+BEGIN
+    -- Get counts from database
+    SELECT COUNT(*) INTO total_customers FROM customer;
+    SELECT COUNT(*) INTO total_films FROM film;
+    SELECT COUNT(*) INTO total_rentals FROM rental;
+    
+    RAISE NOTICE 'Database Statistics:';
+    RAISE NOTICE '  Total Customers: %', total_customers;
+    RAISE NOTICE '  Total Films: %', total_films;
+    RAISE NOTICE '  Total Rentals: %', total_rentals;
+    RAISE NOTICE '  Average Rentals per Customer: %', 
+                 ROUND(total_rentals::DECIMAL / total_customers, 2);
+END $$;
+```
+
+```{sql}
+-- Demo 3b: SELECT INTO with specific customer data
+DO $$
+DECLARE
+    cust_first_name customer.first_name%TYPE;
+    cust_last_name customer.last_name%TYPE;
+    cust_email customer.email%TYPE;
+    cust_create_date customer.create_date%TYPE;
+    rental_count INTEGER;
+    total_payments DECIMAL(8,2);
+BEGIN
+    -- Get specific customer information
+    SELECT 
+        c.first_name,
+        c.last_name,
+        c.email,
+        c.create_date,
+        COUNT(r.rental_id),
+        COALESCE(SUM(p.amount), 0)
+    INTO 
+        cust_first_name,
+        cust_last_name,
+        cust_email,
+        cust_create_date,
+        rental_count,
+        total_payments
+    FROM customer c
+    LEFT JOIN rental r ON c.customer_id = r.customer_id
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    WHERE c.customer_id = 1
+    GROUP BY c.customer_id, c.first_name, c.last_name, c.email, c.create_date;
+    
+    RAISE NOTICE 'Customer Profile:';
+    RAISE NOTICE '  Name: % %', cust_first_name, cust_last_name;
+    RAISE NOTICE '  Email: %', cust_email;
+    RAISE NOTICE '  Member since: %', cust_create_date;
+    RAISE NOTICE '  Total rentals: %', rental_count;
+    RAISE NOTICE '  Total spent: $%', total_payments;
+END $$;
+```
+
+---
+
+# Part 2: Control Structures - Logic and Decision Making
+
+## Demo 4: Conditional Logic - IF/ELSIF/ELSE
+
+```{sql}
+-- Demo 4a: Customer classification based on spending
+DO $$
+DECLARE
+    customer_id_param INTEGER := 1;
+    total_spent DECIMAL(8,2);
+    customer_tier VARCHAR(20);
+    discount_rate DECIMAL(4,2);
+BEGIN
+    -- Get customer's total spending
+    SELECT COALESCE(SUM(p.amount), 0)
+    INTO total_spent
+    FROM payment p
+    JOIN rental r ON p.rental_id = r.rental_id
+    WHERE r.customer_id = customer_id_param;
+    
+    -- Classify customer and set discount rate
+    IF total_spent >= 200 THEN
+        customer_tier := 'PLATINUM';
+        discount_rate := 20.00;
+    ELSIF total_spent >= 150 THEN
+        customer_tier := 'GOLD';
+        discount_rate := 15.00;
+    ELSIF total_spent >= 100 THEN
+        customer_tier := 'SILVER';
+        discount_rate := 10.00;
+    ELSIF total_spent >= 50 THEN
+        customer_tier := 'BRONZE';
+        discount_rate := 5.00;
+    ELSE
+        customer_tier := 'BASIC';
+        discount_rate := 0.00;
+    END IF;
+    
+    RAISE NOTICE 'Customer Analysis:';
+    RAISE NOTICE '  Customer ID: %', customer_id_param;
+    RAISE NOTICE '  Total Spent: $%', total_spent;
+    RAISE NOTICE '  Customer Tier: %', customer_tier;
+    RAISE NOTICE '  Discount Rate: %%%', discount_rate;
+    
+    -- Additional tier-specific messages
+    IF customer_tier IN ('PLATINUM', 'GOLD') THEN
+        RAISE NOTICE '  Special perk: Free delivery on all orders!';
+    ELSIF customer_tier = 'SILVER' THEN
+        RAISE NOTICE '  Special perk: Priority customer support!';
+    END IF;
+END $$;
+```
+
+```{sql}
+-- Demo 4b: Film rental availability check
+DO $$
+DECLARE
+    film_id_param INTEGER := 1;
+    film_title film.title%TYPE;
+    total_copies INTEGER;
+    rented_copies INTEGER;
+    available_copies INTEGER;
+    availability_status VARCHAR(50);
+BEGIN
+    -- Get film information
+    SELECT title INTO film_title 
+    FROM film 
+    WHERE film_id = film_id_param;
+    
+    -- Check inventory and rentals
+    SELECT COUNT(*) INTO total_copies
+    FROM inventory 
+    WHERE film_id = film_id_param;
+    
+    SELECT COUNT(*) INTO rented_copies
+    FROM inventory i
+    JOIN rental r ON i.inventory_id = r.inventory_id
+    WHERE i.film_id = film_id_param 
+      AND r.return_date IS NULL;
+    
+    available_copies := total_copies - rented_copies;
+    
+    -- Determine availability status
+    IF available_copies = 0 THEN
+        availability_status := 'OUT OF STOCK';
+    ELSIF available_copies <= 2 THEN
+        availability_status := 'LIMITED AVAILABILITY';
+    ELSIF available_copies <= total_copies / 2 THEN
+        availability_status := 'GOOD AVAILABILITY';
+    ELSE
+        availability_status := 'EXCELLENT AVAILABILITY';
+    END IF;
+    
+    RAISE NOTICE 'Film Availability Report:';
+    RAISE NOTICE '  Film: %', film_title;
+    RAISE NOTICE '  Total Copies: %', total_copies;
+    RAISE NOTICE '  Currently Rented: %', rented_copies;
+    RAISE NOTICE '  Available: %', available_copies;
+    RAISE NOTICE '  Status: %', availability_status;
+    
+    -- Provide recommendations
+    IF availability_status = 'OUT OF STOCK' THEN
+        RAISE NOTICE '  Recommendation: Add to waitlist';
+    ELSIF availability_status = 'LIMITED AVAILABILITY' THEN
+        RAISE NOTICE '  Recommendation: Rent soon - high demand!';
+    END IF;
+END $$;
+```
+
+## Demo 5: CASE Statements for Complex Logic
+
+```{sql}
+-- Demo 5: Film categorization using CASE
+DO $$
+DECLARE
+    film_rec RECORD;
+    price_category VARCHAR(20);
+    target_audience VARCHAR(20);
+    marketing_strategy TEXT;
+BEGIN
+    -- Get a sample film
+    SELECT film_id, title, rental_rate, rating, length
+    INTO film_rec
+    FROM film 
+    WHERE film_id = 10;
+    
+    -- Categorize by price
+    price_category := CASE 
+        WHEN film_rec.rental_rate >= 4.00 THEN 'PREMIUM'
+        WHEN film_rec.rental_rate >= 2.00 THEN 'STANDARD'
+        ELSE 'BUDGET'
+    END;
+    
+    -- Determine target audience
+    target_audience := CASE film_rec.rating
+        WHEN 'G' THEN 'FAMILY'
+        WHEN 'PG' THEN 'FAMILY'
+        WHEN 'PG-13' THEN 'TEEN_ADULT'
+        WHEN 'R' THEN 'ADULT'
+        WHEN 'NC-17' THEN 'MATURE_ADULT'
+        ELSE 'GENERAL'
+    END;
+    
+    -- Marketing strategy based on multiple factors
+    marketing_strategy := CASE 
+        WHEN film_rec.length > 120 AND price_category = 'PREMIUM' THEN
+            'Epic film - Premium pricing strategy with exclusive screenings'
+        WHEN target_audience = 'FAMILY' AND price_category = 'BUDGET' THEN
+            'Family-friendly budget option - Mass market appeal'
+        WHEN film_rec.rating = 'R' AND price_category = 'PREMIUM' THEN
+            'Adult-oriented premium content - Targeted mature audience'
+        ELSE
+            'Standard marketing approach'
+    END;
+    
+    RAISE NOTICE 'Film Marketing Analysis:';
+    RAISE NOTICE '  Film: % (ID: %)', film_rec.title, film_rec.film_id;
+    RAISE NOTICE '  Rental Rate: $%', film_rec.rental_rate;
+    RAISE NOTICE '  Rating: %', film_rec.rating;
+    RAISE NOTICE '  Length: % minutes', film_rec.length;
+    RAISE NOTICE '  Price Category: %', price_category;
+    RAISE NOTICE '  Target Audience: %', target_audience;
+    RAISE NOTICE '  Marketing Strategy: %', marketing_strategy;
+END $$;
+```
+
+---
+
+# Part 3: Loops and Iteration
+
+## Demo 6: FOR Loops with Ranges
+
+```{sql}
+-- Demo 6a: Simple numeric FOR loop
+DO $$
+DECLARE
+    i INTEGER;
+    total INTEGER := 0;
+    square_value INTEGER;
+BEGIN
+    RAISE NOTICE 'Calculating squares from 1 to 10:';
+    
+    FOR i IN 1..10 LOOP
+        square_value := i * i;
+        total := total + square_value;
+        RAISE NOTICE '  %² = %', i, square_value;
+    END LOOP;
+    
+    RAISE NOTICE 'Sum of squares 1² + 2² + ... + 10² = %', total;
+END $$;
+```
+
+```{sql}
+-- Demo 6b: Reverse FOR loop with customer analysis
+DO $$
+DECLARE
+    customer_id_var INTEGER;
+    customer_name TEXT;
+    rental_count INTEGER;
+BEGIN
+    RAISE NOTICE 'Top 5 Customer IDs (descending analysis):';
+    
+    -- Loop through customer IDs in reverse order for analysis
+    FOR customer_id_var IN REVERSE 5..1 LOOP
+        -- Get customer information
+        SELECT 
+            first_name || ' ' || last_name,
+            COUNT(r.rental_id)
+        INTO 
+            customer_name,
+            rental_count
+        FROM customer c
+        LEFT JOIN rental r ON c.customer_id = r.customer_id
+        WHERE c.customer_id = customer_id_var
+        GROUP BY c.customer_id, c.first_name, c.last_name;
+        
+        RAISE NOTICE '  Customer % (ID %): % rentals', 
+                     customer_name, customer_id_var, rental_count;
+    END LOOP;
+END $$;
+```
+
+## Demo 7: FOR Loops with Query Results
+
+```{sql}
+-- Demo 7a: Processing multiple customers
+DO $$
+DECLARE
+    customer_rec RECORD;
+    total_customers INTEGER := 0;
+    total_rentals INTEGER := 0;
+BEGIN
+    RAISE NOTICE 'Customer Rental Summary (Top 10 by rentals):';
+    RAISE NOTICE '----------------------------------------';
+    
+    FOR customer_rec IN 
+        SELECT 
+            c.customer_id,
+            c.first_name,
+            c.last_name,
+            c.email,
+            COUNT(r.rental_id) as rental_count,
+            COALESCE(SUM(p.amount), 0) as total_spent
+        FROM customer c
+        LEFT JOIN rental r ON c.customer_id = r.customer_id
+        LEFT JOIN payment p ON r.rental_id = p.rental_id
+        GROUP BY c.customer_id, c.first_name, c.last_name, c.email
+        ORDER BY COUNT(r.rental_id) DESC
+        LIMIT 10
+    LOOP
+        total_customers := total_customers + 1;
+        total_rentals := total_rentals + customer_rec.rental_count;
+        
+        RAISE NOTICE 'Customer %: % % (ID: %)', 
+                     total_customers, 
+                     customer_rec.first_name, 
+                     customer_rec.last_name,
+                     customer_rec.customer_id;
+        RAISE NOTICE '  Email: %', customer_rec.email;
+        RAISE NOTICE '  Rentals: %, Total Spent: $%', 
+                     customer_rec.rental_count, 
+                     customer_rec.total_spent;
+        RAISE NOTICE '';
+    END LOOP;
+    
+    RAISE NOTICE 'Summary: % customers processed, % total rentals', 
+                 total_customers, total_rentals;
+END $$;
+```
+
+```{sql}
+-- Demo 7b: Film category analysis with loops
+DO $$
+DECLARE
+    category_rec RECORD;
+    film_rec RECORD;
+    category_total DECIMAL(8,2);
+BEGIN
+    RAISE NOTICE 'Film Category Revenue Analysis:';
+    RAISE NOTICE '================================';
+    
+    -- Loop through each category
+    FOR category_rec IN 
+        SELECT category_id, name 
+        FROM category 
+        ORDER BY name
+    LOOP
+        category_total := 0;
+        
+        RAISE NOTICE 'Category: %', category_rec.name;
+        RAISE NOTICE '  Top films in this category:';
+        
+        -- Loop through top films in this category
+        FOR film_rec IN 
+            SELECT 
+                f.title,
+                f.rental_rate,
+                COUNT(r.rental_id) as rental_count,
+                COALESCE(SUM(p.amount), 0) as film_revenue
+            FROM film f
+            JOIN film_category fc ON f.film_id = fc.film_id
+            LEFT JOIN inventory i ON f.film_id = i.film_id
+            LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+            LEFT JOIN payment p ON r.rental_id = p.rental_id
+            WHERE fc.category_id = category_rec.category_id
+            GROUP BY f.film_id, f.title, f.rental_rate
+            ORDER BY COALESCE(SUM(p.amount), 0) DESC
+            LIMIT 3
+        LOOP
+            category_total := category_total + film_rec.film_revenue;
+            
+            RAISE NOTICE '    - %: % rentals, $% revenue', 
+                         film_rec.title,
+                         film_rec.rental_count,
+                         film_rec.film_revenue;
+        END LOOP;
+        
+        RAISE NOTICE '  Category Total (top 3 films): $%', category_total;
+        RAISE NOTICE '';
+    END LOOP;
+END $$;
+```
+
+## Demo 8: WHILE Loops
+
+```{sql}
+-- Demo 8: Customer rental milestones with WHILE loop
+DO $$
+DECLARE
+    customer_id_param INTEGER := 1;
+    current_rentals INTEGER;
+    milestone INTEGER := 10;
+    total_milestones INTEGER := 0;
+    customer_name TEXT;
+BEGIN
+    -- Get customer info
+    SELECT first_name || ' ' || last_name INTO customer_name
+    FROM customer 
+    WHERE customer_id = customer_id_param;
+    
+    -- Get current rental count
+    SELECT COUNT(r.rental_id) INTO current_rentals
+    FROM rental r
+    WHERE r.customer_id = customer_id_param;
+    
+    RAISE NOTICE 'Rental Milestone Analysis for %:', customer_name;
+    RAISE NOTICE 'Current rentals: %', current_rentals;
+    RAISE NOTICE 'Milestones achieved:';
+    
+    -- Count milestones using WHILE loop
+    WHILE milestone <= current_rentals LOOP
+        total_milestones := total_milestones + 1;
+        RAISE NOTICE '  ✓ % rentals milestone reached!', milestone;
+        milestone := milestone + 10;
+    END LOOP;
+    
+    IF total_milestones = 0 THEN
+        RAISE NOTICE '  No milestones reached yet. Next milestone: 10 rentals';
+    ELSE
+        RAISE NOTICE 'Total milestones achieved: %', total_milestones;
+        RAISE NOTICE 'Next milestone: % rentals (% more needed)', 
+                     milestone, milestone - current_rentals;
+    END IF;
+END $$;
+```
+
+---
+
+# Part 4: Exception Handling
+
+## Demo 9: Basic Exception Handling
+
+```{sql}
+-- Demo 9a: Handling division by zero and other common errors
+DO $$
+DECLARE
+    dividend INTEGER := 100;
+    divisor INTEGER := 0;
+    result DECIMAL(10,2);
+BEGIN
+    RAISE NOTICE 'Attempting to calculate % ÷ %', dividend, divisor;
+    
+    BEGIN
+        result := dividend / divisor;
+        RAISE NOTICE 'Result: %', result;
+    EXCEPTION
+        WHEN DIVISION_BY_ZERO THEN
+            RAISE NOTICE 'Error: Cannot divide by zero!';
+            RAISE NOTICE 'Setting result to NULL and continuing...';
+            result := NULL;
+    END;
+    
+    RAISE NOTICE 'Final result: %', COALESCE(result::TEXT, 'undefined');
+END $$;
+```
+
+```{sql}
+-- Demo 9b: Handling database-specific exceptions
+DO $$
+DECLARE
+    customer_id_param INTEGER := 999999;  -- Non-existent customer
+    customer_name TEXT;
+    rental_count INTEGER;
+BEGIN
+    RAISE NOTICE 'Looking up customer ID %...', customer_id_param;
+    
+    BEGIN
+        -- Use STRICT to enforce exactly one row
+        SELECT 
+            first_name || ' ' || last_name,
+            COUNT(r.rental_id)
+        INTO STRICT 
+            customer_name,
+            rental_count
+        FROM customer c
+        LEFT JOIN rental r ON c.customer_id = r.customer_id
+        WHERE c.customer_id = customer_id_param
+        GROUP BY c.customer_id, c.first_name, c.last_name;
+        
+        RAISE NOTICE 'Found customer: % with % rentals', customer_name, rental_count;
+        
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE NOTICE 'Error: Customer % not found in database', customer_id_param;
+            RAISE NOTICE 'Please check the customer ID and try again';
+            
+        WHEN TOO_MANY_ROWS THEN
+            RAISE NOTICE 'Error: Multiple customers found with ID % (data integrity issue)', customer_id_param;
+            
+        WHEN OTHERS THEN
+            RAISE NOTICE 'Unexpected error occurred: %', SQLERRM;
+            RAISE NOTICE 'Error code: %', SQLSTATE;
+    END;
+    
+    RAISE NOTICE 'Customer lookup process completed';
+END $$;
+```
+
+## Demo 10: Advanced Exception Handling with Business Logic
+
+```{sql}
+-- Demo 10: Rental processing with comprehensive error handling
+DO $$
+DECLARE
+    customer_id_param INTEGER := 1;
+    film_id_param INTEGER := 1;
+    rental_id_var INTEGER;
+    inventory_id_var INTEGER;
+    customer_active BOOLEAN;
+    film_available BOOLEAN;
+    rental_rate DECIMAL(4,2);
+    error_occurred BOOLEAN := FALSE;
+BEGIN
+    RAISE NOTICE 'Processing rental request...';
+    RAISE NOTICE '  Customer ID: %', customer_id_param;
+    RAISE NOTICE '  Film ID: %', film_id_param;
+    
+    BEGIN
+        -- Step 1: Validate customer
+        SELECT active INTO STRICT customer_active
+        FROM customer 
+        WHERE customer_id = customer_id_param;
+        
+        IF NOT customer_active THEN
+            RAISE EXCEPTION 'CUSTOMER_INACTIVE' USING MESSAGE = 'Customer account is not active';
+        END IF;
+        
+        RAISE NOTICE '  ✓ Customer validation passed';
+        
+        -- Step 2: Check film availability
+        SELECT i.inventory_id, f.rental_rate
+        INTO inventory_id_var, rental_rate
+        FROM inventory i
+        JOIN film f ON i.film_id = f.film_id
+        WHERE i.film_id = film_id_param
+          AND i.inventory_id NOT IN (
+              SELECT inventory_id 
+              FROM rental 
+              WHERE return_date IS NULL
+          )
+        LIMIT 1;
+        
+        IF inventory_id_var IS NULL THEN
+            RAISE EXCEPTION 'FILM_UNAVAILABLE' USING MESSAGE = 'No copies of this film are available';
+        END IF;
+        
+        RAISE NOTICE '  ✓ Film availability confirmed';
+        
+        -- Step 3: Create rental record (simulated)
+        -- In real scenario: INSERT INTO rental...
+        RAISE NOTICE '  ✓ Rental record created (simulated)';
+        RAISE NOTICE '  ✓ Inventory ID: %', inventory_id_var;
+        RAISE NOTICE '  ✓ Rental rate: $%', rental_rate;
+        
+        RAISE NOTICE 'Rental processed successfully!';
+        
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            IF SQLSTATE = 'NO_DATA' THEN
+                RAISE NOTICE '✗ Error: Customer % not found', customer_id_param;
+            ELSE
+                RAISE NOTICE '✗ Error: Film % not available', film_id_param;
+            END IF;
+            error_occurred := TRUE;
+            
+        WHEN OTHERS THEN
+            CASE SQLERRM
+                WHEN 'CUSTOMER_INACTIVE' THEN
+                    RAISE NOTICE '✗ Error: Customer account is inactive';
+                    RAISE NOTICE '  Please contact customer service to reactivate';
+                WHEN 'FILM_UNAVAILABLE' THEN
+                    RAISE NOTICE '✗ Error: Film is currently unavailable';
+                    RAISE NOTICE '  Please try again later or choose a different film';
+                ELSE
+                    RAISE NOTICE '✗ Unexpected error: %', SQLERRM;
+                    RAISE NOTICE '  Error code: %', SQLSTATE;
+            END CASE;
+            error_occurred := TRUE;
+    END;
+    
+    -- Final status report
+    IF error_occurred THEN
+        RAISE NOTICE 'Rental processing failed - please resolve errors and retry';
+    ELSE
+        RAISE NOTICE 'Rental processing completed successfully';
+    END IF;
+END $$;
+```
+
+---
+
+# Part 5: Working with Complex Data and Records
+
+## Demo 11: Record Types and Row Processing
+
+```{sql}
+-- Demo 11a: Using RECORD type for flexible data handling
+DO $$
+DECLARE
+    film_record RECORD;
+    customer_record customer%ROWTYPE;
+    category_name TEXT;
+    rental_stats RECORD;
+BEGIN
+    -- Get film information using RECORD
+    SELECT 
+        f.film_id,
+        f.title,
+        f.rental_rate,
+        f.length,
+        f.rating,
+        c.name as category
+    INTO film_record
+    FROM film f
+    JOIN film_category fc ON f.film_id = fc.film_id
+    JOIN category c ON fc.category_id = c.category_id
+    WHERE f.film_id = 1;
+    
+    RAISE NOTICE 'Film Information (using RECORD):';
+    RAISE NOTICE '  ID: %', film_record.film_id;
+    RAISE NOTICE '  Title: %', film_record.title;
+    RAISE NOTICE '  Category: %', film_record.category;
+    RAISE NOTICE '  Rate: $%', film_record.rental_rate;
+    RAISE NOTICE '  Length: % min', film_record.length;
+    RAISE NOTICE '  Rating: %', film_record.rating;
+    
+    -- Get customer information using %ROWTYPE
+    SELECT * INTO customer_record
+    FROM customer 
+    WHERE customer_id = 1;
+    
+    RAISE NOTICE '';
+    RAISE NOTICE 'Customer Information (using %%ROWTYPE):';
+    RAISE NOTICE '  ID: %', customer_record.customer_id;
+    RAISE NOTICE '  Name: % %', customer_record.first_name, customer_record.last_name;
+    RAISE NOTICE '  Email: %', customer_record.email;
+    RAISE NOTICE '  Active: %', customer_record.active;
+    RAISE NOTICE '  Created: %', customer_record.create_date;
+    
+    -- Complex query result into RECORD
+    SELECT 
+        COUNT(r.rental_id) as total_rentals,
+        COALESCE(SUM(p.amount), 0) as total_revenue,
+        AVG(p.amount) as avg_payment,
+        MAX(r.rental_date) as last_rental
+    INTO rental_stats
+    FROM rental r
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    WHERE r.customer_id = customer_record.customer_id;
+    
+    RAISE NOTICE '';
+    RAISE NOTICE 'Customer Rental Statistics:';
+    RAISE NOTICE '  Total Rentals: %', rental_stats.total_rentals;
+    RAISE NOTICE '  Total Revenue: $%', rental_stats.total_revenue;
+    RAISE NOTICE '  Average Payment: $%', ROUND(rental_stats.avg_payment, 2);
+    RAISE NOTICE '  Last Rental: %', rental_stats.last_rental;
+END $$;
+```
+
+## Demo 12: Arrays and Complex Data Structures
+
+```{sql}
+-- Demo 12: Working with arrays for batch processing
+DO $$
+DECLARE
+    customer_ids INTEGER[] := ARRAY[1, 2, 3, 4, 5];
+    customer_names TEXT[] := ARRAY[]::TEXT[];
+    rental_counts INTEGER[] := ARRAY[]::INTEGER[];
+    i INTEGER;
+    temp_name TEXT;
+    temp_count INTEGER;
+    total_rentals INTEGER := 0;
+    avg_rentals DECIMAL(10,2);
+BEGIN
+    RAISE NOTICE 'Batch Customer Analysis:';
+    RAISE NOTICE '=====================';
+    
+    -- Process each customer ID
+    FOR i IN 1..array_length(customer_ids, 1) LOOP
+        -- Get customer name and rental count
+        SELECT 
+            c.first_name || ' ' || c.last_name,
+            COUNT(r.rental_id)
+        INTO 
+            temp_name,
+            temp_count
+        FROM customer c
+        LEFT JOIN rental r ON c.customer_id = r.customer_id
+        WHERE c.customer_id = customer_ids[i]
+        GROUP BY c.customer_id, c.first_name, c.last_name;
+        
+        -- Add to arrays
+        customer_names := customer_names || temp_name;
+        rental_counts := rental_counts || temp_count;
+        total_rentals := total_rentals + temp_count;
+        
+        RAISE NOTICE 'Customer %: % (% rentals)', 
+                     customer_ids[i], temp_name, temp_count;
+    END LOOP;
+    
+    -- Calculate average
+    avg_rentals := total_rentals::DECIMAL / array_length(customer_ids, 1);
+    
+    RAISE NOTICE '';
+    RAISE NOTICE 'Batch Summary:';
+    RAISE NOTICE '  Customers processed: %', array_length(customer_ids, 1);
+    RAISE NOTICE '  Total rentals: %', total_rentals;
+    RAISE NOTICE '  Average rentals per customer: %', ROUND(avg_rentals, 2);
+    
+    -- Show arrays content
+    RAISE NOTICE '';
+    RAISE NOTICE 'Customer IDs: %', customer_ids;
+    RAISE NOTICE 'Customer Names: %', customer_names;
+    RAISE NOTICE 'Rental Counts: %', rental_counts;
+END $$;
+```
+
+---
+
+# Part 6: Real-World Business Logic Examples
+
+## Demo 13: Late Fee Calculation System
+
+```{sql}
+-- Demo 13: Comprehensive late fee calculation
+DO $$
+DECLARE
+    rental_rec RECORD;
+    late_fee DECIMAL(8,2);
+    total_late_fees DECIMAL(8,2) := 0;
+    late_rental_count INTEGER := 0;
+    grace_period INTEGER := 1; -- 1 day grace period
+    daily_late_fee DECIMAL(4,2) := 1.50;
+    max_late_fee DECIMAL(6,2) := 25.00;
+    days_late INTEGER;
+BEGIN
+    RAISE NOTICE 'Late Fee Calculation Report';
+    RAISE NOTICE '===========================';
+    RAISE NOTICE 'Grace Period: % days', grace_period;
+    RAISE NOTICE 'Daily Late Fee: $%', daily_late_fee;
+    RAISE NOTICE 'Maximum Late Fee: $%', max_late_fee;
+    RAISE NOTICE '';
+    
+    -- Process overdue rentals
+    FOR rental_rec IN 
+        SELECT 
+            r.rental_id,
+            r.customer_id,
+            c.first_name || ' ' || c.last_name as customer_name,
+            r.rental_date,
+            r.return_date,
+            f.title as film_title,
+            f.rental_duration,
+            r.rental_date + (f.rental_duration || ' days')::INTERVAL as due_date
+        FROM rental r
+        JOIN customer c ON r.customer_id = c.customer_id
+        JOIN inventory i ON r.inventory_id = i.inventory_id
+        JOIN film f ON i.film_id = f.film_id
+        WHERE r.return_date IS NOT NULL
+          AND r.return_date > r.rental_date + (f.rental_duration || ' days')::INTERVAL
+        ORDER BY r.return_date - (r.rental_date + (f.rental_duration || ' days')::INTERVAL) DESC
+        LIMIT 10
+    LOOP
+        -- Calculate days late
+        days_late := EXTRACT(DAY FROM rental_rec.return_date - rental_rec.due_date);
+        
+        -- Apply grace period
+        IF days_late <= grace_period THEN
+            late_fee := 0;
+        ELSE
+            late_fee := (days_late - grace_period) * daily_late_fee;
+            -- Apply maximum late fee cap
+            IF late_fee > max_late_fee THEN
+                late_fee := max_late_fee;
+            END IF;
+        END IF;
+        
+        late_rental_count := late_rental_count + 1;
+        total_late_fees := total_late_fees + late_fee;
+        
+        RAISE NOTICE 'Late Rental #%:', late_rental_count;
+        RAISE NOTICE '  Customer: % (ID: %)', rental_rec.customer_name, rental_rec.customer_id;
+        RAISE NOTICE '  Film: %', rental_rec.film_title;
+        RAISE NOTICE '  Rental Date: %', rental_rec.rental_date::DATE;
+        RAISE NOTICE '  Due Date: %', rental_rec.due_date::DATE;
+        RAISE NOTICE '  Return Date: %', rental_rec.return_date::DATE;
+        RAISE NOTICE '  Days Late: %', days_late;
+        RAISE NOTICE '  Late Fee: $%', late_fee;
+        RAISE NOTICE '';
+    END LOOP;
+    
+    -- Summary report
+    RAISE NOTICE 'Late Fee Summary:';
+    RAISE NOTICE '  Total Late Rentals Processed: %', late_rental_count;
+    RAISE NOTICE '  Total Late Fees: $%', total_late_fees;
+    IF late_rental_count > 0 THEN
+        RAISE NOTICE '  Average Late Fee: $%', ROUND(total_late_fees / late_rental_count, 2);
+    END IF;
+END $$;
+```
+
+## Demo 14: Customer Loyalty Program Implementation
+
+```{sql}
+-- Demo 14: Customer loyalty points and rewards system
+DO $$
+DECLARE
+    customer_rec RECORD;
+    loyalty_points INTEGER;
+    loyalty_tier VARCHAR(20);
+    next_tier_points INTEGER;
+    reward_message TEXT;
+    total_customers INTEGER := 0;
+    
+    -- Loyalty tier thresholds
+    bronze_threshold INTEGER := 100;
+    silver_threshold INTEGER := 250;
+    gold_threshold INTEGER := 500;
+    platinum_threshold INTEGER := 1000;
+BEGIN
+    RAISE NOTICE 'Customer Loyalty Program Analysis';
+    RAISE NOTICE '================================';
+    RAISE NOTICE 'Tier Thresholds:';
+    RAISE NOTICE '  Bronze: % points', bronze_threshold;
+    RAISE NOTICE '  Silver: % points', silver_threshold;
+    RAISE NOTICE '  Gold: % points', gold_threshold;
+    RAISE NOTICE '  Platinum: % points', platinum_threshold;
+    RAISE NOTICE '';
+    
+    -- Process customers and calculate loyalty points
+    FOR customer_rec IN 
+        SELECT 
+            c.customer_id,
+            c.first_name,
+            c.last_name,
+            c.email,
+            COUNT(r.rental_id) as total_rentals,
+            COALESCE(SUM(p.amount), 0) as total_spent
+        FROM customer c
+        LEFT JOIN rental r ON c.customer_id = r.customer_id
+        LEFT JOIN payment p ON r.rental_id = p.rental_id
+        GROUP BY c.customer_id, c.first_name, c.last_name, c.email
+        ORDER BY COALESCE(SUM(p.amount), 0) DESC
+        LIMIT 15
+    LOOP
+        total_customers := total_customers + 1;
+        
+        -- Calculate loyalty points (1 point per $1 spent + 10 points per rental)
+        loyalty_points := FLOOR(customer_rec.total_spent) + (customer_rec.total_rentals * 10);
+        
+        -- Determine loyalty tier
+        IF loyalty_points >= platinum_threshold THEN
+            loyalty_tier := 'PLATINUM';
+            next_tier_points := 0;
+            reward_message := 'Highest tier achieved! Enjoy 25% discount + priority support';
+        ELSIF loyalty_points >= gold_threshold THEN
+            loyalty_tier := 'GOLD';
+            next_tier_points := platinum_threshold - loyalty_points;
+            reward_message := 'Gold member! 20% discount + free shipping';
+        ELSIF loyalty_points >= silver_threshold THEN
+            loyalty_tier := 'SILVER';
+            next_tier_points := gold_threshold - loyalty_points;
+            reward_message := 'Silver member! 15% discount on all rentals';
+        ELSIF loyalty_points >= bronze_threshold THEN
+            loyalty_tier := 'BRONZE';
+            next_tier_points := silver_threshold - loyalty_points;
+            reward_message := 'Bronze member! 10% discount on select titles';
+        ELSE
+            loyalty_tier := 'MEMBER';
+            next_tier_points := bronze_threshold - loyalty_points;
+            reward_message := 'Welcome! Keep renting to unlock Bronze benefits';
+        END IF;
+        
+        RAISE NOTICE 'Customer %: % %', total_customers, customer_rec.first_name, customer_rec.last_name;
+        RAISE NOTICE '  Email: %', customer_rec.email;
+        RAISE NOTICE '  Rentals: %, Total Spent: $%', customer_rec.total_rentals, customer_rec.total_spent;
+        RAISE NOTICE '  Loyalty Points: %', loyalty_points;
+        RAISE NOTICE '  Current Tier: %', loyalty_tier;
+        
+        IF next_tier_points > 0 THEN
+            RAISE NOTICE '  Points to next tier: %', next_tier_points;
+        END IF;
+        
+        RAISE NOTICE '  Rewards: %', reward_message;
+        RAISE NOTICE '';
+    END LOOP;
+    
+    RAISE NOTICE 'Loyalty Program Summary: % customers analyzed', total_customers;
+END $$;
+```
+
+---
+
+# Part 7: Debugging and Performance Tips
+
+## Demo 15: Debugging Techniques
+
+```{sql}
+-- Demo 15: Debugging PL/pgSQL code
+DO $$
+DECLARE
+    debug_mode BOOLEAN := TRUE;
+    customer_id_param INTEGER := 1;
+    step_counter INTEGER := 0;
+    customer_name TEXT;
+    rental_count INTEGER;
+    avg_payment DECIMAL(8,2);
+    processing_start TIMESTAMP;
+    processing_end TIMESTAMP;
+BEGIN
+    processing_start := clock_timestamp();
+    
+    IF debug_mode THEN
+        RAISE NOTICE 'DEBUG: Starting customer analysis at %', processing_start;
+        RAISE NOTICE 'DEBUG: Input parameter - customer_id: %', customer_id_param;
+    END IF;
+    
+    -- Step 1: Get customer basic info
+    step_counter := step_counter + 1;
+    IF debug_mode THEN
+        RAISE NOTICE 'DEBUG: Step % - Getting customer basic information', step_counter;
+    END IF;
+    
+    BEGIN
+        SELECT first_name || ' ' || last_name INTO STRICT customer_name
+        FROM customer 
+        WHERE customer_id = customer_id_param;
+        
+        IF debug_mode THEN
+            RAISE NOTICE 'DEBUG: Customer name retrieved: %', customer_name;
+        END IF;
+        
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE NOTICE 'ERROR: Customer % not found', customer_id_param;
+            RETURN;
+        WHEN OTHERS THEN
+            RAISE NOTICE 'ERROR: Unexpected error in step %: %', step_counter, SQLERRM;
+            RETURN;
+    END;
+    
+    -- Step 2: Get rental statistics
+    step_counter := step_counter + 1;
+    IF debug_mode THEN
+        RAISE NOTICE 'DEBUG: Step % - Calculating rental statistics', step_counter;
+    END IF;
+    
+    SELECT 
+        COUNT(r.rental_id),
+        AVG(p.amount)
+    INTO 
+        rental_count,
+        avg_payment
+    FROM rental r
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    WHERE r.customer_id = customer_id_param;
+    
+    IF debug_mode THEN
+        RAISE NOTICE 'DEBUG: Rental count: %, Average payment: $%', 
+                     rental_count, COALESCE(avg_payment, 0);
+    END IF;
+    
+    -- Step 3: Generate report
+    step_counter := step_counter + 1;
+    IF debug_mode THEN
+        RAISE NOTICE 'DEBUG: Step % - Generating final report', step_counter;
+    END IF;
+    
+    processing_end := clock_timestamp();
+    
+    -- Final report
+    RAISE NOTICE '';
+    RAISE NOTICE 'Customer Analysis Report:';
+    RAISE NOTICE '========================';
+    RAISE NOTICE 'Customer: %', customer_name;
+    RAISE NOTICE 'Total Rentals: %', rental_count;
+    RAISE NOTICE 'Average Payment: $%', COALESCE(ROUND(avg_payment, 2), 0);
+    
+    IF debug_mode THEN
+        RAISE NOTICE '';
+        RAISE NOTICE 'DEBUG: Processing completed in % ms', 
+                     EXTRACT(MILLISECONDS FROM processing_end - processing_start);
+        RAISE NOTICE 'DEBUG: Total steps executed: %', step_counter;
+    END IF;
+END $$;
+```
+
+## Demo 16: Performance Monitoring
+
+```{sql}
+-- Demo 16: Performance measurement and optimization
+DO $$
+DECLARE
+    start_time TIMESTAMP;
+    end_time TIMESTAMP;
+    execution_time INTERVAL;
+    loop_counter INTEGER := 0;
+    customer_rec RECORD;
+    batch_size INTEGER := 100;
+    processed_customers INTEGER := 0;
+BEGIN
+    start_time := clock_timestamp();
+    
+    RAISE NOTICE 'Performance Monitoring Demo';
+    RAISE NOTICE '===========================';
+    RAISE NOTICE 'Start time: %', start_time;
+    RAISE NOTICE 'Batch size: % customers', batch_size;
+    RAISE NOTICE '';
+    
+    -- Simulate batch processing with performance monitoring
+    FOR customer_rec IN 
+        SELECT 
+            c.customer_id,
+            c.first_name || ' ' || c.last_name as customer_name,
+            COUNT(r.rental_id) as rental_count
+        FROM customer c
+        LEFT JOIN rental r ON c.customer_id = r.customer_id
+        GROUP BY c.customer_id, c.first_name, c.last_name
+        ORDER BY c.customer_id
+        LIMIT batch_size
+    LOOP
+        loop_counter := loop_counter + 1;
+        processed_customers := processed_customers + 1;
+        
+        -- Simulate some processing work
+        PERFORM pg_sleep(0.001); -- 1ms delay to simulate processing
+        
+        -- Log progress every 25 customers
+        IF loop_counter % 25 = 0 THEN
+            end_time := clock_timestamp();
+            execution_time := end_time - start_time;
+            
+            RAISE NOTICE 'Progress: % customers processed in %', 
+                         processed_customers,
+                         EXTRACT(MILLISECONDS FROM execution_time) || ' ms';
+        END IF;
+    END LOOP;
+    
+    end_time := clock_timestamp();
+    execution_time := end_time - start_time;
+    
+    -- Performance summary
+    RAISE NOTICE '';
+    RAISE NOTICE 'Performance Summary:';
+    RAISE NOTICE '  Total customers processed: %', processed_customers;
+    RAISE NOTICE '  Total execution time: % ms', EXTRACT(MILLISECONDS FROM execution_time);
+    RAISE NOTICE '  Average time per customer: % ms', 
+                 ROUND(EXTRACT(MILLISECONDS FROM execution_time) / processed_customers, 2);
+    RAISE NOTICE '  Processing rate: % customers/second', 
+                 ROUND(processed_customers / EXTRACT(SECONDS FROM execution_time), 2);
+    
+    -- Performance recommendations
+    IF EXTRACT(MILLISECONDS FROM execution_time) > 1000 THEN
+        RAISE NOTICE '';
+        RAISE NOTICE 'Performance Note: Processing took > 1 second';
+        RAISE NOTICE 'Consider: Reducing batch size, adding indexes, or optimizing queries';
+    ELSE
+        RAISE NOTICE '';
+        RAISE NOTICE 'Performance: Good - Processing completed efficiently';
+    END IF;
+END $$;
+```
+
+---
+
+# Part 8: Practical Exercises
+
+## Exercise 1: Film Recommendation Engine
+
+```{sql}
+-- Exercise: Create a film recommendation system using PL/pgSQL
+-- Your task: Build a block that recommends films to a customer based on:
+-- 1. Their rental history (preferred categories)
+-- 2. Films they haven't seen yet
+-- 3. Popular films in their preferred categories
+
+-- Your solution here:
+DO $$
+DECLARE
+    target_customer_id INTEGER := 1; -- Change this to test different customers
+    -- Add your variable declarations here
+BEGIN
+    RAISE NOTICE 'Film Recommendation System for Customer %', target_customer_id;
+    
+    -- Step 1: Analyze customer's preferred categories
+    -- TODO: Implement category preference analysis
+    
+    -- Step 2: Find films they haven't rented
+    -- TODO: Implement film filtering logic
+    
+    -- Step 3: Rank recommendations by popularity and preference
+    -- TODO: Implement recommendation ranking
+    
+    -- Replace this placeholder with your solution
+    RAISE NOTICE 'TODO: Implement recommendation logic';
+    
+END $$;
+```
+
+## Exercise 2: Automated Inventory Management
+
+```{sql}
+-- Exercise: Create an inventory management system
+-- Your task: Build a system that:
+-- 1. Identifies films with low inventory
+-- 2. Calculates reorder quantities based on demand
+-- 3. Generates purchase recommendations
+
+-- Your solution here:
+
+
+```
+
+## Exercise 3: Customer Churn Prevention
+
+```{sql}
+-- Exercise: Build a customer churn prevention system
+-- Your task: Identify customers at risk of churning and suggest interventions
+-- Consider: recency of last rental, frequency changes, spending patterns
+
+-- Your solution here:
+
+
+```
+
+---
+
+# Part 9: Best Practices and Common Pitfalls
+
+## Best Practices Summary
+
+### ✅ PL/pgSQL Best Practices:
+
+1. **Variable Management**
+   - Use meaningful variable names
+   - Match variable types to database columns (`%TYPE`)
+   - Initialize variables when possible
+
+2. **Error Handling**
+   - Always include exception handling for database operations
+   - Use specific exception types when possible
+   - Provide meaningful error messages
+
+3. **Performance Optimization**
+   - Minimize database round trips
+   - Use STRICT with SELECT INTO when expecting one row
+   - Consider batch processing for large datasets
+
+4. **Code Organization**
+   - Keep blocks focused on single responsibilities
+   - Use comments for complex business logic
+   - Break large blocks into smaller, manageable pieces
+
+5. **Debugging**
+   - Use conditional RAISE NOTICE statements for debugging
+   - Include timing information for performance analysis
+   - Test with various data scenarios
+
+### ❌ Common Pitfalls:
+
+1. **Assignment vs Comparison**
+   - Use `:=` for assignment, `=` for comparison
+   - Don't confuse the two operators
+
+2. **Exception Handling**
+   - Don't ignore exceptions - handle them appropriately
+   - Don't use WHEN OTHERS unless you re-raise or log
+
+3. **NULL Handling**
+   - Always consider NULL values in calculations
+   - Use COALESCE or IS NULL checks when appropriate
+
+4. **Performance Issues**
+   - Avoid unnecessary loops over large datasets
+   - Don't fetch more data than needed
+   - Be careful with nested loops
+
+5. **Security**
+   - Validate input parameters
+   - Avoid dynamic SQL when possible
+   - Use proper quoting for dynamic SQL
+
+---
+
+# Part 10: Cleanup and Summary
+
+```{sql}
+-- Check if our demonstrations affected any session settings
+SELECT name, setting, unit 
+FROM pg_settings 
+WHERE name IN ('log_min_messages', 'client_min_messages')
+ORDER BY name;
+
+-- Reset any session variables if needed
+RESET ALL;
+```
+
+## Summary - Key Takeaways 🎯
+
+### **PL/pgSQL Fundamentals:**
+- **Anonymous Blocks**: `DO $$ BEGIN ... END $$;`
+- **Variables**: Declared in `DECLARE` section, assigned with `:=`
+- **Data Types**: Use `%TYPE` and `%ROWTYPE` for database compatibility
+- **Control Flow**: IF/ELSIF/ELSE, FOR loops, WHILE loops
+
+### **Essential Concepts:**
+1. **Variable Declaration and Assignment**
+   - `DECLARE` section for all variables
+   - Initialize during declaration or assign later
+   - Use appropriate data types
+
+2. **Database Integration**
+   - `SELECT INTO` for getting data into variables
+   - `RECORD` and `%ROWTYPE` for flexible data handling
+   - Proper exception handling for database operations
+
+3. **Control Structures**
+   - `IF/ELSIF/ELSE` for conditional logic
+   - `FOR` loops for iteration (ranges and queries)
+   - `WHILE` loops for conditional iteration
+   - `CASE` statements for complex branching
+
+4. **Exception Handling**
+   - `BEGIN...EXCEPTION...END` blocks
+   - Specific exception types (NO_DATA_FOUND, TOO_MANY_ROWS)
+   - `WHEN OTHERS` for catch-all handling
+
+5. **Debugging and Performance**
+   - `RAISE NOTICE` for debugging output
+   - Timing analysis with `clock_timestamp()`
+   - Performance monitoring and optimization
+
+### **Real-World Applications:**
+- **Business Logic Implementation**: Complex calculations and validations
+- **Data Processing**: Batch operations and transformations
+- **Error Handling**: Graceful failure management
+- **Performance Optimization**: Reducing application-database round trips
+
+### **When to Use PL/pgSQL:**
+- ✅ Complex business logic requiring multiple SQL operations
+- ✅ Data validation and transformation procedures
+- ✅ Batch processing and ETL operations
+- ✅ Error handling and transaction management
+- ❌ Simple single-statement operations (use plain SQL)
+- ❌ Complex algorithms (better in application languages)
+- ❌ User interface logic (belongs in application layer)
+
+## Questions for Discussion 💭
+
+1. When would you choose PL/pgSQL over application-level business logic?
+2. How do you handle complex error scenarios in production PL/pgSQL code?
+3. What strategies do you use for debugging PL/pgSQL programs?
+4. How do you balance performance vs. readability in PL/pgSQL code?
+5. What are the security considerations when writing PL/pgSQL procedures?
+
+## Next Steps in Your PL/pgSQL Journey 🚀
+
+1. **Functions and Procedures**: Create reusable code blocks
+2. **Triggers**: Automate database operations
+3. **Cursors**: Advanced result set processing
+4. **Dynamic SQL**: Building queries at runtime
+5. **Advanced Data Types**: JSON, arrays, custom types
+6. **Performance Tuning**: Optimization techniques
+7. **Integration Patterns**: Working with application frameworks
+
+---
+
+*End of Live Demo Session*
+
+## Additional Resources 📚
+
+- PostgreSQL PL/pgSQL Documentation
+- Error Handling Best Practices
+- Performance Tuning for PL/pgSQL
+- Debugging Tools and Techniques
+- Security Guidelines for Stored Procedures

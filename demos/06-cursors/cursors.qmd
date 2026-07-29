@@ -1,0 +1,215 @@
+---
+title: "PostgreSQL Cursors - Live Demo with Pagila Database"
+subtitle: "Hands-on demonstration of using Cursors for row-by-row processing"
+author: "Database Course - Live Demo Session"
+format: 
+  html:
+    theme: default
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-overflow: wrap
+    highlight-style: github
+    code-block-bg: true
+    code-block-border-left: "#31BAE9"
+    number-sections: true
+---
+
+# Introduction to Cursors - Real Definitions and Concepts
+
+## What is a Cursor? 🎯
+
+> **Definition**: A cursor is a database object that allows you to traverse the result set of a query one row at a time. Instead of getting all rows at once, you can fetch and process each row individually.
+
+### Key Characteristics:
+- **Row-by-Row Processing**: The primary feature of a cursor.
+- **Stateful**: A cursor maintains a position in the result set.
+- **Resource Intensive**: Can consume significant server resources if not managed properly.
+
+## Why Use Cursors? 
+
+Cursors are powerful but should be used judiciously. They are typically reserved for situations where row-by-row processing is unavoidable.
+
+### 1. **Procedural Logic** ⚙️
+For complex procedures where you need to perform operations on each row based on the values of that row.
+
+### 2. **Batch Processing** 📦
+When processing a very large result set that cannot fit into memory, a cursor allows you to process it in chunks.
+
+### 3. **Interfacing with Applications** 💻
+Some applications are designed to consume data one record at a time.
+
+---
+
+# Setting Up Our Demo Environment
+
+First, let's connect to our Pagila database. All cursor operations will be performed within a transaction block (`BEGIN`/`COMMIT`).
+
+```{sql}
+-- Connect to Pagila database
+-- \c pagila
+```
+
+---
+
+# Part 1: Basic Cursors - Declaring and Fetching
+
+## Demo 1: A Simple Read-Only Cursor
+
+Let's create a cursor to iterate through the titles of all films rated 'PG'.
+
+```{sql}
+-- All cursor operations must be inside a transaction
+BEGIN;
+
+-- 1. Declare the cursor
+DECLARE film_cursor CURSOR FOR
+SELECT title, release_year
+FROM film
+WHERE rating = 'PG'
+ORDER BY title;
+
+-- 2. Fetch the first few rows
+FETCH 5 FROM film_cursor;
+
+-- 3. Fetch the next 5 rows
+FETCH 5 FROM film_cursor;
+
+-- 4. Close the cursor to release resources
+CLOSE film_cursor;
+
+-- 5. Commit the transaction
+COMMIT;
+```
+
+## Demo 2: Looping Through a Cursor in PL/pgSQL
+
+Cursors are most powerful when used within functions or `DO` blocks.
+
+```{sql}
+-- Using a DO block to loop through a cursor
+DO $$
+DECLARE
+    -- Declare a variable to hold the film title
+    film_title TEXT;
+    -- Declare the cursor
+    film_cursor CURSOR FOR
+        SELECT title FROM film WHERE rating = 'R' ORDER BY release_year DESC LIMIT 10;
+BEGIN
+    -- Open the cursor
+    OPEN film_cursor;
+
+    LOOP
+        -- Fetch one row at a time into our variable
+        FETCH film_cursor INTO film_title;
+        
+        -- Exit the loop if no more rows are found
+        EXIT WHEN NOT FOUND;
+
+        -- Process the row (here, we just raise a notice)
+        RAISE NOTICE 'Found R-rated film: %', film_title;
+    END LOOP;
+
+    -- Close the cursor
+    CLOSE film_cursor;
+END $$;
+```
+
+---
+
+# Part 2: Advanced Cursor Operations
+
+## Demo 3: Scrollable Cursors and Navigation
+
+By default, cursors are forward-only. A `SCROLL` cursor allows moving backward and to absolute positions.
+
+```{sql}
+BEGIN;
+
+-- Declare a scrollable cursor
+DECLARE scroll_cursor SCROLL CURSOR FOR
+SELECT first_name, last_name FROM customer ORDER BY last_name;
+
+-- Fetch the 5th row directly
+FETCH ABSOLUTE 5 FROM scroll_cursor;
+
+-- Fetch the previous row
+FETCH PRIOR FROM scroll_cursor;
+
+-- Move back 2 rows
+MOVE BACKWARD 2 FROM scroll_cursor;
+FETCH NEXT FROM scroll_cursor;
+
+-- Move to the end and fetch the last row
+FETCH LAST FROM scroll_cursor;
+
+-- Close the cursor
+CLOSE scroll_cursor;
+
+COMMIT;
+```
+
+## Demo 4: Updatable Cursors with `WHERE CURRENT OF`
+
+A cursor can be used to update or delete the row it currently points to. This is one of the most common use cases for cursors.
+
+```{sql}
+-- Let's check the current price of a few rentals
+SELECT r.rental_id, p.amount
+FROM rental r
+JOIN payment p ON r.rental_id = p.rental_id
+WHERE r.customer_id = 137
+ORDER BY r.rental_date DESC
+LIMIT 5;
+```
+
+```{sql}
+-- Now, let's give a discount to customer 137 for their last 5 rentals
+BEGIN;
+
+-- The FOR UPDATE clause is necessary to make the cursor updatable
+DECLARE payment_cursor CURSOR FOR
+SELECT amount
+FROM payment
+WHERE rental_id IN (SELECT rental_id FROM rental WHERE customer_id = 137 ORDER BY rental_date DESC LIMIT 5)
+FOR UPDATE;
+
+-- Open the cursor
+OPEN payment_cursor;
+
+-- Loop 5 times to update the 5 payments
+DO $$
+BEGIN
+    FOR i IN 1..5 LOOP
+        -- Fetch the next row
+        FETCH payment_cursor;
+        
+        -- Check if we have a row to update
+        IF FOUND THEN
+            -- Apply a 10% discount
+            UPDATE payment
+            SET amount = amount * 0.90
+            WHERE CURRENT OF payment_cursor;
+        END IF;
+    END LOOP;
+END $$;
+
+-- Close and commit
+CLOSE payment_cursor;
+COMMIT;
+
+-- Verify the changes
+SELECT r.rental_id, p.amount
+FROM rental r
+JOIN payment p ON r.rental_id = p.rental_id
+WHERE r.customer_id = 137
+ORDER BY r.rental_date DESC
+LIMIT 5;
+```
+
+# Conclusion and Best Practices
+
+- **Always Close Cursors**: Open cursors consume resources. Use `CLOSE` to release them.
+- **Use Within Transactions**: Cursors are defined within transactions. `COMMIT` or `ROLLBACK` will close them automatically if you forget.
+- **Prefer Set-Based Operations**: Cursors are slower than standard SQL queries. If you can solve a problem with a `JOIN` or `UPDATE ... FROM`, do that instead.
+- **`FOR UPDATE`**: Use this clause when you intend to update or delete rows through the cursor.

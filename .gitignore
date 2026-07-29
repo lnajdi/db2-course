@@ -20,15 +20,26 @@ Thumbs.db
 *.tmp
 *.temp
 
-# Lab solutions (keep student work private)
-**/solutions.sql
-
-# Labs directory (as mentioned in to do)
-labs/
-
-# Private files
-private/
 
 # PostgreSQL specific
 postgresql/
 pgdata/
+
+
+#adventure works db
+data/adventureworks
+
+# Build output / generated (regenerable via `quarto render`)
+_site/
+.quarto/
+site_libs/
+*_files/
+
+# Scratch/preview junk
+tmp_min.html
+tmp_min_files/
+
+# Executables
+*.exe
+*.dll
+*.msi

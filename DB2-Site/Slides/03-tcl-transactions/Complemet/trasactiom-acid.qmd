@@ -1,0 +1,51 @@
+Of course. While Isolation manages how transactions see each other, the other three ACID properties—Atomicity, Consistency, and Durability—are the fundamental pillars that make PostgreSQL a reliable database.
+
+Here’s how PostgreSQL ensures each one:
+
+### A - Atomicity (All or Nothing)
+
+Atomicity guarantees that a transaction is treated as a single, indivisible unit of work. Either all of its operations are completed successfully, or none of them are. You will never have a partially completed transaction.
+
+**How PostgreSQL Achieves This:**
+
+The core mechanism is the **Write-Ahead Log (WAL)**.
+
+1.  **Logging First:** Before PostgreSQL modifies the actual data on disk (the "tables" or "heap files"), it first writes a detailed record of the intended changes to a separate log file—the WAL.
+2.  **Commit Record:** When you execute a `COMMIT` command, PostgreSQL writes a special `COMMIT` record to the WAL file and ensures this file is saved to the disk.
+3.  **Rollback/Crash:** If the transaction fails for any reason (an error, a power failure, or a `ROLLBACK` command) before the `COMMIT` record is written to the WAL, the database knows the transaction never finished. During recovery, it simply ignores the WAL entries for that incomplete transaction, and the actual data files are left untouched. It's as if the transaction never happened.
+
+In short, the transaction isn't considered "done" until its `COMMIT` record is safely in the WAL. This prevents partial writes and ensures the all-or-nothing rule.
+
+
+
+### C - Consistency (Staying Valid)
+
+Consistency ensures that a transaction can only bring the database from one valid state to another. It prevents any transaction from violating the database's defined rules and integrity constraints.
+
+**How PostgreSQL Achieves This:**
+
+This is a shared responsibility between the database and the application developer. PostgreSQL provides the tools to enforce the rules you define.
+
+* **Constraint Enforcement:** This is the primary way PostgreSQL maintains consistency. Before a transaction can be committed, PostgreSQL checks that it has not violated any of the following:
+    * `NOT NULL` constraints
+    * `UNIQUE` constraints
+    * `PRIMARY KEY` constraints
+    * `FOREIGN KEY` constraints (ensuring relationships between tables are valid)
+    * `CHECK` constraints (e.g., ensuring a `price` column is always greater than zero)
+* **Triggers:** You can define custom procedures (triggers) that run automatically before or after an `INSERT`, `UPDATE`, or `DELETE` operation to enforce complex business rules.
+
+If any of these constraints or rules are violated at the end of the transaction, PostgreSQL will automatically roll the transaction back, preserving the last known valid state.
+
+### D - Durability (Sticking Around)
+
+Durability guarantees that once a transaction has been successfully committed, its changes are permanent and will survive any subsequent system failure, such as a power outage or server crash.
+
+**How PostgreSQL Achieves This:**
+
+This guarantee also relies heavily on the **Write-Ahead Log (WAL)**.
+
+1.  **Flush to Disk:** When you `COMMIT` a transaction, PostgreSQL writes the transaction's changes to the WAL file. By default, it then forces ("flushes") these WAL records from memory all the way to the physical disk.
+2.  **Confirmation:** The database only reports "COMMIT successful" back to the application *after* the operating system confirms that the WAL records are safely stored on a permanent medium (like an SSD or hard drive).
+3.  **Crash Recovery:** If the server crashes, the main data files might not have been fully updated yet. However, since all the committed changes are safely recorded in the WAL, PostgreSQL's automatic crash recovery process will read the WAL upon restart and replay all the committed transactions, bringing the database to the correct, durable state.
+
+This process ensures that once you get a successful commit message, your data is safe, no matter what happens to the server moments later.

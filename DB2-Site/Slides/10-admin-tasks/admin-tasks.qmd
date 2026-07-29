@@ -1,0 +1,1069 @@
+---
+title: "Database Course"
+subtitle: "Database Administrator (DBA) Tasks "
+institute: "<br>Polydisciplinary Faculty of Taroudant <br><br>2025-2026<br><br>" 
+author: "Lotfi NAJDI"
+format: 
+  clean-revealjs:
+    transition: slide
+    incremental: false
+
+---
+
+
+## What is a DBA? {.center}
+
+**Database Administrator** = Guardian of Data 🛡️
+
+- **Available** → Always running
+- **Secure** → Protected
+- **Fast** → Optimized queries
+- **Safe** → Backed up
+
+---
+
+## A Simple Analogy 🚗 {.center}
+
+Think of database administration like **car maintenance**:
+
+| Car Maintenance | Database Equivalent |
+|-----------------|--------------------|
+| Regular checkups | Monitor performance |
+| Oil changes | VACUUM and ANALYZE |
+| Backup spare tire | Database backups |
+| Performance tuning | Query optimization |
+| Emergency repairs | Troubleshooting |
+
+**Better maintenance = fewer emergencies!**
+
+---
+
+## The Four Pillars of DB Administration {.center}
+
+Database administration rests on **four key pillars**:
+
+1. **Backup & Recovery** 💾 - Protect against data loss
+2. **Performance Monitoring** 📊 - Keep things running fast  
+3. **Routine Maintenance** 🔧 - Prevent problems before they happen
+4. **Capacity Planning** 📈 - Prepare for growth and scaling
+
+---
+
+## Pagila Database 🎬
+
+Sample PostgreSQL database = DVD rental store
+
+| Table | Content |
+|-------|---------|
+| `film` | 1000 movies |
+| `customer` | Customers |
+| `rental` | Transactions |
+| `actor` | Actors |
+
+---
+
+# Task 1: Setup {background-color="#2a9d8f"}
+
+---
+
+## Install PostgreSQL
+
+**Windows (PowerShell Admin):**
+```powershell
+choco install postgresql -y
+```
+
+**Linux:**
+```bash
+sudo apt install postgresql -y
+```
+
+---
+
+## Load Pagila
+
+**PowerShell:**
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-schema.sql" -OutFile pagila-schema.sql
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-data.sql" -OutFile pagila-data.sql
+
+createdb -U postgres pagila
+psql -U postgres -d pagila -f pagila-schema.sql
+psql -U postgres -d pagila -f pagila-data.sql
+```
+
+**Linux:** Use `wget` instead of `Invoke-WebRequest`
+
+---
+
+## Connect & Test
+
+```sql
+psql -U postgres -d pagila
+
+\dt                        -- List tables
+SELECT COUNT(*) FROM film; -- 1000 films
+```
+
+---
+
+# Task 2: User Management {background-color="#e76f51"}
+
+---
+
+## Create Users
+
+```sql
+-- Read-only
+CREATE ROLE viewer WITH LOGIN PASSWORD 'pass123';
+
+-- App user  
+CREATE ROLE app_user WITH LOGIN PASSWORD 'app456';
+
+-- Admin
+CREATE ROLE dba WITH LOGIN PASSWORD 'admin789' 
+  CREATEDB CREATEROLE;
+```
+
+---
+
+## Grant Permissions
+
+```sql
+-- Viewer: read only
+GRANT CONNECT ON DATABASE pagila TO viewer;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO viewer;
+
+-- App: full access
+GRANT ALL ON ALL TABLES IN SCHEMA public TO app_user;
+```
+
+---
+
+## Check Permissions
+
+```sql
+\du              -- List roles
+\dp rental       -- Table permissions
+```
+
+---
+
+# Task 3: Backup & Recovery {background-color="#264653"}
+
+---
+
+## 📖 Real Story: Why Backups Saved the Day
+
+**Friday, 3 PM:** Sarah, a junior developer, accidentally runs:
+```sql
+DELETE FROM customer_orders;  -- Forgot WHERE clause!
+```
+**500,000 orders deleted!** 😱
+
+**Friday, 3:05 PM:** Team finds last night's backup
+
+**Friday, 3:30 PM:** Database restored, only lost 15 hours of data
+
+**The lesson:** Backups aren't optional – they're insurance!
+
+---
+
+## Backup & Recovery Overview
+Backup consists of copying database data to a safe location.
+Recovery is restoring the database from a backup in case of data loss.
+
+## Types of Backups
+In postresql, there are two main types of backups:
+1. SQL Dump: A logical backup that exports the database schema and data as SQL statements.
+2. File System Backup: A physical backup that copies the database files directly from the file system
+
+
+## Logical Backup
+
+**PowerShell:**
+```powershell
+pg_dump -U postgres -F c -f C:\backups\pagila.dump pagila
+```
+**Options :**
+-  `-F`  : Specifies the format of the backup file. 'c' stands for custom format, which is a compressed binary format that allows for selective restoration of database objects.
+-  `-f ` : Specifies the file path where the backup will be saved.
+
+---
+
+## Selective Backups
+
+**Don't need everything? Back up just what you need:**
+
+```powershell
+# Just the structure (no data)
+pg_dump -U postgres -d pagila --schema-only > structure.sql
+
+# Just the data (no structure)  
+pg_dump -U postgres -d pagila --data-only > data.sql
+
+# Just specific tables
+pg_dump -U postgres -d pagila -t customer -t rental > important_tables.sql
+```
+
+**When to use:**
+- Testing structure changes (schema-only)
+- Migrating data between databases (data-only)
+- Backing up critical tables more frequently
+
+--- 
+
+## Restore Logical Backup
+
+
+```powershell
+createdb -U postgres pagila_new
+pg_restore -U postgres -d pagila_new C:\backups\pagila.dump
+```
+
+---
+
+## Automated Backup (PowerShell)
+It is a good practice to automate backups to ensure regular data protection. Below is a simple PowerShell script that performs a daily backup of the Pagila database and retains backups for 7 days.
+
+```powershell
+$date = Get-Date -Format "yyyyMMdd"
+pg_dump -U postgres -F c -f "C:\backups\pagila_$date.dump" pagila
+
+# Cleanup old (7+ days)
+Get-ChildItem C:\backups\*.dump | 
+  Where-Object {$_.LastWriteTime -lt (Get-Date).AddDays(-7)} | 
+  Remove-Item
+```
+
+---
+
+## Logical vs Physical Backup
+| Aspect               | Logical Backup (pg_dump)         | Physical Backup (File System)      |
+|----------------------|----------------------------------|------------------------------------|
+| Method               | Exports schema and data as SQL   | Copies database files directly     |
+| Flexibility          | Selective restoration of objects | Full database restoration only     |
+| Size                 | Smaller, compressed               | Larger, includes all files         |
+| Speed                | Slower for large databases       | Faster for large databases         |
+| Use Case             | Development, migration           | Disaster recovery, full restore    |  
+
+---
+
+## Exemple Physical Backup 
+**PowerShell:**
+```powershell
+# Stop PostgreSQL service
+net stop postgresql-x64-16
+# Copy data directory
+Copy-Item "C:\Program Files\PostgreSQL\16\data" -Destination "C
+:\backups\pagila_data_backup" -Recurse
+# Start PostgreSQL service
+net start postgresql-x64-16
+```
+
+## Restore Physical Backup
+**PowerShell:**
+```powershell
+# Stop PostgreSQL service
+net stop postgresql-x64-16
+# Restore data directory
+Remove-Item "C:\Program Files\PostgreSQL\16\data" -Recurse
+Copy-Item "C:\backups\pagila_data_backup" -Destination "C:\
+Program Files\PostgreSQL\16\data" -Recurse
+# Start PostgreSQL service
+net start postgresql-x64-16
+```
+
+## offline vs online backup
+| Aspect               | Offline Backup                   | Online Backup                     |
+|----------------------|----------------------------------|------------------------------------|
+| Method               | Database is shut down            | Database remains operational       |
+| Availability         | Not available during backup      | Available during backup            |
+| Complexity           | Simpler to implement             | More complex, requires tools      |
+| Use Case             | Maintenance windows              | Continuous data protection        |
+
+
+## Point-in-Time Recovery (PITR)
+Point-in-Time Recovery (PITR) allows you to restore a database to a specific moment
+in time, which is useful for recovering from accidental data loss or corruption.
+
+To enable PITR, you need to configure continuous archiving of WAL (Write-Ahead Logging) files.
+
+## WAL Archiving
+PostgreSQL uses WAL files to log all changes made to the database. By archiving these files, you can replay them during recovery to restore the database to a specific point in time.
+
+In recovery time zezill restore the database from a base backup and then apply the archived WAL files up to the desired point in time.
+
+
+---
+
+# Task 4: Monitoring {background-color="#f4a261"}
+
+---
+
+## Why Monitor?
+
+Detect problems **before** users complain!
+
+| Problem | Symptom |
+|---------|---------|
+| Slow queries | High CPU |
+| Connection leak | Max connections |
+| Disk full | Write errors |
+| Lock contention | Timeouts |
+
+---
+
+## Key System Views
+
+| View | Shows |
+|------|-------|
+| `pg_stat_activity` | Current sessions |
+| `pg_stat_user_tables` | Table statistics |
+| `pg_stat_user_indexes` | Index usage |
+| `pg_statio_user_tables` | I/O statistics |
+| `pg_locks` | Current locks |
+
+---
+
+## Active Connections
+
+```sql
+SELECT state, COUNT(*) 
+FROM pg_stat_activity 
+GROUP BY state;
+```
+
+**States explained:**
+
+| State | Meaning | Action |
+|-------|---------|--------|
+| `active` | Running a query right now | Normal |
+| `idle` | Connected but doing nothing | Normal |
+| `idle in transaction` | Started transaction but paused | ⚠️ Investigate! |
+| `idle in transaction (aborted)` | Transaction failed, not rolled back | ❌ Kill it! |
+
+**Warning:** `idle in transaction` connections hold locks and can block others!
+
+---
+
+## Connection Details
+Dba could use the following query to see details about active connections to the `pagila` database:
+
+```sql
+SELECT pid, usename, client_addr, state, 
+       query_start, LEFT(query, 50) AS query
+FROM pg_stat_activity
+WHERE datname = 'pagila';
+```
+
+---
+
+## Long Running Queries
+
+In order to identify long-running queries that may be impacting database performance, you can use the following SQL query. This query retrieves the process ID, username, duration of the query, and a snippet of the query text for all active queries that have been running for more than 1 minute:
+
+```sql
+SELECT pid, usename,
+       now() - query_start AS duration,
+       LEFT(query, 60) AS query
+FROM pg_stat_activity
+WHERE state = 'active'
+  AND now() - query_start > interval '1 minute'
+ORDER BY duration DESC;
+```
+
+**Action:** Investigate or kill with `pg_terminate_backend(pid)`
+
+---
+
+## Kill a Query
+
+When a query is causing issues, you can terminate it using its process ID (PID). Here are two methods to do so:
+
+```sql
+-- Cancel query (graceful)
+SELECT pg_cancel_backend(12345);
+
+-- Terminate connection (force)
+SELECT pg_terminate_backend(12345);
+```
+
+**PowerShell - find & kill:**
+```powershell
+psql -U postgres -d pagila -c "SELECT pg_terminate_backend(12345);"
+```
+
+---
+
+## Table Sizes
+
+```sql
+SELECT relname AS table_name,
+       pg_size_pretty(pg_total_relation_size(relid)) AS total,
+       pg_size_pretty(pg_relation_size(relid)) AS data,
+       pg_size_pretty(pg_indexes_size(relid)) AS indexes
+FROM pg_stat_user_tables
+ORDER BY pg_total_relation_size(relid) DESC LIMIT 5;
+```
+
+---
+
+## Database Size
+
+```sql
+-- Single database
+SELECT pg_size_pretty(pg_database_size('pagila'));
+
+-- All databases
+SELECT datname, pg_size_pretty(pg_database_size(datname)) AS size
+FROM pg_database
+ORDER BY pg_database_size(datname) DESC;
+```
+
+---
+
+## Disk Space 
+
+The DBA can check disk space usage on the server hosting the PostgreSQL database using the following commands:
+
+**Windows:**
+```powershell
+Get-PSDrive C | Select-Object Used, Free
+
+# PostgreSQL data folder
+Get-ChildItem "C:\Program Files\PostgreSQL\16\data" -Recurse | 
+  Measure-Object -Property Length -Sum
+```
+
+
+
+---
+
+## Cache Hit Ratio
+
+The cache hit ratio indicates how often data is served from memory (cache) versus disk. A high cache hit ratio means better performance.
+
+```sql
+SELECT 
+    sum(heap_blks_hit) AS cache_hits,
+    sum(heap_blks_read) AS disk_reads,
+    round(sum(heap_blks_hit) * 100.0 / 
+          NULLIF(sum(heap_blks_hit) + sum(heap_blks_read), 0), 2) AS hit_pct
+FROM pg_statio_user_tables;
+```
+
+| Ratio | Status |
+|-------|--------|
+| > 99% | ✅ Excellent |
+| 95-99% | ⚠️ OK |
+| < 95% | ❌ Increase `shared_buffers` |
+
+---
+
+## Index Usage
+
+```sql
+SELECT relname AS table_name,
+       seq_scan,      -- Full table scans
+       idx_scan,      -- Index scans
+       n_live_tup AS rows
+FROM pg_stat_user_tables
+WHERE seq_scan > idx_scan
+ORDER BY seq_scan DESC;
+```
+
+**High seq_scan?** → Missing index!
+
+---
+
+## Unused Indexes
+
+```sql
+SELECT schemaname, relname AS table_name,
+       indexrelname AS index_name,
+       idx_scan AS times_used,
+       pg_size_pretty(pg_relation_size(indexrelid)) AS size
+FROM pg_stat_user_indexes
+WHERE idx_scan = 0
+ORDER BY pg_relation_size(indexrelid) DESC;
+```
+
+**0 scans?** → Consider dropping (wastes space)
+
+---
+
+## Lock Monitoring
+
+```sql
+SELECT l.pid, l.mode, l.granted,
+       a.usename, a.query
+FROM pg_locks l
+JOIN pg_stat_activity a ON l.pid = a.pid
+WHERE NOT l.granted;
+```
+
+**`granted = false`** → Query is waiting for lock!
+
+---
+
+## Find Blocking Queries
+
+```sql
+SELECT blocked.pid AS blocked_pid,
+       blocked.query AS blocked_query,
+       blocking.pid AS blocking_pid,
+       blocking.query AS blocking_query
+FROM pg_stat_activity blocked
+JOIN pg_locks bl ON blocked.pid = bl.pid
+JOIN pg_locks lk ON bl.locktype = lk.locktype 
+  AND bl.relation = lk.relation AND bl.pid != lk.pid
+JOIN pg_stat_activity blocking ON lk.pid = blocking.pid
+WHERE NOT bl.granted;
+```
+---
+
+
+
+## Simple Monitoring Script (PowerShell)
+
+```powershell
+# monitor_pagila.ps1
+$query = @"
+SELECT 'Connections' AS metric, COUNT(*)::text AS value 
+FROM pg_stat_activity WHERE datname='pagila'
+UNION ALL
+SELECT 'DB Size', pg_size_pretty(pg_database_size('pagila'))
+UNION ALL  
+SELECT 'Cache Hit %', round(sum(heap_blks_hit)*100.0/
+  NULLIF(sum(heap_blks_hit)+sum(heap_blks_read),0),1)::text
+FROM pg_statio_user_tables;
+"@
+psql -U postgres -d pagila -c $query
+```
+
+---
+
+## Monitoring Tools
+
+Gui tools and extensions help DBAs monitor PostgreSQL visually.
+
+| Tool | Type | Cost |
+|------|------|------|
+| pgAdmin | GUI | Free |
+| pg_stat_statements | Extension | Free |
+| Prometheus + Grafana | Dashboard | Free |
+
+
+---
+
+## Enable pg_stat_statements
+
+```sql
+-- In postgresql.conf or:
+ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements';
+-- Restart PostgreSQL
+
+CREATE EXTENSION pg_stat_statements;
+
+-- Top slow queries
+SELECT LEFT(query, 50), calls, mean_exec_time
+FROM pg_stat_statements
+ORDER BY mean_exec_time DESC LIMIT 5;
+```
+
+---
+
+# Task 5: Performance {background-color="#e9c46a"}
+
+---
+
+## EXPLAIN ANALYZE
+
+```sql
+EXPLAIN ANALYZE
+SELECT f.title, COUNT(*) AS rentals
+FROM film f
+JOIN inventory i ON f.film_id = i.film_id
+JOIN rental r ON i.inventory_id = r.inventory_id
+GROUP BY f.title ORDER BY rentals DESC LIMIT 10;
+```
+
+---
+
+## Create Index
+
+```sql
+-- Slow: Seq Scan
+EXPLAIN SELECT * FROM rental WHERE customer_id = 100;
+
+-- Add index
+CREATE INDEX idx_rental_cust ON rental(customer_id);
+
+-- Fast: Index Scan
+EXPLAIN SELECT * FROM rental WHERE customer_id = 100;
+```
+
+---
+
+# Task 6: Maintenance {background-color="#9b2226"}
+
+---
+
+## Why Maintenance?
+
+PostgreSQL uses **MVCC** (Multi-Version Concurrency Control)
+
+- Updates create **new** row versions
+- Deletes **mark** rows as dead
+- Dead rows = **bloat** = wasted space
+
+**Solution:** Regular maintenance!
+
+---
+
+## Maintenance Tasks Overview
+
+| Task | Purpose | Frequency |
+|------|---------|-----------|
+| VACUUM | Remove dead rows | Auto/Daily |
+| ANALYZE | Update statistics | Auto/Daily |
+| REINDEX | Rebuild indexes | Monthly |
+| pg_repack | Reclaim space (no lock) | As needed |
+
+---
+
+## Dead rows
+- when a row is updated or deleted in PostgreSQL, the old version of the row is not immediately removed from the database. 
+- Instead, it is marked as "dead" and a new version of the row is created. 
+- This approach allows multiple transactions to access different versions of the same row concurrently, improving performance and concurrency.
+
+
+## VACUUM 
+Vacuum is a maintenance operation in PostgreSQL that helps to reclaim storage occupied by dead tuples (rows) and to update statistics for the query planner.
+
+
+```sql
+-- Standard VACUUM (doesn't lock)
+VACUUM;
+
+-- VACUUM + update statistics from the  planner 
+VACUUM ANALYZE;
+
+-- Specific table
+VACUUM ANALYZE rental;
+```
+
+
+---
+
+## Autovacuum
+
+While PostgreSQL's autovacuum handles routine maintenance, there are situations where manual intervention is necessary:
+- **High Update/Delete Activity:** Tables with frequent updates or deletes may require more aggressive vacuuming to prevent bloat.
+- **Performance Issues:** If you notice performance degradation, it may be due to dead tuples that have not been cleaned up.
+
+
+---
+
+## ANALYZE
+
+Updates **statistics** for query planner
+
+```sql
+-- All tables
+ANALYZE;
+
+-- Specific table
+ANALYZE rental;
+
+-- Specific columns
+ANALYZE rental (customer_id, rental_date);
+```
+
+---
+
+## Why ANALYZE Matters
+
+```sql
+-- Planner uses statistics to choose best plan
+EXPLAIN SELECT * FROM rental WHERE customer_id = 100;
+
+-- Bad statistics = bad plan = slow queries!
+```
+
+Run ANALYZE after:
+
+- Bulk INSERT/UPDATE/DELETE
+- New index creation
+- Major data changes
+
+---
+
+## Table Bloat
+- Table bloat occurs when dead tuples accumulate in a table, leading to wasted disk space and degraded performance.
+- Regular maintenance tasks like VACUUM and REINDEX help mitigate bloat by removing dead tuples
+
+
+
+## Check Table Bloat
+
+```sql
+SELECT relname AS table_name,
+       n_live_tup AS live_rows,
+       n_dead_tup AS dead_rows,
+       CASE WHEN n_live_tup > 0 
+            THEN round(n_dead_tup * 100.0 / n_live_tup, 1)
+            ELSE 0 END AS dead_pct
+FROM pg_stat_user_tables
+WHERE n_dead_tup > 0
+ORDER BY n_dead_tup DESC;
+```
+
+**> 10% dead?** → Run VACUUM or VACUUM FULL
+
+---
+
+## Pagila Example: Simulate Bloat
+
+```sql
+-- Create bloat with updates
+UPDATE rental SET return_date = return_date WHERE rental_id < 5000;
+
+-- Check dead rows
+SELECT relname, n_dead_tup 
+FROM pg_stat_user_tables 
+WHERE relname = 'rental';
+
+-- Clean up
+VACUUM ANALYZE rental;
+```
+
+---
+
+## REINDEX
+
+Rebuilds **index** to remove bloat
+
+```sql
+-- Single index
+REINDEX INDEX idx_rental_cust;
+
+-- All indexes on table
+REINDEX TABLE rental;
+
+-- Entire database (careful!)
+REINDEX DATABASE pagila;
+```
+
+---
+
+## REINDEX Options 
+
+```sql
+-- Concurrent (no lock, slower)
+REINDEX TABLE CONCURRENTLY rental;
+
+-- Verbose output
+REINDEX (VERBOSE) TABLE rental;
+```
+
+---
+
+## Check Index Bloat
+
+```sql
+-- Compare actual vs expected size
+SELECT indexrelname,
+       pg_size_pretty(pg_relation_size(indexrelid)) AS size,
+       idx_scan
+FROM pg_stat_user_indexes
+WHERE schemaname = 'public'
+ORDER BY pg_relation_size(indexrelid) DESC;
+```
+
+---
+
+## pg_repack Extension
+
+Better than VACUUM FULL - **no locks!**
+
+**Install (PowerShell):**
+```powershell
+# Download from https://github.com/reorg/pg_repack
+psql -U postgres -d pagila -c "CREATE EXTENSION pg_repack;"
+```
+
+**Use:**
+```powershell
+pg_repack -U postgres -d pagila -t rental
+```
+
+---
+
+## Maintenance Script (PowerShell)
+
+```powershell
+# maintenance_pagila.ps1
+$tables = @('rental', 'payment', 'film')
+
+foreach ($table in $tables) {
+    Write-Host "Maintaining $table..."
+    psql -U postgres -d pagila -c "VACUUM ANALYZE $table;"
+}
+
+Write-Host "Reindexing..."
+psql -U postgres -d pagila -c "REINDEX DATABASE pagila;"
+```
+
+---
+
+## Scheduled Maintenance (Windows)
+
+**Task Scheduler:**
+```powershell
+# Create scheduled task
+$action = New-ScheduledTaskAction -Execute "powershell.exe" `
+    -Argument "-File C:\scripts\maintenance_pagila.ps1"
+$trigger = New-ScheduledTaskTrigger -Daily -At 3AM
+Register-ScheduledTask -TaskName "PagilaMaintenance" `
+    -Action $action -Trigger $trigger
+```
+
+**Linux (cron):**
+```bash
+0 3 * * * /usr/bin/vacuumdb -U postgres -d pagila -z
+```
+
+---
+
+## Maintenance Calendar
+
+| Task | When | Command |
+|------|------|---------|
+| VACUUM ANALYZE | Daily (auto) | Built-in |
+| Check bloat | Weekly | Query |
+| REINDEX | Monthly | `REINDEX DATABASE` |
+| VACUUM FULL | As needed | When bloat > 20% |
+| Test backup | Monthly | `pg_restore --list` |
+
+---
+
+## Health Check Query
+
+```sql
+SELECT 
+    'Tables' AS metric, COUNT(*)::text AS value 
+    FROM pg_stat_user_tables
+UNION ALL SELECT 'DB Size', pg_size_pretty(pg_database_size('pagila'))
+UNION ALL SELECT 'Dead Rows', SUM(n_dead_tup)::text FROM pg_stat_user_tables
+UNION ALL SELECT 'Cache Hit %', 
+    round(sum(heap_blks_hit)*100.0/
+    NULLIF(sum(heap_blks_hit)+sum(heap_blks_read),0),1)::text
+    FROM pg_statio_user_tables
+UNION ALL SELECT 'Connections', COUNT(*)::text 
+    FROM pg_stat_activity WHERE datname='pagila';
+```
+
+---
+
+# Task 7: Capacity Planning {background-color="#457b9d"}
+
+---
+
+## What is Capacity Planning?
+
+**Planning ahead so you don't run out of resources!**
+
+| Question | Why It Matters |
+|----------|---------------|
+| How fast is my database growing? | Plan storage upgrades |
+| When will I run out of disk space? | Avoid emergencies |
+| Can my server handle more users? | Scale proactively |
+| Do I need to upgrade hardware? | Budget planning |
+
+**Better to plan now than scramble in an emergency!**
+
+---
+
+## Track Database Growth
+
+**Create a monitoring table:**
+```sql
+CREATE SCHEMA IF NOT EXISTS monitoring;
+
+CREATE TABLE monitoring.size_history (
+    recorded_at TIMESTAMP DEFAULT NOW(),
+    table_name TEXT,
+    size_bytes BIGINT
+);
+```
+
+**Record sizes daily (automate this!):**
+```sql
+INSERT INTO monitoring.size_history (table_name, size_bytes)
+SELECT tablename, pg_total_relation_size('public.' || tablename)
+FROM pg_tables WHERE schemaname = 'public';
+```
+
+---
+
+## View Growth Trends
+
+```sql
+-- See how tables have grown over the last 30 days
+SELECT 
+    table_name,
+    pg_size_pretty(MIN(size_bytes)) AS size_30_days_ago,
+    pg_size_pretty(MAX(size_bytes)) AS size_today,
+    pg_size_pretty(MAX(size_bytes) - MIN(size_bytes)) AS growth
+FROM monitoring.size_history
+WHERE recorded_at >= CURRENT_DATE - INTERVAL '30 days'
+GROUP BY table_name
+ORDER BY MAX(size_bytes) - MIN(size_bytes) DESC;
+```
+
+**This shows which tables are growing fastest!**
+
+---
+
+## Estimate Disk Space Needs
+
+```sql
+-- Project future disk usage
+WITH daily_growth AS (
+    SELECT 
+        table_name,
+        (MAX(size_bytes) - MIN(size_bytes)) / 
+        NULLIF(DATE_PART('day', MAX(recorded_at) - MIN(recorded_at)), 0) AS bytes_per_day
+    FROM monitoring.size_history
+    WHERE recorded_at >= CURRENT_DATE - INTERVAL '30 days'
+    GROUP BY table_name
+)
+SELECT 
+    table_name,
+    pg_size_pretty(bytes_per_day::bigint) AS daily_growth,
+    pg_size_pretty((bytes_per_day * 365)::bigint) AS yearly_projection
+FROM daily_growth
+WHERE bytes_per_day > 0
+ORDER BY bytes_per_day DESC;
+```
+
+---
+
+## Capacity Planning Best Practices
+
+| Practice | Recommendation |
+|----------|---------------|
+| Monitor growth | Weekly size checks |
+| Set alerts | 80% disk usage warning |
+| Plan ahead | 3-6 months runway |
+| Archive old data | Move to cold storage |
+| Test scaling | Load test before growth |
+
+---
+
+# Task 8: Troubleshooting {background-color="#e63946"}
+
+---
+
+## Common DBA Problems & Solutions
+
+| Problem | Symptom | Quick Fix |
+|---------|---------|----------|
+| Slow queries | High CPU, timeouts | Check EXPLAIN, add indexes |
+| Connection limit | "too many connections" | Kill idle connections |
+| Disk full | Write errors | VACUUM, delete old backups |
+| Lock contention | Queries waiting | Find & kill blocking query |
+| Table bloat | Slow scans, disk usage | VACUUM FULL or pg_repack |
+
+---
+
+## ⏸️ Practice Exercise: Health Check
+
+Run this health check query on your pagila database:
+
+```sql
+SELECT 'Connections' AS metric, COUNT(*)::text AS value 
+    FROM pg_stat_activity WHERE datname='pagila'
+UNION ALL SELECT 'DB Size', pg_size_pretty(pg_database_size('pagila'))
+UNION ALL SELECT 'Dead Rows', SUM(n_dead_tup)::text FROM pg_stat_user_tables
+UNION ALL SELECT 'Cache Hit %', 
+    round(sum(heap_blks_hit)*100.0/
+    NULLIF(sum(heap_blks_hit)+sum(heap_blks_read),0),1)::text
+    FROM pg_statio_user_tables;
+```
+
+**What does your output show? Is cache hit > 95%?**
+
+---
+
+## 📝 Key Terms Glossary
+
+| Term | Definition |
+|------|------------|
+| **WAL** | Write-Ahead Logging - transaction log for recovery |
+| **Dead Tuples** | Deleted/updated rows not yet cleaned up |
+| **Autovacuum** | Background process that cleans dead tuples |
+| **Cache Hit Ratio** | % of data served from memory vs disk |
+| **pg_dump** | Tool for logical (SQL) backups |
+| **pg_basebackup** | Tool for physical (file) backups |
+| **MVCC** | Multi-Version Concurrency Control |
+
+---
+
+# Summary {background-color="#1d3557"}
+
+---
+
+## DBA Checklist ✅
+
+| Task | Frequency |
+|------|-----------|
+| Backup | Daily |
+| Monitor | Continuous |
+| VACUUM | Weekly |
+| Check disk | Daily |
+| Test restore | Monthly |
+| Capacity review | Monthly |
+
+---
+
+## Your Next Steps 🚀
+
+**This Week:**
+
+- [ ] Set up automated daily backups
+- [ ] Test restoring a backup (verify it works!)
+- [ ] Run health check query on your database
+
+**This Month:**
+
+- [ ] Create monitoring dashboard or script
+- [ ] Set up disk space alerts
+- [ ] Document your backup/recovery procedures
+
+**Ongoing:**
+
+- [ ] Review slow query logs weekly
+- [ ] Track database growth trends
+- [ ] Practice disaster recovery scenarios
+
+---
+
+## 📚 Resources
+
+**Official Documentation:**
+
+- [PostgreSQL Backup & Recovery](https://www.postgresql.org/docs/current/backup.html)
+- [Routine Maintenance](https://www.postgresql.org/docs/current/maintenance.html)
+- [Monitoring Statistics](https://www.postgresql.org/docs/current/monitoring-stats.html)
+
+**Tools:**
+
+- pgAdmin (GUI management)
+- pg_stat_statements (query analysis)
+- Prometheus + Grafana (dashboards)
+- pg_repack (online table maintenance)
+
+---

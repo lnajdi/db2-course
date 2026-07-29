@@ -1,0 +1,1185 @@
+---
+title: "PostgreSQL CTEs & Window Functions - Live Demo with Pagila Database"
+subtitle: "Hands-on demonstration of Common Table Expressions and Advanced Analytical Functions"
+author: "Database Course - Live Demo Session"
+format: 
+  html:
+    theme: default
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-overflow: wrap
+    highlight-style: github
+    code-block-bg: true
+    code-block-border-left: "#31BAE9"
+    number-sections: true
+---
+
+# Introduction to CTEs and Window Functions - Real Definitions and Concepts
+
+## What are Common Table Expressions (CTEs)? 🎯
+
+> **Definition**: A **Common Table Expression (CTE)** is a temporary named result set that exists only for the duration of a single SQL statement. It acts like a temporary view that can be referenced within the main query.
+
+### Key Characteristics:
+- **Temporary**: Exists only during query execution
+- **Named**: Can be referenced by name like a table
+- **Readable**: Makes complex queries more understandable
+- **Reusable**: Can be referenced multiple times in the same query
+
+## The Building Blocks Analogy 🧩
+
+Think of CTEs as **LEGO building blocks**:
+
+- **Complex Problem**: Building a castle (complex query)
+- **Without CTEs**: One giant, messy pile of blocks
+- **With CTEs**: Organized sections - walls, towers, gates
+- **Result**: Same castle, but built systematically and clearly
+
+## What are Window Functions? 🪟
+
+> **Definition**: Window functions perform calculations across a set of table rows that are related to the current row, without collapsing rows into a single output row like GROUP BY does.
+
+### Key Characteristics:
+- **Analytical**: Perform complex calculations across row sets
+- **Non-aggregating**: Keep individual rows while adding analytical data
+- **Flexible**: Work with partitions and ordering
+- **Powerful**: Enable advanced reporting and analysis
+
+## The Racing Analogy 🏃‍♂️
+
+Imagine a **marathon race**:
+
+- **Individual Data**: Each runner's time, age, country
+- **Analytical Data**: Their rank, percentile, gap to leader
+- **Traditional GROUP BY**: Lose individual runner details
+- **Window Functions**: See both individual AND analytical data together
+
+---
+
+# Setting Up Our Demo Environment
+
+Let's explore the Pagila database structure and understand our data for CTE and Window Function demonstrations:
+
+```{sql}
+-- Connect to Pagila database
+-- \c pagila
+
+-- Explore the key tables for our demos
+SELECT 
+    table_name,
+    column_name,
+    data_type
+FROM information_schema.columns 
+WHERE table_schema = 'public' 
+    AND table_name IN ('film', 'actor', 'customer', 'rental', 'payment', 'category', 'film_actor', 'film_category')
+ORDER BY table_name, ordinal_position;
+```
+
+```{sql}
+-- Get a sample of our main data to understand relationships
+SELECT 
+    f.title,
+    f.rental_rate,
+    f.length,
+    c.name as category,
+    COUNT(r.rental_id) as rental_count
+FROM film f
+LEFT JOIN film_category fc ON f.film_id = fc.film_id
+LEFT JOIN category c ON fc.category_id = c.category_id
+LEFT JOIN inventory i ON f.film_id = i.film_id
+LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+GROUP BY f.film_id, f.title, f.rental_rate, f.length, c.name
+ORDER BY rental_count DESC NULLS LAST
+LIMIT 10;
+```
+
+```{sql}
+-- Check our date ranges for time-based analysis
+SELECT 
+    MIN(rental_date) as first_rental,
+    MAX(rental_date) as last_rental,
+    COUNT(*) as total_rentals
+FROM rental;
+
+SELECT 
+    MIN(payment_date) as first_payment,
+    MAX(payment_date) as last_payment,
+    COUNT(*) as total_payments,
+    SUM(amount) as total_revenue
+FROM payment;
+```
+
+---
+
+# Part 1: Basic CTEs - Breaking Down Complex Queries
+
+## Demo 1: Simple CTE - Making Queries Readable
+
+```{sql}
+-- Without CTE - Complex nested query (hard to read)
+SELECT 
+    c.first_name,
+    c.last_name,
+    customer_stats.total_rentals,
+    customer_stats.total_spent
+FROM customer c
+JOIN (
+    SELECT 
+        r.customer_id,
+        COUNT(r.rental_id) as total_rentals,
+        COALESCE(SUM(p.amount), 0) as total_spent
+    FROM rental r
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    GROUP BY r.customer_id
+) customer_stats ON c.customer_id = customer_stats.customer_id
+WHERE customer_stats.total_rentals > 30
+ORDER BY customer_stats.total_spent DESC
+LIMIT 10;
+```
+
+```{sql}
+-- With CTE - Same logic but much clearer
+WITH customer_stats AS (
+    SELECT 
+        r.customer_id,
+        COUNT(r.rental_id) as total_rentals,
+        COALESCE(SUM(p.amount), 0) as total_spent
+    FROM rental r
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    GROUP BY r.customer_id
+)
+SELECT 
+    c.first_name,
+    c.last_name,
+    cs.total_rentals,
+    cs.total_spent
+FROM customer c
+JOIN customer_stats cs ON c.customer_id = cs.customer_id
+WHERE cs.total_rentals > 30
+ORDER BY cs.total_spent DESC
+LIMIT 10;
+```
+
+## Demo 2: Multiple CTEs - Building Complex Analysis Step by Step
+
+```{sql}
+-- Multiple CTEs to analyze film performance by category
+WITH film_rentals AS (
+    -- Step 1: Get rental counts for each film
+    SELECT 
+        f.film_id,
+        f.title,
+        f.rental_rate,
+        f.length,
+        COUNT(r.rental_id) as rental_count,
+        COALESCE(SUM(p.amount), 0) as total_revenue
+    FROM film f
+    LEFT JOIN inventory i ON f.film_id = i.film_id
+    LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    GROUP BY f.film_id, f.title, f.rental_rate, f.length
+),
+film_categories AS (
+    -- Step 2: Add category information
+    SELECT 
+        fr.*,
+        c.name as category
+    FROM film_rentals fr
+    JOIN film_category fc ON fr.film_id = fc.film_id
+    JOIN category c ON fc.category_id = c.category_id
+),
+category_averages AS (
+    -- Step 3: Calculate category averages
+    SELECT 
+        category,
+        AVG(rental_count) as avg_rentals_per_film,
+        AVG(total_revenue) as avg_revenue_per_film,
+        COUNT(*) as films_in_category
+    FROM film_categories
+    GROUP BY category
+)
+-- Step 4: Final comparison
+SELECT 
+    fc.category,
+    fc.title,
+    fc.rental_count,
+    fc.total_revenue,
+    ca.avg_rentals_per_film,
+    ca.avg_revenue_per_film,
+    CASE 
+        WHEN fc.rental_count > ca.avg_rentals_per_film THEN 'Above Average'
+        ELSE 'Below Average'
+    END as performance_vs_category
+FROM film_categories fc
+JOIN category_averages ca ON fc.category = ca.category
+ORDER BY fc.category, fc.rental_count DESC;
+```
+
+---
+
+# Part 2: Window Functions - Basic Concepts
+
+## Demo 3: Ranking Functions - Understanding the Differences
+
+```{sql}
+-- Demonstrate different ranking functions
+SELECT 
+    f.title,
+    f.rental_rate,
+    f.length,
+    -- ROW_NUMBER: Always unique, even for ties
+    ROW_NUMBER() OVER (ORDER BY f.rental_rate DESC) as row_number,
+    -- RANK: Same rank for ties, gaps in sequence
+    RANK() OVER (ORDER BY f.rental_rate DESC) as rank_with_gaps,
+    -- DENSE_RANK: Same rank for ties, no gaps
+    DENSE_RANK() OVER (ORDER BY f.rental_rate DESC) as dense_rank,
+    -- NTILE: Divide into buckets
+    NTILE(4) OVER (ORDER BY f.rental_rate DESC) as quartile
+FROM film f
+ORDER BY f.rental_rate DESC, f.title
+LIMIT 20;
+```
+
+```{sql}
+-- Ranking within categories (PARTITION BY)
+SELECT 
+    c.name as category,
+    f.title,
+    f.rental_rate,
+    RANK() OVER (
+        PARTITION BY c.name 
+        ORDER BY f.rental_rate DESC
+    ) as rank_in_category,
+    RANK() OVER (ORDER BY f.rental_rate DESC) as overall_rank
+FROM film f
+JOIN film_category fc ON f.film_id = fc.film_id
+JOIN category c ON fc.category_id = c.category_id
+ORDER BY c.name, rank_in_category;
+```
+
+## Demo 4: Aggregate Window Functions vs GROUP BY
+
+```{sql}
+-- Traditional GROUP BY - loses individual film details
+SELECT 
+    c.name as category,
+    COUNT(*) as film_count,
+    AVG(f.rental_rate) as avg_rental_rate,
+    MAX(f.rental_rate) as max_rental_rate,
+    MIN(f.rental_rate) as min_rental_rate
+FROM film f
+JOIN film_category fc ON f.film_id = fc.film_id
+JOIN category c ON fc.category_id = c.category_id
+GROUP BY c.name
+ORDER BY avg_rental_rate DESC;
+```
+
+```{sql}
+-- Window functions - keep individual films AND get category stats
+SELECT 
+    c.name as category,
+    f.title,
+    f.rental_rate,
+    -- Category statistics as window functions
+    COUNT(*) OVER (PARTITION BY c.name) as films_in_category,
+    AVG(f.rental_rate) OVER (PARTITION BY c.name) as category_avg_rate,
+    MAX(f.rental_rate) OVER (PARTITION BY c.name) as category_max_rate,
+    MIN(f.rental_rate) OVER (PARTITION BY c.name) as category_min_rate,
+    -- Compare individual film to category average
+    f.rental_rate - AVG(f.rental_rate) OVER (PARTITION BY c.name) as diff_from_avg
+FROM film f
+JOIN film_category fc ON f.film_id = fc.film_id
+JOIN category c ON fc.category_id = c.category_id
+ORDER BY c.name, f.rental_rate DESC;
+```
+
+---
+
+# Part 3: Advanced Window Functions
+
+## Demo 5: Running Totals and Moving Averages
+
+```{sql}
+-- Daily rental revenue analysis with running totals
+WITH daily_revenue AS (
+    SELECT 
+        p.payment_date::date as payment_date,
+        SUM(p.amount) as daily_revenue,
+        COUNT(p.payment_id) as daily_transactions
+    FROM payment p
+    GROUP BY p.payment_date::date
+    ORDER BY p.payment_date::date
+)
+SELECT 
+    payment_date,
+    daily_revenue,
+    daily_transactions,
+    -- Running total from beginning
+    SUM(daily_revenue) OVER (
+        ORDER BY payment_date
+        ROWS UNBOUNDED PRECEDING
+    ) as running_total,
+    -- 7-day moving average
+    AVG(daily_revenue) OVER (
+        ORDER BY payment_date
+        ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+    ) as seven_day_avg,
+    -- 3-day moving average
+    AVG(daily_revenue) OVER (
+        ORDER BY payment_date
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ) as three_day_avg
+FROM daily_revenue
+ORDER BY payment_date;
+```
+
+## Demo 6: LAG and LEAD - Time Series Analysis
+
+```{sql}
+-- Month-over-month rental analysis
+WITH monthly_stats AS (
+    SELECT 
+        DATE_TRUNC('month', r.rental_date) as rental_month,
+        COUNT(r.rental_id) as monthly_rentals,
+        COUNT(DISTINCT r.customer_id) as unique_customers,
+        COALESCE(SUM(p.amount), 0) as monthly_revenue
+    FROM rental r
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    GROUP BY DATE_TRUNC('month', r.rental_date)
+)
+SELECT 
+    rental_month,
+    monthly_rentals,
+    unique_customers,
+    monthly_revenue,
+    -- Previous month values using LAG
+    LAG(monthly_rentals, 1) OVER (ORDER BY rental_month) as prev_month_rentals,
+    LAG(monthly_revenue, 1) OVER (ORDER BY rental_month) as prev_month_revenue,
+    -- Next month values using LEAD
+    LEAD(monthly_rentals, 1) OVER (ORDER BY rental_month) as next_month_rentals,
+    -- Month-over-month changes
+    monthly_rentals - LAG(monthly_rentals, 1) OVER (ORDER BY rental_month) as rental_change,
+    ROUND(
+        (monthly_revenue - LAG(monthly_revenue, 1) OVER (ORDER BY rental_month)) / 
+        NULLIF(LAG(monthly_revenue, 1) OVER (ORDER BY rental_month), 0) * 100, 2
+    ) as revenue_growth_pct
+FROM monthly_stats
+ORDER BY rental_month;
+```
+
+## Demo 7: FIRST_VALUE and LAST_VALUE
+
+```{sql}
+-- Customer analysis with first and last rental information
+WITH customer_rental_history AS (
+    SELECT 
+        r.customer_id,
+        c.first_name,
+        c.last_name,
+        r.rental_date,
+        f.title,
+        p.amount
+    FROM rental r
+    JOIN customer c ON r.customer_id = c.customer_id
+    JOIN inventory i ON r.inventory_id = i.inventory_id
+    JOIN film f ON i.film_id = f.film_id
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+)
+SELECT 
+    customer_id,
+    first_name,
+    last_name,
+    rental_date,
+    title as current_rental,
+    amount,
+    -- First rental ever for this customer
+    FIRST_VALUE(title) OVER (
+        PARTITION BY customer_id 
+        ORDER BY rental_date
+        ROWS UNBOUNDED PRECEDING
+    ) as first_rental,
+    FIRST_VALUE(rental_date) OVER (
+        PARTITION BY customer_id 
+        ORDER BY rental_date
+        ROWS UNBOUNDED PRECEDING
+    ) as first_rental_date,
+    -- Most recent rental for this customer
+    LAST_VALUE(title) OVER (
+        PARTITION BY customer_id 
+        ORDER BY rental_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) as latest_rental,
+    LAST_VALUE(rental_date) OVER (
+        PARTITION BY customer_id 
+        ORDER BY rental_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) as latest_rental_date,
+    -- Customer's rental number (1st, 2nd, 3rd, etc.)
+    ROW_NUMBER() OVER (
+        PARTITION BY customer_id 
+        ORDER BY rental_date
+    ) as rental_sequence
+FROM customer_rental_history
+WHERE customer_id <= 5  -- Limit to first 5 customers for readability
+ORDER BY customer_id, rental_date;
+```
+
+---
+
+# Part 4: Combining CTEs with Window Functions
+
+## Demo 8: Complex Customer Segmentation Analysis
+
+```{sql}
+-- Advanced customer segmentation using CTEs and Window Functions
+WITH customer_metrics AS (
+    -- Step 1: Calculate basic customer metrics
+    SELECT 
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        c.create_date,
+        COUNT(r.rental_id) as total_rentals,
+        COALESCE(SUM(p.amount), 0) as total_spent,
+        COALESCE(AVG(p.amount), 0) as avg_payment,
+        MIN(r.rental_date) as first_rental_date,
+        MAX(r.rental_date) as last_rental_date,
+        EXTRACT(DAYS FROM MAX(r.rental_date) - MIN(r.rental_date)) as rental_span_days
+    FROM customer c
+    LEFT JOIN rental r ON c.customer_id = r.customer_id
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    GROUP BY c.customer_id, c.first_name, c.last_name, c.create_date
+),
+customer_rankings AS (
+    -- Step 2: Add rankings and percentiles
+    SELECT 
+        *,
+        -- Rank customers by total spent
+        RANK() OVER (ORDER BY total_spent DESC) as spending_rank,
+        -- Percentile rank for spending
+        PERCENT_RANK() OVER (ORDER BY total_spent) as spending_percentile,
+        -- Divide customers into deciles based on spending
+        NTILE(10) OVER (ORDER BY total_spent) as spending_decile,
+        -- Rank by rental frequency
+        RANK() OVER (ORDER BY total_rentals DESC) as rental_frequency_rank,
+        -- Customer lifetime (days since first rental)
+        EXTRACT(DAYS FROM CURRENT_DATE - first_rental_date) as customer_lifetime_days
+    FROM customer_metrics
+    WHERE total_rentals > 0  -- Only customers who have rented
+),
+customer_segments AS (
+    -- Step 3: Create customer segments
+    SELECT 
+        *,
+        CASE 
+            WHEN spending_decile >= 9 THEN 'Premium'
+            WHEN spending_decile >= 7 THEN 'High Value'
+            WHEN spending_decile >= 5 THEN 'Medium Value'
+            WHEN spending_decile >= 3 THEN 'Low Value'
+            ELSE 'Basic'
+        END as customer_segment,
+        CASE 
+            WHEN total_rentals >= 40 THEN 'Very Active'
+            WHEN total_rentals >= 30 THEN 'Active'
+            WHEN total_rentals >= 20 THEN 'Moderate'
+            WHEN total_rentals >= 10 THEN 'Occasional'
+            ELSE 'Rare'
+        END as activity_level
+    FROM customer_rankings
+)
+-- Step 4: Final analysis with segment statistics
+SELECT 
+    customer_segment,
+    activity_level,
+    COUNT(*) as customers_in_segment,
+    AVG(total_spent) as avg_spending,
+    AVG(total_rentals) as avg_rentals,
+    AVG(customer_lifetime_days) as avg_customer_lifetime,
+    MIN(total_spent) as min_spending,
+    MAX(total_spent) as max_spending
+FROM customer_segments
+GROUP BY customer_segment, activity_level
+ORDER BY 
+    CASE customer_segment 
+        WHEN 'Premium' THEN 1
+        WHEN 'High Value' THEN 2
+        WHEN 'Medium Value' THEN 3
+        WHEN 'Low Value' THEN 4
+        ELSE 5
+    END,
+    CASE activity_level
+        WHEN 'Very Active' THEN 1
+        WHEN 'Active' THEN 2
+        WHEN 'Moderate' THEN 3
+        WHEN 'Occasional' THEN 4
+        ELSE 5
+    END;
+```
+
+## Demo 9: Film Performance Analysis with Multiple Dimensions
+
+```{sql}
+-- Comprehensive film analysis using multiple CTEs and window functions
+WITH film_rental_stats AS (
+    -- Step 1: Basic film rental statistics
+    SELECT 
+        f.film_id,
+        f.title,
+        f.release_year,
+        f.rating,
+        f.rental_rate,
+        f.length,
+        f.replacement_cost,
+        COUNT(r.rental_id) as total_rentals,
+        COALESCE(SUM(p.amount), 0) as total_revenue,
+        COUNT(DISTINCT r.customer_id) as unique_customers,
+        AVG(EXTRACT(DAYS FROM r.return_date - r.rental_date)) as avg_rental_duration
+    FROM film f
+    LEFT JOIN inventory i ON f.film_id = i.film_id
+    LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    GROUP BY f.film_id, f.title, f.release_year, f.rating, f.rental_rate, f.length, f.replacement_cost
+),
+film_categories AS (
+    -- Step 2: Add category information
+    SELECT 
+        frs.*,
+        c.name as category,
+        -- Calculate profitability
+        CASE 
+            WHEN frs.total_rentals > 0 THEN frs.total_revenue / frs.total_rentals
+            ELSE 0
+        END as revenue_per_rental
+    FROM film_rental_stats frs
+    LEFT JOIN film_category fc ON frs.film_id = fc.film_id
+    LEFT JOIN category c ON fc.category_id = c.category_id
+),
+film_analytics AS (
+    -- Step 3: Add analytical rankings and comparisons
+    SELECT 
+        *,
+        -- Overall rankings
+        RANK() OVER (ORDER BY total_revenue DESC) as revenue_rank,
+        RANK() OVER (ORDER BY total_rentals DESC) as popularity_rank,
+        RANK() OVER (ORDER BY revenue_per_rental DESC) as efficiency_rank,
+        
+        -- Category-specific rankings
+        RANK() OVER (PARTITION BY category ORDER BY total_revenue DESC) as category_revenue_rank,
+        RANK() OVER (PARTITION BY category ORDER BY total_rentals DESC) as category_popularity_rank,
+        
+        -- Rating-specific rankings
+        RANK() OVER (PARTITION BY rating ORDER BY total_revenue DESC) as rating_revenue_rank,
+        
+        -- Percentiles
+        PERCENT_RANK() OVER (ORDER BY total_revenue) as revenue_percentile,
+        PERCENT_RANK() OVER (ORDER BY total_rentals) as popularity_percentile,
+        
+        -- Category averages for comparison
+        AVG(total_revenue) OVER (PARTITION BY category) as category_avg_revenue,
+        AVG(total_rentals) OVER (PARTITION BY category) as category_avg_rentals,
+        
+        -- Overall averages
+        AVG(total_revenue) OVER () as overall_avg_revenue,
+        AVG(total_rentals) OVER () as overall_avg_rentals
+    FROM film_categories
+)
+-- Step 4: Final results with performance indicators
+SELECT 
+    title,
+    category,
+    rating,
+    rental_rate,
+    total_rentals,
+    total_revenue,
+    revenue_per_rental,
+    popularity_rank,
+    revenue_rank,
+    category_popularity_rank,
+    category_revenue_rank,
+    ROUND(revenue_percentile * 100, 1) as revenue_percentile_score,
+    CASE 
+        WHEN total_revenue > category_avg_revenue * 1.5 THEN 'Star Performer'
+        WHEN total_revenue > category_avg_revenue THEN 'Above Average'
+        WHEN total_revenue > category_avg_revenue * 0.5 THEN 'Average'
+        ELSE 'Poor Performer'
+    END as performance_category,
+    CASE 
+        WHEN total_rentals > 30 THEN 'High Demand'
+        WHEN total_rentals > 20 THEN 'Medium Demand'
+        WHEN total_rentals > 10 THEN 'Low Demand'
+        ELSE 'Very Low Demand'
+    END as demand_level
+FROM film_analytics
+WHERE category IS NOT NULL  -- Only films with categories
+ORDER BY total_revenue DESC
+LIMIT 50;
+```
+
+---
+
+# Part 5: Recursive CTEs
+
+## Demo 10: Simulating Hierarchical Data with Actor Networks
+
+```{sql}
+-- Create a simplified actor collaboration network
+-- This demonstrates recursive CTE concepts using film collaborations
+
+WITH RECURSIVE actor_collaborations AS (
+    -- Base case: Start with a specific actor
+    SELECT 
+        a1.actor_id,
+        a1.first_name || ' ' || a1.last_name as actor_name,
+        a1.actor_id as original_actor_id,
+        0 as separation_degree,
+        ARRAY[a1.actor_id] as path
+    FROM actor a1
+    WHERE a1.actor_id = 1  -- Start with actor ID 1
+    
+    UNION ALL
+    
+    -- Recursive case: Find actors who worked with actors in our current set
+    SELECT 
+        a2.actor_id,
+        a2.first_name || ' ' || a2.last_name as actor_name,
+        ac.original_actor_id,
+        ac.separation_degree + 1,
+        ac.path || a2.actor_id
+    FROM actor_collaborations ac
+    JOIN film_actor fa1 ON ac.actor_id = fa1.actor_id
+    JOIN film_actor fa2 ON fa1.film_id = fa2.film_id AND fa1.actor_id != fa2.actor_id
+    JOIN actor a2 ON fa2.actor_id = a2.actor_id
+    WHERE ac.separation_degree < 3  -- Limit to 3 degrees of separation
+        AND NOT a2.actor_id = ANY(ac.path)  -- Prevent cycles
+)
+SELECT 
+    separation_degree,
+    actor_name,
+    path,
+    array_length(path, 1) as path_length
+FROM actor_collaborations
+ORDER BY separation_degree, actor_name
+LIMIT 50;
+```
+
+## Demo 11: Date Series Generation with Recursive CTE
+
+```{sql}
+-- Generate a complete date series for rental analysis
+WITH RECURSIVE date_series AS (
+    -- Base case: Start date
+    SELECT 
+        DATE '2005-05-01' as rental_date,
+        DATE '2005-08-31' as end_date
+    
+    UNION ALL
+    
+    -- Recursive case: Add one day
+    SELECT 
+        rental_date + INTERVAL '1 day',
+        end_date
+    FROM date_series
+    WHERE rental_date < end_date
+),
+daily_rental_stats AS (
+    SELECT 
+        r.rental_date::date as rental_date,
+        COUNT(r.rental_id) as rentals,
+        COALESCE(SUM(p.amount), 0) as revenue
+    FROM rental r
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    GROUP BY r.rental_date::date
+)
+SELECT 
+    ds.rental_date,
+    EXTRACT(DOW FROM ds.rental_date) as day_of_week,
+    TO_CHAR(ds.rental_date, 'Day') as day_name,
+    COALESCE(drs.rentals, 0) as rentals,
+    COALESCE(drs.revenue, 0) as revenue,
+    -- 7-day moving average
+    AVG(COALESCE(drs.rentals, 0)) OVER (
+        ORDER BY ds.rental_date
+        ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+    ) as seven_day_avg_rentals
+FROM date_series ds
+LEFT JOIN daily_rental_stats drs ON ds.rental_date = drs.rental_date
+ORDER BY ds.rental_date
+LIMIT 100;  -- Limit output for readability
+```
+
+---
+
+# Part 6: Advanced Window Frame Specifications
+
+## Demo 12: Understanding Frame Specifications
+
+```{sql}
+-- Demonstrate different window frame specifications
+WITH daily_payments AS (
+    SELECT 
+        payment_date::date as payment_date,
+        SUM(amount) as daily_amount,
+        COUNT(*) as daily_count
+    FROM payment
+    GROUP BY payment_date::date
+    ORDER BY payment_date::date
+)
+SELECT 
+    payment_date,
+    daily_amount,
+    -- ROWS frame: Physical rows
+    SUM(daily_amount) OVER (
+        ORDER BY payment_date
+        ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING
+    ) as five_day_total_rows,
+    
+    -- RANGE frame: Logical range (same values)
+    SUM(daily_amount) OVER (
+        ORDER BY payment_date
+        RANGE BETWEEN INTERVAL '2 days' PRECEDING 
+              AND INTERVAL '2 days' FOLLOWING
+    ) as five_day_total_range,
+    
+    -- Running total
+    SUM(daily_amount) OVER (
+        ORDER BY payment_date
+        ROWS UNBOUNDED PRECEDING
+    ) as running_total,
+    
+    -- Moving average (last 7 days including current)
+    AVG(daily_amount) OVER (
+        ORDER BY payment_date
+        ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+    ) as seven_day_moving_avg,
+    
+    -- Centered moving average (3 days before, current, 3 days after)
+    AVG(daily_amount) OVER (
+        ORDER BY payment_date
+        ROWS BETWEEN 3 PRECEDING AND 3 FOLLOWING
+    ) as centered_seven_day_avg
+FROM daily_payments
+ORDER BY payment_date;
+```
+
+---
+
+# Part 7: Performance and Optimization
+
+## Demo 13: Performance Comparison - CTE vs Subquery vs Window Functions
+
+```{sql}
+-- Method 1: Using window functions (usually most efficient)
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    COUNT(r.rental_id) as rental_count,
+    SUM(p.amount) as total_spent,
+    AVG(COUNT(r.rental_id)) OVER () as avg_rentals_per_customer,
+    AVG(SUM(p.amount)) OVER () as avg_spent_per_customer
+FROM customer c
+LEFT JOIN rental r ON c.customer_id = r.customer_id
+LEFT JOIN payment p ON r.rental_id = p.rental_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY total_spent DESC
+LIMIT 20;
+```
+
+```{sql}
+-- Method 2: Using CTE
+EXPLAIN (ANALYZE, BUFFERS)
+WITH customer_stats AS (
+    SELECT 
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        COUNT(r.rental_id) as rental_count,
+        COALESCE(SUM(p.amount), 0) as total_spent
+    FROM customer c
+    LEFT JOIN rental r ON c.customer_id = r.customer_id
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    GROUP BY c.customer_id, c.first_name, c.last_name
+),
+overall_averages AS (
+    SELECT 
+        AVG(rental_count) as avg_rentals,
+        AVG(total_spent) as avg_spent
+    FROM customer_stats
+)
+SELECT 
+    cs.*,
+    oa.avg_rentals as avg_rentals_per_customer,
+    oa.avg_spent as avg_spent_per_customer
+FROM customer_stats cs
+CROSS JOIN overall_averages oa
+ORDER BY cs.total_spent DESC
+LIMIT 20;
+```
+
+---
+
+# Part 8: Real-World Business Scenarios
+
+## Demo 14: Monthly Business Dashboard
+
+```{sql}
+-- Complete monthly business dashboard using CTEs and window functions
+WITH monthly_metrics AS (
+    -- Step 1: Monthly aggregations
+    SELECT 
+        DATE_TRUNC('month', r.rental_date) as month,
+        COUNT(r.rental_id) as monthly_rentals,
+        COUNT(DISTINCT r.customer_id) as active_customers,
+        COUNT(DISTINCT i.film_id) as films_rented,
+        COALESCE(SUM(p.amount), 0) as monthly_revenue
+    FROM rental r
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    LEFT JOIN inventory i ON r.inventory_id = i.inventory_id
+    GROUP BY DATE_TRUNC('month', r.rental_date)
+),
+monthly_analytics AS (
+    -- Step 2: Add analytical calculations
+    SELECT 
+        month,
+        monthly_rentals,
+        active_customers,
+        films_rented,
+        monthly_revenue,
+        -- Growth calculations
+        LAG(monthly_revenue, 1) OVER (ORDER BY month) as prev_month_revenue,
+        LAG(monthly_rentals, 1) OVER (ORDER BY month) as prev_month_rentals,
+        LAG(active_customers, 1) OVER (ORDER BY month) as prev_month_customers,
+        -- Running totals
+        SUM(monthly_revenue) OVER (ORDER BY month) as cumulative_revenue,
+        SUM(monthly_rentals) OVER (ORDER BY month) as cumulative_rentals,
+        -- Moving averages
+        AVG(monthly_revenue) OVER (
+            ORDER BY month 
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) as three_month_avg_revenue,
+        -- Rankings
+        RANK() OVER (ORDER BY monthly_revenue DESC) as revenue_rank,
+        RANK() OVER (ORDER BY monthly_rentals DESC) as rental_rank
+    FROM monthly_metrics
+),
+performance_metrics AS (
+    -- Step 3: Calculate performance indicators
+    SELECT 
+        *,
+        -- Growth rates
+        ROUND(
+            (monthly_revenue - prev_month_revenue) / 
+            NULLIF(prev_month_revenue, 0) * 100, 2
+        ) as revenue_growth_pct,
+        ROUND(
+            (monthly_rentals - prev_month_rentals) / 
+            NULLIF(prev_month_rentals::numeric, 0) * 100, 2
+        ) as rental_growth_pct,
+        ROUND(
+            (active_customers - prev_month_customers) / 
+            NULLIF(prev_month_customers::numeric, 0) * 100, 2
+        ) as customer_growth_pct,
+        -- Business metrics
+        ROUND(monthly_revenue / NULLIF(monthly_rentals, 0), 2) as revenue_per_rental,
+        ROUND(monthly_revenue / NULLIF(active_customers, 0), 2) as revenue_per_customer,
+        ROUND(monthly_rentals::numeric / NULLIF(active_customers, 0), 2) as rentals_per_customer
+    FROM monthly_analytics
+)
+-- Step 4: Final dashboard output
+SELECT 
+    TO_CHAR(month, 'YYYY-MM') as month,
+    monthly_rentals,
+    active_customers,
+    films_rented,
+    ROUND(monthly_revenue, 2) as monthly_revenue,
+    revenue_growth_pct,
+    rental_growth_pct,
+    customer_growth_pct,
+    revenue_per_rental,
+    revenue_per_customer,
+    rentals_per_customer,
+    ROUND(cumulative_revenue, 2) as cumulative_revenue,
+    ROUND(three_month_avg_revenue, 2) as three_month_avg_revenue,
+    revenue_rank,
+    rental_rank,
+    CASE 
+        WHEN revenue_growth_pct > 10 THEN 'Excellent Growth'
+        WHEN revenue_growth_pct > 5 THEN 'Good Growth'
+        WHEN revenue_growth_pct > 0 THEN 'Moderate Growth'
+        WHEN revenue_growth_pct > -5 THEN 'Slight Decline'
+        ELSE 'Significant Decline'
+    END as performance_category
+FROM performance_metrics
+ORDER BY month;
+```
+
+## Demo 15: Customer Cohort Analysis
+
+```{sql}
+-- Customer cohort analysis to understand retention patterns
+WITH customer_cohorts AS (
+    -- Step 1: Identify customer acquisition month
+    SELECT 
+        c.customer_id,
+        DATE_TRUNC('month', c.create_date) as cohort_month,
+        DATE_TRUNC('month', r.rental_date) as rental_month,
+        EXTRACT(MONTH FROM AGE(r.rental_date, c.create_date)) as months_since_acquisition
+    FROM customer c
+    JOIN rental r ON c.customer_id = r.customer_id
+),
+cohort_table AS (
+    -- Step 2: Build cohort table
+    SELECT 
+        cohort_month,
+        months_since_acquisition,
+        COUNT(DISTINCT customer_id) as active_customers
+    FROM customer_cohorts
+    WHERE months_since_acquisition >= 0 AND months_since_acquisition <= 12
+    GROUP BY cohort_month, months_since_acquisition
+),
+cohort_sizes AS (
+    -- Step 3: Get initial cohort sizes
+    SELECT 
+        cohort_month,
+        COUNT(DISTINCT customer_id) as cohort_size
+    FROM customer c
+    GROUP BY DATE_TRUNC('month', c.create_date)
+),
+cohort_analysis AS (
+    -- Step 4: Calculate retention rates
+    SELECT 
+        ct.cohort_month,
+        ct.months_since_acquisition,
+        ct.active_customers,
+        cs.cohort_size,
+        ROUND(
+            ct.active_customers::numeric / cs.cohort_size * 100, 2
+        ) as retention_rate
+    FROM cohort_table ct
+    JOIN cohort_sizes cs ON ct.cohort_month = cs.cohort_month
+)
+-- Step 5: Present cohort analysis with rankings
+SELECT 
+    TO_CHAR(cohort_month, 'YYYY-MM') as cohort,
+    months_since_acquisition,
+    active_customers,
+    cohort_size,
+    retention_rate,
+    -- Rank cohorts by retention rate at each month
+    RANK() OVER (
+        PARTITION BY months_since_acquisition 
+        ORDER BY retention_rate DESC
+    ) as retention_rank,
+    -- Average retention rate for comparison
+    AVG(retention_rate) OVER (
+        PARTITION BY months_since_acquisition
+    ) as avg_retention_rate,
+    CASE 
+        WHEN retention_rate > AVG(retention_rate) OVER (PARTITION BY months_since_acquisition) 
+        THEN 'Above Average'
+        ELSE 'Below Average'
+    END as retention_performance
+FROM cohort_analysis
+ORDER BY cohort_month, months_since_acquisition;
+```
+
+---
+
+# Part 9: Practical Exercises
+
+## Exercise 1: Film Recommendation Engine
+
+```{sql}
+-- Exercise: Create a film recommendation system using CTEs and window functions
+-- Your task: Build a query that recommends films to customers based on:
+-- 1. Films in categories they've previously rented
+-- 2. Films with high ratings that they haven't seen
+-- 3. Popular films among similar customers
+
+-- Your solution here:
+WITH customer_preferences AS (
+    -- Step 1: Identify customer's preferred categories
+    -- TODO: Implement this step
+),
+similar_customers AS (
+    -- Step 2: Find customers with similar rental patterns
+    -- TODO: Implement this step  
+),
+film_recommendations AS (
+    -- Step 3: Generate recommendations
+    -- TODO: Implement this step
+)
+-- Step 4: Final recommendations with rankings
+-- TODO: Complete the final query
+SELECT 1; -- Replace with your solution
+```
+
+## Exercise 2: Revenue Forecasting
+
+```{sql}
+-- Exercise: Create a revenue forecasting model using window functions
+-- Your task: Analyze historical revenue patterns and create projections
+-- Include: trend analysis, seasonality detection, growth rates
+
+-- Your solution here:
+
+
+```
+
+## Exercise 3: Customer Churn Analysis
+
+```{sql}
+-- Exercise: Identify customers at risk of churning
+-- Your task: Use window functions to analyze customer behavior patterns
+-- Include: recency, frequency, monetary analysis with scoring
+
+-- Your solution here:
+
+
+```
+
+---
+
+# Part 10: Best Practices and Common Pitfalls
+
+## Best Practices Summary
+
+### ✅ CTEs Best Practices:
+1. **Use descriptive names** - Make CTEs self-documenting
+2. **Break complex logic into steps** - One concept per CTE
+3. **Avoid deeply nested CTEs** - Keep hierarchy manageable
+4. **Comment complex transformations** - Explain business logic
+5. **Consider materialized views** - For frequently used CTEs
+
+### ✅ Window Functions Best Practices:
+1. **Always include ORDER BY** - When it matters for your calculation
+2. **Use appropriate PARTITION BY** - Group related rows correctly
+3. **Choose correct frame specification** - ROWS vs RANGE
+4. **Index ORDER BY columns** - For performance
+5. **Test with edge cases** - NULL values, ties, empty partitions
+
+### ❌ Common Pitfalls:
+1. **Forgetting ORDER BY in window functions** - Unpredictable results
+2. **Incorrect frame specifications** - Wrong calculations
+3. **Over-complex CTEs** - Hard to maintain and debug
+4. **Performance ignorance** - Not considering large datasets
+5. **Mixing aggregation levels** - GROUP BY vs window confusion
+
+## Demo 16: Performance Monitoring and Optimization
+
+```{sql}
+-- Check query performance for complex CTEs and window functions
+SET enable_seqscan = off;  -- Force index usage for demonstration
+
+-- Monitor query execution
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+WITH complex_customer_analysis AS (
+    SELECT 
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        COUNT(r.rental_id) as total_rentals,
+        SUM(p.amount) as total_spent,
+        AVG(p.amount) as avg_payment,
+        RANK() OVER (ORDER BY SUM(p.amount) DESC) as spending_rank,
+        NTILE(10) OVER (ORDER BY SUM(p.amount)) as spending_decile,
+        LAG(SUM(p.amount)) OVER (ORDER BY c.customer_id) as prev_customer_spending
+    FROM customer c
+    LEFT JOIN rental r ON c.customer_id = r.customer_id  
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    GROUP BY c.customer_id, c.first_name, c.last_name
+)
+SELECT * FROM complex_customer_analysis
+ORDER BY spending_rank
+LIMIT 20;
+
+SET enable_seqscan = on;  -- Reset to default
+```
+
+---
+
+# Part 11: Cleanup and Summary
+
+```{sql}
+-- Verify our demo queries and check for any performance issues
+SELECT 
+    query,
+    mean_time,
+    calls,
+    total_time
+FROM pg_stat_statements 
+WHERE query ILIKE '%customer%' 
+ORDER BY mean_time DESC
+LIMIT 10;
+
+-- Reset any session-specific settings
+RESET ALL;
+```
+
+## Summary - Key Takeaways 🎯
+
+### **Common Table Expressions (CTEs):**
+- **Purpose**: Break complex queries into readable, logical steps
+- **Benefits**: Maintainability, readability, reusability within query
+- **Best for**: Multi-step transformations, recursive operations
+- **Syntax**: `WITH name AS (query) SELECT...`
+
+### **Window Functions:**
+- **Purpose**: Analytical calculations without losing row detail
+- **Benefits**: Rankings, running totals, comparisons, analytics
+- **Best for**: Reporting, dashboards, advanced analytics
+- **Key concept**: `OVER (PARTITION BY ... ORDER BY ...)`
+
+### **Function Categories:**
+1. **Aggregate Window Functions**: SUM, AVG, COUNT, MIN, MAX
+2. **Ranking Functions**: ROW_NUMBER, RANK, DENSE_RANK, NTILE
+3. **Value Functions**: LAG, LEAD, FIRST_VALUE, LAST_VALUE
+4. **Statistical Functions**: PERCENT_RANK, CUME_DIST
+
+### **Frame Specifications:**
+- **ROWS**: Physical row boundaries
+- **RANGE**: Logical value boundaries  
+- **UNBOUNDED PRECEDING/FOLLOWING**: Start/end of partition
+- **CURRENT ROW**: The current row being processed
+
+### **Performance Considerations:**
+- Index ORDER BY columns in window functions
+- Use appropriate PARTITION BY to limit window size
+- Consider materialized views for complex recurring calculations
+- Monitor query execution plans
+
+### **Real-World Applications:**
+- **Business Intelligence**: Dashboards, KPIs, trend analysis
+- **Customer Analytics**: Segmentation, cohort analysis, churn prediction
+- **Financial Analysis**: Running totals, moving averages, growth rates
+- **E-commerce**: Product recommendations, sales analysis
+
+## Questions for Discussion 💭
+
+1. When would you choose a CTE over a subquery or temporary table?
+2. How do you decide which window frame specification to use?
+3. What are the performance trade-offs between complex CTEs vs multiple simple queries?
+4. How would you handle very large datasets with window functions?
+5. What business scenarios benefit most from recursive CTEs?
+
+## Advanced Topics to Explore Further 🚀
+
+1. **Advanced Recursive CTEs**: Graph traversal, hierarchical data
+2. **Custom Window Functions**: User-defined analytical functions
+3. **Parallel Query Processing**: Optimizing large analytical queries
+4. **Integration with BI Tools**: Using CTEs and window functions in reporting
+5. **Real-time Analytics**: Streaming data with window functions
+
+---
+
+*End of Live Demo Session*
+
+## Additional Resources 📚
+
+- PostgreSQL Window Functions Documentation
+- CTE Performance Tuning Guide
+- Advanced SQL Analytics Patterns
+- Business Intelligence with PostgreSQL
+- Query Optimization for Analytical Workloads

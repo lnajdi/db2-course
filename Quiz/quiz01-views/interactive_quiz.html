@@ -1,0 +1,2065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz 01: Views and Materialized Views - DB2 Course</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.7;
+            color: #1a202c;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            overflow: hidden;
+            animation: slideInDown 0.5s ease-out;
+        }
+        
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.03)"/></svg>');
+            opacity: 0.5;
+        }
+        
+        .header h1 {
+            font-size: 2.75rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.25rem;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+            font-weight: 300;
+        }
+        
+        .quiz-info {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            padding: 28px;
+            border-bottom: 3px solid #e2e8f0;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            background: white;
+            padding: 18px 20px;
+            border-radius: 12px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .info-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+        
+        .info-item strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-item span {
+            color: #2d3748;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+        
+        .progress-bar {
+            background: #e2e8f0;
+            height: 12px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 45px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-radius: 15px;
+            border-left: 6px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        
+        .section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .section h2 {
+            color: #1a365d;
+            margin-bottom: 25px;
+            font-size: 2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .section h2::before {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 35px;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+        }
+        
+        .question {
+            background: white;
+            margin-bottom: 25px;
+            padding: 28px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            position: relative;
+        }
+        
+        .question::before {
+            content: "Q" attr(data-question);
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .question:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+            border-color: #667eea;
+        }
+        
+        .question h3 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            line-height: 1.6;
+            padding-right: 60px;
+        }
+        
+        .options {
+            margin: 15px 0;
+        }
+        
+        .option {
+            display: flex;
+            align-items: center;
+            margin: 12px 0;
+            padding: 16px 18px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            font-size: 1.05rem;
+        }
+        
+        .option:hover {
+            background: #edf2f7;
+            border-color: #667eea;
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+        
+        .option input {
+            margin-right: 14px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+        
+        .option.selected {
+            background: #e6fffa;
+            border-color: #38b2ac;
+            font-weight: 500;
+        }
+        
+        .option.selected::after {
+            content: '✓';
+            position: absolute;
+            right: 18px;
+            color: #38b2ac;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .option.correct {
+            background: #d4edda;
+            border-color: #28a745;
+            animation: correctPulse 0.5s ease;
+        }
+        
+        .option.incorrect {
+            background: #f8d7da;
+            border-color: #dc3545;
+            animation: incorrectShake 0.5s ease;
+        }
+        
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .true-false {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .tf-option {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border: 3px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 700;
+            font-size: 1.15rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+        }
+        
+        .tf-option:hover {
+            background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+            border-color: #4299e1;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(66, 153, 225, 0.3);
+        }
+        
+        .tf-option.selected {
+            background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%);
+            border-color: #38a169;
+            color: #22543d;
+            box-shadow: 0 5px 15px rgba(56, 161, 105, 0.3);
+        }
+        
+        .tf-option.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 1.3rem;
+        }
+        
+        .sql-editor {
+            margin: 20px 0;
+            position: relative;
+        }
+        
+        .sql-editor::before {
+            content: 'SQL Editor';
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: #2d3748;
+            color: #68d391;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 1;
+        }
+        
+        .sql-editor textarea {
+            width: 100%;
+            min-height: 140px;
+            padding: 20px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            border: 3px solid #4a5568;
+            border-radius: 10px;
+            background: #1a202c;
+            color: #68d391;
+            resize: vertical;
+            font-size: 15px;
+            line-height: 1.6;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .sql-editor textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1), inset 0 2px 8px rgba(0,0,0,0.3);
+            background: #2d3748;
+        }
+        
+        .sql-editor textarea::placeholder {
+            color: #718096;
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #38b2ac 0%, #2c7a7b 100%);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(56, 178, 172, 0.4);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(237, 137, 54, 0.4);
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            z-index: 1000;
+            max-width: 500px;
+            justify-content: flex-end;
+        }
+        
+        .controls .btn {
+            white-space: nowrap;
+        }
+        
+        .timer {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            color: white;
+            padding: 18px 28px;
+            border-radius: 12px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            z-index: 1000;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            border: 3px solid rgba(255,255,255,0.1);
+            letter-spacing: 2px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+        }
+        
+        .timer.warning {
+            animation: timerPulse 1s infinite;
+        }
+        
+        @keyframes timerPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .results {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-radius: 15px;
+            padding: 40px;
+            margin-top: 30px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        .results h2 {
+            font-size: 2.5rem;
+            color: #1a202c;
+            margin-bottom: 30px;
+            font-weight: 800;
+        }
+        
+        .score-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: conic-gradient(
+                #667eea 0deg,
+                #764ba2 var(--percentage),
+                #e2e8f0 var(--percentage)
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            animation: rotateIn 0.8s ease-out;
+        }
+        
+        @keyframes rotateIn {
+            from {
+                opacity: 0;
+                transform: rotate(-180deg) scale(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: rotate(0) scale(1);
+            }
+        }
+        
+        .score-circle::before {
+            content: '';
+            position: absolute;
+            width: 170px;
+            height: 170px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .score-text {
+            position: relative;
+            z-index: 1;
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .explanation {
+            background: linear-gradient(135deg, #fef5e7 0%, #fdebd0 100%);
+            border: 2px solid #f59e0b;
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin: 15px 0;
+            font-size: 0.95rem;
+            border-left: 5px solid #d97706;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+            animation: slideIn 0.4s ease-out;
+        }
+        
+        .explanation strong {
+            color: #92400e;
+            font-weight: 700;
+        }
+        
+        .explanation code {
+            background: #fef3c7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #78350f;
+            font-size: 0.9rem;
+        }
+        
+        .hint {
+            background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+            border: 2px solid #4299e1;
+            border-radius: 10px;
+            padding: 16px 18px;
+            margin: 15px 0;
+            font-size: 0.95rem;
+            color: #2c5282;
+            border-left: 5px solid #3182ce;
+            box-shadow: 0 2px 8px rgba(66, 153, 225, 0.15);
+            animation: slideIn 0.4s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .hint-icon {
+            color: #3182ce;
+            margin-right: 8px;
+            font-size: 1.2rem;
+        }
+        
+        .hint strong {
+            color: #2c5282;
+            font-weight: 700;
+        }
+        
+        .detailed-feedback {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            animation: slideIn 0.4s ease-out;
+        }
+        
+        .detailed-feedback h4 {
+            color: #1a202c;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        
+        .feedback-option {
+            margin: 12px 0;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            transition: transform 0.2s ease;
+        }
+        
+        .feedback-option:hover {
+            transform: translateX(5px);
+        }
+        
+        .feedback-correct {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-left: 4px solid #28a745;
+            box-shadow: 0 2px 6px rgba(40, 167, 69, 0.15);
+        }
+        
+        .feedback-incorrect {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border-left: 4px solid #dc3545;
+            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.15);
+        }
+        
+        .feedback-option strong {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        
+        .learning-tools {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .tool-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .performance-analysis {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .strength-weakness {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .strength-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        
+        .weakness-box {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        
+        .study-recommendations {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .recommendation-item {
+            display: flex;
+            align-items: flex-start;
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #2196f3;
+        }
+        
+        .recommendation-icon {
+            color: #2196f3;
+            margin-right: 10px;
+            margin-top: 2px;
+        }
+        
+        .hint {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+            font-size: 14px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .hint-toggle {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        
+        .hint-toggle:hover {
+            background: #1976d2;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-top: 1px solid #dee2e6;
+            margin-top: 20px;
+        }
+        
+        .nav-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-btn-prev {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .nav-btn-next {
+            background: #007bff;
+            color: white;
+        }
+        
+        .nav-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .nav-btn:disabled {
+            background: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .question-counter {
+            background: #f8f9fa;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            margin: -20px 0 0 -20px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Focus styles for accessibility */
+        *:focus {
+            outline: 3px solid #667eea;
+            outline-offset: 2px;
+        }
+        
+        button:focus, 
+        input:focus, 
+        textarea:focus {
+            outline: 3px solid #667eea;
+            outline-offset: 2px;
+        }
+        
+        /* Skip to content link for accessibility */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 0 0 8px 0;
+            z-index: 10000;
+        }
+        
+        .skip-link:focus {
+            top: 0;
+        }
+        
+        .highlight {
+            background: linear-gradient(120deg, #a8e6cf 0%, #dcedc1 100%);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.75rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .section {
+                padding: 20px;
+                margin-bottom: 30px;
+            }
+            
+            .section h2 {
+                font-size: 1.5rem;
+            }
+            
+            .question {
+                padding: 20px;
+            }
+            
+            .question::before {
+                width: 38px;
+                height: 38px;
+                font-size: 0.8rem;
+            }
+            
+            .question h3 {
+                font-size: 1.05rem;
+                padding-right: 50px;
+            }
+            
+            .controls {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                flex-direction: column;
+                max-width: none;
+            }
+            
+            .controls .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .timer {
+                top: 10px;
+                right: 10px;
+                padding: 12px 18px;
+                font-size: 1.1rem;
+            }
+            
+            .true-false {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .tf-option {
+                padding: 16px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .section h2 {
+                font-size: 1.3rem;
+            }
+            
+            .btn {
+                padding: 12px 20px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Quiz 01: Views and Materialized Views</h1>
+            <p>PostgreSQL Database Design & Optimization</p>
+        </div>
+        
+        <div class="quiz-info">
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>Duration:</strong> 30 minutes
+                </div>
+                <div class="info-item">
+                    <strong>Total Points:</strong> 100
+                </div>
+                <div class="info-item">
+                    <strong>Database:</strong> Pagila
+                </div>
+                <div class="info-item">
+                    <strong>Questions:</strong> <span id="total-questions">25</span>
+                </div>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+            
+            <p><strong>Instructions:</strong> Answer all questions to the best of your ability. You can navigate between sections, but make sure to complete all parts before submitting. Your SQL solutions will be validated for syntax and logic.</p>
+        </div>
+        
+        <div class="content">
+            <!-- Part A: Multiple Choice Questions -->
+            <div class="section" data-section="mcq">
+                <h2>📋 Part A: Multiple Choice Questions (40 points)</h2>
+                <p><em>Choose the best answer for each question (2 points each)</em></p>
+                
+                <div class="question" data-question="1">
+                    <h3>Question 1: What is a database view?</h3>
+                    <div class="hint hidden" id="hint-1">
+                        <span class="hint-icon">💡</span>
+                        <strong>Hint:</strong> Think about whether a view stores actual data or just represents data from other tables. Consider the word "virtual" in database terminology.
+                    </div>
+                    <div class="options">
+                        <label class="option">
+                            <input type="radio" name="q1" value="a">
+                            a) A physical table that stores data permanently
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q1" value="b">
+                            b) A virtual table based on a SELECT statement
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q1" value="c">
+                            c) A backup copy of a table
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q1" value="d">
+                            d) An index on a table
+                        </label>
+                    </div>
+                    <div class="detailed-feedback hidden" id="feedback-1">
+                        <h4>📚 Detailed Explanation:</h4>
+                        <div class="feedback-option feedback-correct">
+                            <strong>✅ Option B (Correct):</strong> A view is indeed a virtual table based on a SELECT statement. It doesn't store data physically but provides a logical representation of data from underlying tables. Views are dynamic and always reflect the current state of the base tables.
+                        </div>
+                        <div class="feedback-option feedback-incorrect">
+                            <strong>❌ Option A (Incorrect):</strong> Views are virtual, not physical. They don't store data permanently - that's what regular tables do. Views only store the query definition.
+                        </div>
+                        <div class="feedback-option feedback-incorrect">
+                            <strong>❌ Option C (Incorrect):</strong> Views are not backup copies. Backups are separate files or databases that preserve data for recovery purposes. Views are live representations of current data.
+                        </div>
+                        <div class="feedback-option feedback-incorrect">
+                            <strong>❌ Option D (Incorrect):</strong> An index is a separate database structure that speeds up data retrieval. Views are query-based virtual tables, completely different from indexes.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="question" data-question="2">
+                    <h3>Question 2: Which statement about regular views is TRUE?</h3>
+                    <div class="hint hidden" id="hint-2">
+                        <span class="hint-icon">💡</span>
+                        <strong>Hint:</strong> Regular views execute their underlying query every time they're accessed. Think about what this means for data freshness and whether they need manual updates.
+                    </div>
+                    <div class="options">
+                        <label class="option">
+                            <input type="radio" name="q2" value="a">
+                            a) They store data physically on disk
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q2" value="b">
+                            b) They are faster than querying base tables
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q2" value="c">
+                            c) They reflect real-time data from underlying tables
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q2" value="d">
+                            d) They require manual refresh to update data
+                        </label>
+                    </div>
+                    <div class="detailed-feedback hidden" id="feedback-2">
+                        <h4>📚 Detailed Explanation:</h4>
+                        <div class="feedback-option feedback-correct">
+                            <strong>✅ Option C (Correct):</strong> Regular views are "live" - they always show current data from base tables because they execute the underlying query each time they're accessed. This ensures real-time data consistency.
+                        </div>
+                        <div class="feedback-option feedback-incorrect">
+                            <strong>❌ Option A (Incorrect):</strong> Regular views don't store data physically. They're virtual and only store the query definition. Physical storage is a characteristic of materialized views or tables.
+                        </div>
+                        <div class="feedback-option feedback-incorrect">
+                            <strong>❌ Option B (Incorrect):</strong> Views can actually be slower than direct table queries because they add a layer of abstraction and may involve complex joins or calculations.
+                        </div>
+                        <div class="feedback-option feedback-incorrect">
+                            <strong>❌ Option D (Incorrect):</strong> This describes materialized views, not regular views. Regular views automatically reflect changes in underlying tables without manual refresh.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="question" data-question="3">
+                    <h3>Question 3: When should you use a materialized view instead of a regular view?</h3>
+                    <div class="hint hidden" id="hint-3">
+                        <span class="hint-icon">💡</span>
+                        <strong>Hint:</strong> Consider the trade-off between query performance and data freshness. When might you accept slightly stale data for better performance?
+                    </div>
+                    <div class="options">
+                        <label class="option">
+                            <input type="radio" name="q3" value="a">
+                            a) When you need real-time data
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q3" value="b">
+                            b) When the query is simple and fast
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q3" value="c">
+                            c) When you have complex, expensive queries that don't need real-time data
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q3" value="d">
+                            d) When you want to save disk space
+                        </label>
+                    </div>
+                    <div class="detailed-feedback hidden" id="feedback-3">
+                        <h4>📚 Detailed Explanation:</h4>
+                        <div class="feedback-option feedback-correct">
+                            <strong>✅ Option C (Correct):</strong> Materialized views are perfect for complex analytical queries that are expensive to run repeatedly. They trade data freshness for performance by storing pre-computed results, making them ideal when slightly stale data is acceptable.
+                        </div>
+                        <div class="feedback-option feedback-incorrect">
+                            <strong>❌ Option A (Incorrect):</strong> Materialized views don't provide real-time data since they must be manually refreshed. If you need real-time data, use regular views instead.
+                        </div>
+                        <div class="feedback-option feedback-incorrect">
+                            <strong>❌ Option B (Incorrect):</strong> Simple and fast queries don't benefit from materialization. The overhead of maintaining a materialized view isn't worth it for queries that already run quickly.
+                        </div>
+                        <div class="feedback-option feedback-incorrect">
+                            <strong>❌ Option D (Incorrect):</strong> Materialized views actually consume MORE disk space, not less, because they store the query results physically on disk.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="question" data-question="4">
+                    <h3>Question 4: What does the CHECK OPTION do in a view?</h3>
+                    <div class="options">
+                        <label class="option">
+                            <input type="radio" name="q4" value="a">
+                            a) It checks the syntax of the view definition
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q4" value="b">
+                            b) It ensures that modified data still satisfies the view's WHERE condition
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q4" value="c">
+                            c) It automatically refreshes materialized views
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q4" value="d">
+                            d) It optimizes view performance
+                        </label>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Correct Answer: b)</strong> CHECK OPTION prevents INSERT/UPDATE operations that would create rows not visible through the view.
+                    </div>
+                </div>
+                
+                <div class="question" data-question="5">
+                    <h3>Question 5: How do you refresh a materialized view named 'sales_summary'?</h3>
+                    <div class="options">
+                        <label class="option">
+                            <input type="radio" name="q5" value="a">
+                            a) UPDATE MATERIALIZED VIEW sales_summary;
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q5" value="b">
+                            b) REFRESH MATERIALIZED VIEW sales_summary;
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q5" value="c">
+                            c) RELOAD VIEW sales_summary;
+                        </label>
+                        <label class="option">
+                            <input type="radio" name="q5" value="d">
+                            d) SYNC MATERIALIZED VIEW sales_summary;
+                        </label>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Correct Answer: b)</strong> This is the correct PostgreSQL syntax to refresh a materialized view.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Part B: True/False Questions -->
+            <div class="section" data-section="tf">
+                <h2>✅ Part B: True/False Questions (20 points)</h2>
+                <p><em>Mark each statement as True or False (1 point each)</em></p>
+                
+                <div class="question" data-question="6">
+                    <h3>Views can be based on other views (nested views)</h3>
+                    <div class="true-false">
+                        <div class="tf-option" data-value="true">TRUE</div>
+                        <div class="tf-option" data-value="false">FALSE</div>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Answer: TRUE</strong> - Views can be based on other views, though deep nesting is not recommended for performance reasons.
+                    </div>
+                </div>
+                
+                <div class="question" data-question="7">
+                    <h3>Materialized views automatically update when base tables change</h3>
+                    <div class="true-false">
+                        <div class="tf-option" data-value="true">TRUE</div>
+                        <div class="tf-option" data-value="false">FALSE</div>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Answer: FALSE</strong> - Materialized views require manual REFRESH commands to update their data.
+                    </div>
+                </div>
+                
+                <div class="question" data-question="8">
+                    <h3>You can create indexes on materialized views</h3>
+                    <div class="true-false">
+                        <div class="tf-option" data-value="true">TRUE</div>
+                        <div class="tf-option" data-value="false">FALSE</div>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Answer: TRUE</strong> - You can create indexes on materialized views to improve query performance, just like regular tables.
+                    </div>
+                </div>
+                
+                <div class="question" data-question="9">
+                    <h3>Views always improve query performance</h3>
+                    <div class="true-false">
+                        <div class="tf-option" data-value="true">TRUE</div>
+                        <div class="tf-option" data-value="false">FALSE</div>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Answer: FALSE</strong> - Views can sometimes hurt performance due to query complexity and the overhead of executing the underlying query.
+                    </div>
+                </div>
+                
+                <div class="question" data-question="10">
+                    <h3>Regular views are virtual and don't consume storage for data</h3>
+                    <div class="true-false">
+                        <div class="tf-option" data-value="true">TRUE</div>
+                        <div class="tf-option" data-value="false">FALSE</div>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Answer: TRUE</strong> - Regular views only store the query definition, not the actual data, making them virtual.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Part C: Practical SQL Exercises -->
+            <div class="section" data-section="sql">
+                <h2>💻 Part C: Practical SQL Exercises (40 points)</h2>
+                <p><em>Write SQL statements to solve the following problems</em></p>
+                
+                <div class="question" data-question="11">
+                    <h3>Exercise 1: Basic View Creation (8 points)</h3>
+                    <p>Create a view called <span class="highlight">customer_contact</span> that shows only the customer ID, first name, last name, and email from the customer table.</p>
+                    <div class="sql-editor">
+                        <textarea name="sql1" placeholder="-- Write your SQL solution here:
+CREATE VIEW customer_contact AS
+SELECT ..."></textarea>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Sample Solution:</strong><br>
+                        <code>CREATE VIEW customer_contact AS<br>
+                        SELECT customer_id, first_name, last_name, email<br>
+                        FROM customer;</code>
+                    </div>
+                </div>
+                
+                <div class="question" data-question="12">
+                    <h3>Exercise 2: Complex Join View (10 points)</h3>
+                    <p>Create a view named <span class="highlight">rental_details</span> that combines information from rental, customer, film, and inventory tables to show: Rental ID, Customer's full name, Film title, Rental date, and Return date.</p>
+                    <div class="sql-editor">
+                        <textarea name="sql2" placeholder="-- Write your SQL solution here:
+CREATE VIEW rental_details AS
+SELECT ..."></textarea>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Sample Solution:</strong><br>
+                        <code>CREATE VIEW rental_details AS<br>
+                        SELECT r.rental_id, c.first_name || ' ' || c.last_name AS customer_full_name,<br>
+                        f.title AS film_title, r.rental_date, r.return_date<br>
+                        FROM rental r<br>
+                        JOIN customer c ON r.customer_id = c.customer_id<br>
+                        JOIN inventory i ON r.inventory_id = i.inventory_id<br>
+                        JOIN film f ON i.film_id = f.film_id;</code>
+                    </div>
+                </div>
+                
+                <div class="question" data-question="13">
+                    <h3>Exercise 3: Materialized View (10 points)</h3>
+                    <p>Create a materialized view named <span class="highlight">film_rental_stats</span> that shows: Film ID, Film title, Total number of rentals, Total revenue generated, and Average rental duration in days.</p>
+                    <div class="sql-editor">
+                        <textarea name="sql3" placeholder="-- Write your SQL solution here:
+CREATE MATERIALIZED VIEW film_rental_stats AS
+SELECT ..."></textarea>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Sample Solution:</strong><br>
+                        <code>CREATE MATERIALIZED VIEW film_rental_stats AS<br>
+                        SELECT f.film_id, f.title, COUNT(r.rental_id) AS total_rentals,<br>
+                        COALESCE(SUM(p.amount), 0) AS total_revenue,<br>
+                        AVG(EXTRACT(days FROM (r.return_date - r.rental_date))) AS avg_rental_days<br>
+                        FROM film f<br>
+                        LEFT JOIN inventory i ON f.film_id = i.film_id<br>
+                        LEFT JOIN rental r ON i.inventory_id = r.inventory_id<br>
+                        LEFT JOIN payment p ON r.rental_id = p.rental_id<br>
+                        GROUP BY f.film_id, f.title;</code>
+                    </div>
+                </div>
+                
+                <div class="question" data-question="14">
+                    <h3>Exercise 4: Security View (8 points)</h3>
+                    <p>Create a view called <span class="highlight">staff_public_info</span> that shows staff information but excludes the password field. Include staff ID, first name, last name, email, and active status.</p>
+                    <div class="sql-editor">
+                        <textarea name="sql4" placeholder="-- Write your SQL solution here:
+CREATE VIEW staff_public_info AS
+SELECT ..."></textarea>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Sample Solution:</strong><br>
+                        <code>CREATE VIEW staff_public_info AS<br>
+                        SELECT staff_id, first_name, last_name, email, active<br>
+                        FROM staff;</code>
+                    </div>
+                </div>
+                
+                <div class="question" data-question="15">
+                    <h3>Bonus Exercise: View with CHECK OPTION (4 points)</h3>
+                    <p>Create a view called <span class="highlight">active_customers_only</span> that shows only active customers and includes the CHECK OPTION to prevent inserting inactive customers.</p>
+                    <div class="sql-editor">
+                        <textarea name="sql5" placeholder="-- Write your SQL solution here:
+CREATE VIEW active_customers_only AS
+SELECT ..."></textarea>
+                    </div>
+                    <div class="explanation hidden">
+                        <strong>Sample Solution:</strong><br>
+                        <code>CREATE VIEW active_customers_only AS<br>
+                        SELECT customer_id, first_name, last_name, email, active<br>
+                        FROM customer<br>
+                        WHERE active = 1<br>
+                        WITH CHECK OPTION;</code>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="results hidden" id="results">
+                <h2>🎉 Quiz Complete!</h2>
+                <div class="score-circle" id="score-circle">
+                    <div class="score-text" id="score-text">0%</div>
+                </div>
+                <div id="grade-info"></div>
+                
+                <!-- Performance Analysis Section -->
+                <div class="performance-analysis">
+                    <h3>📊 Performance Analysis</h3>
+                    <div class="strength-weakness">
+                        <div class="strength-box">
+                            <h4>💪 Strengths</h4>
+                            <div id="strengths-list"></div>
+                        </div>
+                        <div class="weakness-box">
+                            <h4>⚡ Areas for Improvement</h4>
+                            <div id="weaknesses-list"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="study-recommendations">
+                        <h4>🎯 Personalized Study Recommendations</h4>
+                        <div id="recommendations-list"></div>
+                    </div>
+                </div>
+                
+                <!-- Learning Tools Section -->
+                <div class="learning-tools">
+                    <h3>🛠️ Further Learning Tools</h3>
+                    <p>Based on your quiz performance, here are recommended next steps:</p>
+                    <div class="tool-grid" id="learning-tools-grid">
+                        <!-- Dynamic content will be inserted here -->
+                    </div>
+                </div>
+                
+                <div id="feedback"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="timer" id="timer">30:00</div>
+    
+    <div class="controls">
+        <button class="btn btn-primary" onclick="previousQuestion()" id="prevBtn">⬅ Previous</button>
+        <button class="btn btn-primary" onclick="nextQuestion()" id="nextBtn">Next ➡</button>
+        <button class="btn btn-primary" onclick="toggleHints()" id="hintBtn">💡 Toggle Hints</button>
+        <button class="btn btn-warning" onclick="showExplanations()" id="explainBtn">📖 Show Explanations</button>
+        <button class="btn btn-success" onclick="submitQuiz()" id="submitBtn">✅ Submit Quiz</button>
+        <button class="btn btn-primary" onclick="resetQuiz()" id="resetBtn">🔄 Reset Quiz</button>
+    </div>
+    
+    <script>
+        // Quiz State Management
+        let quizState = {
+            startTime: null,
+            timeLimit: 30 * 60, // 30 minutes in seconds
+            answers: {},
+            currentQuestion: 1,
+            totalQuestions: 15,
+            submitted: false,
+            hintsVisible: false,
+            currentSection: 0
+        };
+        
+        // Question sections for navigation
+        const sections = [
+            { name: 'Multiple Choice', start: 1, end: 5 },
+            { name: 'True/False', start: 6, end: 10 },
+            { name: 'SQL Exercises', start: 11, end: 15 }
+        ];
+        
+        // Correct Answers
+        const correctAnswers = {
+            q1: 'b', q2: 'c', q3: 'c', q4: 'b', q5: 'b',
+            q6: 'true', q7: 'false', q8: 'true', q9: 'false', q10: 'true'
+        };
+        
+        // Learning content for recommendations
+        const learningContent = {
+            views: {
+                flashcards: [
+                    { front: "What is a database view?", back: "A virtual table based on a SELECT statement that doesn't store data physically" },
+                    { front: "Regular vs Materialized Views", back: "Regular views are virtual and real-time; Materialized views store data physically for performance" },
+                    { front: "CHECK OPTION purpose", back: "Ensures that data modifications through a view still satisfy the view's WHERE condition" }
+                ],
+                studyGuide: [
+                    "Review the differences between virtual and physical storage",
+                    "Practice creating different types of views with various JOIN operations",
+                    "Understand when to use materialized views vs regular views",
+                    "Learn about view security and access control"
+                ]
+            }
+        };
+        
+        // Initialize Quiz
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeQuiz();
+            setupEventListeners();
+            startTimer();
+            updateNavigationButtons();
+        });
+        
+        function initializeQuiz() {
+            quizState.startTime = Date.now();
+            updateProgress();
+        }
+        
+        function setupEventListeners() {
+            // Multiple choice questions
+            document.querySelectorAll('input[type="radio"]').forEach(input => {
+                input.addEventListener('change', function() {
+                    const questionName = this.name;
+                    const value = this.value;
+                    quizState.answers[questionName] = value;
+                    
+                    // Visual feedback
+                    const question = this.closest('.question');
+                    const options = question.querySelectorAll('.option');
+                    options.forEach(opt => opt.classList.remove('selected'));
+                    this.closest('.option').classList.add('selected');
+                    
+                    updateProgress();
+                    saveToLocalStorage();
+                });
+            });
+            
+            // True/False questions
+            document.querySelectorAll('.tf-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const question = this.closest('.question');
+                    const questionNum = question.dataset.question;
+                    const value = this.dataset.value;
+                    
+                    quizState.answers['q' + questionNum] = value;
+                    
+                    // Visual feedback
+                    const siblings = question.querySelectorAll('.tf-option');
+                    siblings.forEach(sib => sib.classList.remove('selected'));
+                    this.classList.add('selected');
+                    
+                    updateProgress();
+                    saveToLocalStorage();
+                });
+            });
+            
+            // SQL textarea auto-save
+            document.querySelectorAll('textarea').forEach(textarea => {
+                textarea.addEventListener('input', function() {
+                    const name = this.name;
+                    quizState.answers[name] = this.value;
+                    saveToLocalStorage();
+                });
+                
+                // Auto-resize
+                textarea.addEventListener('input', function() {
+                    this.style.height = 'auto';
+                    this.style.height = this.scrollHeight + 'px';
+                });
+            });
+            
+            // Load saved answers
+            loadFromLocalStorage();
+        }
+        
+        function startTimer() {
+            const timerElement = document.getElementById('timer');
+            
+            const timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - quizState.startTime) / 1000);
+                const remaining = Math.max(0, quizState.timeLimit - elapsed);
+                
+                const minutes = Math.floor(remaining / 60);
+                const seconds = remaining % 60;
+                
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Warning colors
+                if (remaining <= 300) { // 5 minutes
+                    timerElement.style.background = '#dc3545';
+                } else if (remaining <= 600) { // 10 minutes
+                    timerElement.style.background = '#ffc107';
+                    timerElement.style.color = '#212529';
+                }
+                
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    autoSubmitQuiz();
+                }
+            }, 1000);
+        }
+        
+        function updateProgress() {
+            const answeredCount = Object.keys(quizState.answers).length;
+            const progress = (answeredCount / quizState.totalQuestions) * 100;
+            document.getElementById('progress').style.width = progress + '%';
+        }
+        
+        function toggleHints() {
+            quizState.hintsVisible = !quizState.hintsVisible;
+            const hints = document.querySelectorAll('.hint');
+            const btn = document.getElementById('hintBtn');
+            
+            hints.forEach(hint => {
+                if (quizState.hintsVisible) {
+                    hint.classList.remove('hidden');
+                } else {
+                    hint.classList.add('hidden');
+                }
+            });
+            
+            btn.textContent = quizState.hintsVisible ? '💡 Hide Hints' : '💡 Show Hints';
+        }
+        
+        function nextQuestion() {
+            if (quizState.currentQuestion < quizState.totalQuestions) {
+                quizState.currentQuestion++;
+                scrollToQuestion(quizState.currentQuestion);
+                updateNavigationButtons();
+            }
+        }
+        
+        function previousQuestion() {
+            if (quizState.currentQuestion > 1) {
+                quizState.currentQuestion--;
+                scrollToQuestion(quizState.currentQuestion);
+                updateNavigationButtons();
+            }
+        }
+        
+        function scrollToQuestion(questionNum) {
+            const question = document.querySelector(`[data-question="${questionNum}"]`);
+            if (question) {
+                question.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            prevBtn.disabled = quizState.currentQuestion === 1;
+            nextBtn.disabled = quizState.currentQuestion === quizState.totalQuestions;
+            
+            prevBtn.style.opacity = prevBtn.disabled ? '0.5' : '1';
+            nextBtn.style.opacity = nextBtn.disabled ? '0.5' : '1';
+        }
+        
+        function showExplanations() {
+            document.querySelectorAll('.detailed-feedback').forEach(feedback => {
+                feedback.classList.remove('hidden');
+            });
+            document.querySelectorAll('.explanation').forEach(exp => {
+                exp.classList.remove('hidden');
+            });
+        }
+        
+        function submitQuiz() {
+            if (quizState.submitted) return;
+            
+            if (!confirm('Are you sure you want to submit your quiz? This cannot be undone.')) {
+                return;
+            }
+            
+            quizState.submitted = true;
+            
+            // Calculate score
+            const scores = calculateScore();
+            displayResults(scores);
+            
+            // Disable all inputs
+            document.querySelectorAll('input, textarea').forEach(input => {
+                input.disabled = true;
+            });
+            
+            // Show correct/incorrect visual feedback
+            showAnswerFeedback();
+            
+            // Save final state
+            saveToLocalStorage();
+        }
+        
+        function calculateScore() {
+            let mcqScore = 0;
+            let tfScore = 0;
+            let sqlScore = 0;
+            
+            // Multiple Choice (2 points each)
+            ['q1', 'q2', 'q3', 'q4', 'q5'].forEach(q => {
+                if (quizState.answers[q] === correctAnswers[q]) {
+                    mcqScore += 2;
+                }
+            });
+            
+            // True/False (1 point each)
+            ['q6', 'q7', 'q8', 'q9', 'q10'].forEach(q => {
+                if (quizState.answers[q] === correctAnswers[q]) {
+                    tfScore += 1;
+                }
+            });
+            
+            // SQL Exercises (manual grading simulation - giving partial credit)
+            const sqlAnswers = ['sql1', 'sql2', 'sql3', 'sql4', 'sql5'];
+            sqlAnswers.forEach(sql => {
+                const answer = quizState.answers[sql] || '';
+                if (answer.trim().length > 0) {
+                    // Basic validation - check for key SQL keywords
+                    if (sql === 'sql1' && answer.toUpperCase().includes('CREATE VIEW') && 
+                        answer.toUpperCase().includes('CUSTOMER_CONTACT')) {
+                        sqlScore += 6; // Partial credit for attempt
+                    }
+                    else if (sql === 'sql2' && answer.toUpperCase().includes('CREATE VIEW') && 
+                             answer.toUpperCase().includes('RENTAL_DETAILS') && 
+                             answer.toUpperCase().includes('JOIN')) {
+                        sqlScore += 8;
+                    }
+                    else if (sql === 'sql3' && answer.toUpperCase().includes('CREATE MATERIALIZED VIEW') && 
+                             answer.toUpperCase().includes('FILM_RENTAL_STATS')) {
+                        sqlScore += 8;
+                    }
+                    else if (sql === 'sql4' && answer.toUpperCase().includes('CREATE VIEW') && 
+                             answer.toUpperCase().includes('STAFF_PUBLIC_INFO')) {
+                        sqlScore += 6;
+                    }
+                    else if (sql === 'sql5' && answer.toUpperCase().includes('CHECK OPTION')) {
+                        sqlScore += 3;
+                    }
+                    else if (answer.trim().length > 20) {
+                        sqlScore += 2; // Minimal credit for effort
+                    }
+                }
+            });
+            
+            const totalScore = mcqScore + tfScore + sqlScore;
+            const percentage = Math.round((totalScore / 100) * 100);
+            
+            return {
+                mcq: mcqScore,
+                tf: tfScore,
+                sql: sqlScore,
+                total: totalScore,
+                percentage: percentage
+            };
+        }
+        
+        function displayResults(scores) {
+            const resultsDiv = document.getElementById('results');
+            const scoreCircle = document.getElementById('score-circle');
+            const scoreText = document.getElementById('score-text');
+            const gradeInfo = document.getElementById('grade-info');
+            const feedback = document.getElementById('feedback');
+            
+            // Show results section
+            resultsDiv.classList.remove('hidden');
+            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+            
+            // Animate score circle
+            const percentage = scores.percentage;
+            scoreCircle.style.setProperty('--percentage', `${(percentage / 100) * 360}deg`);
+            scoreText.textContent = `${percentage}%`;
+            
+            // Determine grade
+            let grade, gradeColor, message;
+            if (percentage >= 90) {
+                grade = 'A';
+                gradeColor = '#28a745';
+                message = 'Excellent work! You have mastered the concepts of views and materialized views.';
+            } else if (percentage >= 80) {
+                grade = 'B';
+                gradeColor = '#17a2b8';
+                message = 'Good job! You have a solid understanding with minor areas to review.';
+            } else if (percentage >= 70) {
+                grade = 'C';
+                gradeColor = '#ffc107';
+                message = 'Satisfactory work. Consider reviewing the concepts and practicing more.';
+            } else if (percentage >= 60) {
+                grade = 'D';
+                gradeColor = '#fd7e14';
+                message = 'You need to review the material and practice more before the exam.';
+            } else {
+                grade = 'F';
+                gradeColor = '#dc3545';
+                message = 'Please review all course materials and seek additional help.';
+            }
+            
+            gradeInfo.innerHTML = `
+                <h3 style="color: ${gradeColor}; font-size: 3rem; margin: 20px 0;">${grade}</h3>
+                <div style="font-size: 1.2rem; margin: 20px 0;">
+                    <strong>Score Breakdown:</strong><br>
+                    Multiple Choice: ${scores.mcq}/10 points<br>
+                    True/False: ${scores.tf}/5 points<br>
+                    SQL Exercises: ${scores.sql}/40 points<br>
+                    <strong>Total: ${scores.total}/100 points</strong>
+                </div>
+            `;
+            
+            // Generate detailed analysis
+            generatePerformanceAnalysis(scores);
+            generateLearningTools(scores);
+            
+            feedback.innerHTML = `
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                    <h4>Overall Feedback:</h4>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+        
+        function generatePerformanceAnalysis(scores) {
+            const strengthsList = document.getElementById('strengths-list');
+            const weaknessesList = document.getElementById('weaknesses-list');
+            const recommendationsList = document.getElementById('recommendations-list');
+            
+            let strengths = [];
+            let weaknesses = [];
+            let recommendations = [];
+            
+            // Analyze multiple choice performance
+            if (scores.mcq >= 8) {
+                strengths.push("Strong conceptual understanding of view basics");
+            } else {
+                weaknesses.push("Need to review fundamental view concepts");
+                recommendations.push({
+                    icon: "📚",
+                    text: "Review the definition and characteristics of database views",
+                    action: "Study Chapter 1: Introduction to Views"
+                });
+            }
+            
+            // Analyze true/false performance
+            if (scores.tf >= 4) {
+                strengths.push("Good grasp of view properties and behaviors");
+            } else {
+                weaknesses.push("Confusion about view characteristics and limitations");
+                recommendations.push({
+                    icon: "✓",
+                    text: "Practice identifying true/false statements about views",
+                    action: "Complete additional T/F exercises"
+                });
+            }
+            
+            // Analyze SQL performance
+            if (scores.sql >= 30) {
+                strengths.push("Excellent practical SQL implementation skills");
+            } else if (scores.sql >= 20) {
+                strengths.push("Decent SQL skills with room for improvement");
+                recommendations.push({
+                    icon: "💻",
+                    text: "Practice more complex view creation scenarios",
+                    action: "Work through additional SQL exercises"
+                });
+            } else {
+                weaknesses.push("Need significant practice with SQL view syntax");
+                recommendations.push({
+                    icon: "🔧",
+                    text: "Focus on basic SQL syntax and view creation",
+                    action: "Start with simple view examples and build complexity"
+                });
+            }
+            
+            // Display strengths
+            strengthsList.innerHTML = strengths.length > 0 ? 
+                strengths.map(s => `<p>• ${s}</p>`).join('') : 
+                '<p>Focus on building foundational knowledge</p>';
+            
+            // Display weaknesses
+            weaknessesList.innerHTML = weaknesses.length > 0 ? 
+                weaknesses.map(w => `<p>• ${w}</p>`).join('') : 
+                '<p>Great job! No major weak areas identified</p>';
+            
+            // Display recommendations
+            recommendationsList.innerHTML = recommendations.map(r => `
+                <div class="recommendation-item">
+                    <span class="recommendation-icon">${r.icon}</span>
+                    <div>
+                        <strong>${r.text}</strong><br>
+                        <small>${r.action}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function generateLearningTools(scores) {
+            const toolsGrid = document.getElementById('learning-tools-grid');
+            
+            let tools = [];
+            
+            // Flashcards tool
+            if (scores.mcq < 8 || scores.tf < 4) {
+                tools.push({
+                    title: "📱 Digital Flashcards",
+                    description: "Review key concepts with interactive flashcards",
+                    action: "Create flashcards for view definitions and properties"
+                });
+            }
+            
+            // Practice exercises
+            if (scores.sql < 30) {
+                tools.push({
+                    title: "💻 Additional SQL Practice",
+                    description: "More hands-on exercises with view creation",
+                    action: "Complete 10 additional view creation exercises"
+                });
+            }
+            
+            // Video tutorials
+            if (scores.total < 70) {
+                tools.push({
+                    title: "🎥 Video Tutorials",
+                    description: "Watch step-by-step explanations of view concepts",
+                    action: "Watch the 'Views Masterclass' video series"
+                });
+            }
+            
+            // Study groups
+            tools.push({
+                title: "👥 Study Groups",
+                description: "Collaborate with classmates to discuss concepts",
+                action: "Join or form a study group for database topics"
+            });
+            
+            // Next module preparation
+            if (scores.percentage >= 80) {
+                tools.push({
+                    title: "🚀 Next Module: Indexes",
+                    description: "You're ready for the next topic!",
+                    action: "Begin studying database indexing strategies"
+                });
+            }
+            
+            // Office hours
+            if (scores.total < 60) {
+                tools.push({
+                    title: "🏫 Office Hours",
+                    description: "Get personalized help from your instructor",
+                    action: "Schedule a meeting to review problem areas"
+                });
+            }
+            
+            toolsGrid.innerHTML = tools.map(tool => `
+                <div class="tool-card">
+                    <h4>${tool.title}</h4>
+                    <p>${tool.description}</p>
+                    <small><strong>Next Step:</strong> ${tool.action}</small>
+                </div>
+            `).join('');
+        }
+        
+        function showAnswerFeedback() {
+            // Show correct/incorrect for multiple choice
+            Object.keys(correctAnswers).forEach(questionKey => {
+                const userAnswer = quizState.answers[questionKey];
+                const correctAnswer = correctAnswers[questionKey];
+                
+                if (questionKey.startsWith('q') && parseInt(questionKey.slice(1)) <= 5) {
+                    // Multiple choice questions
+                    const questionDiv = document.querySelector(`input[name="${questionKey}"]`).closest('.question');
+                    const options = questionDiv.querySelectorAll('.option');
+                    
+                    options.forEach(option => {
+                        const input = option.querySelector('input');
+                        if (input.value === correctAnswer) {
+                            option.classList.add('correct');
+                        } else if (input.value === userAnswer && userAnswer !== correctAnswer) {
+                            option.classList.add('incorrect');
+                        }
+                    });
+                } else if (questionKey.startsWith('q')) {
+                    // True/False questions
+                    const questionNum = questionKey.slice(1);
+                    const questionDiv = document.querySelector(`[data-question="${questionNum}"]`);
+                    const options = questionDiv.querySelectorAll('.tf-option');
+                    
+                    options.forEach(option => {
+                        if (option.dataset.value === correctAnswer) {
+                            option.classList.add('correct');
+                            option.style.background = '#d4edda';
+                            option.style.borderColor = '#28a745';
+                        } else if (option.dataset.value === userAnswer && userAnswer !== correctAnswer) {
+                            option.classList.add('incorrect');
+                            option.style.background = '#f8d7da';
+                            option.style.borderColor = '#dc3545';
+                        }
+                    });
+                }
+            });
+        }
+        
+        function autoSubmitQuiz() {
+            alert('Time\'s up! Your quiz will be automatically submitted.');
+            submitQuiz();
+        }
+        
+        function resetQuiz() {
+            if (!confirm('Are you sure you want to reset the quiz? All your answers will be lost.')) {
+                return;
+            }
+            
+            // Reset state
+            quizState = {
+                startTime: Date.now(),
+                timeLimit: 30 * 60,
+                answers: {},
+                currentQuestion: 1,
+                totalQuestions: 15,
+                submitted: false
+            };
+            
+            // Clear all inputs
+            document.querySelectorAll('input[type="radio"]').forEach(input => {
+                input.checked = false;
+                input.disabled = false;
+            });
+            
+            document.querySelectorAll('textarea').forEach(textarea => {
+                textarea.value = '';
+                textarea.disabled = false;
+            });
+            
+            // Reset visual feedback
+            document.querySelectorAll('.option, .tf-option').forEach(option => {
+                option.className = option.className.replace(/\b(selected|correct|incorrect)\b/g, '');
+                option.style.background = '';
+                option.style.borderColor = '';
+            });
+            
+            // Hide results and explanations
+            document.getElementById('results').classList.add('hidden');
+            document.querySelectorAll('.explanation').forEach(exp => {
+                exp.classList.add('hidden');
+            });
+            
+            // Reset progress and timer
+            updateProgress();
+            startTimer();
+            
+            // Clear localStorage
+            localStorage.removeItem('db2-quiz01-state');
+        }
+        
+        function saveToLocalStorage() {
+            localStorage.setItem('db2-quiz01-state', JSON.stringify(quizState));
+        }
+        
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('db2-quiz01-state');
+            if (saved) {
+                const savedState = JSON.parse(saved);
+                
+                // Restore answers
+                Object.keys(savedState.answers).forEach(key => {
+                    const value = savedState.answers[key];
+                    
+                    if (key.startsWith('q') && parseInt(key.slice(1)) <= 5) {
+                        // Multiple choice
+                        const radio = document.querySelector(`input[name="${key}"][value="${value}"]`);
+                        if (radio) {
+                            radio.checked = true;
+                            radio.closest('.option').classList.add('selected');
+                        }
+                    } else if (key.startsWith('q')) {
+                        // True/False
+                        const questionNum = key.slice(1);
+                        const option = document.querySelector(`[data-question="${questionNum}"] .tf-option[data-value="${value}"]`);
+                        if (option) {
+                            option.classList.add('selected');
+                        }
+                    } else if (key.startsWith('sql')) {
+                        // SQL textarea
+                        const textarea = document.querySelector(`textarea[name="${key}"]`);
+                        if (textarea) {
+                            textarea.value = value;
+                        }
+                    }
+                });
+                
+                quizState.answers = savedState.answers;
+                updateProgress();
+            }
+        }
+        
+        // Prevent accidental page refresh
+        window.addEventListener('beforeunload', function(e) {
+            if (!quizState.submitted && Object.keys(quizState.answers).length > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+        
+        // Auto-save every 30 seconds
+        setInterval(saveToLocalStorage, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,274 @@
+---
+title: "PostgreSQL Administration - Live Demo"
+subtitle: "Hands-on guide to Backup, Monitoring, and Maintenance"
+author: "Database Course - Live Demo Session"
+format: 
+  html:
+    theme: default
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-overflow: wrap
+    highlight-style: github
+    code-block-bg: true
+    code-block-border-left: "#31BAE9"
+    number-sections: true
+---
+
+# Introduction to Database Administration
+
+Database administration is about keeping your database running smoothly, safely, and efficiently. Today, we'll cover the essentials:
+
+1.  **Backup & Recovery**: Protecting your data from loss.
+2.  **Performance Monitoring**: Identifying and analyzing slow queries.
+3.  **Routine Maintenance**: Keeping the database healthy with `VACUUM` and `ANALYZE`.
+4.  **Index Management**: Ensuring indexes are effective.
+
+---
+
+# Part 1: Backup and Recovery
+
+Logical backups are a fundamental task for any DBA. PostgreSQL provides the `pg_dump` utility for this.
+
+## Creating a Backup with `pg_dump`
+
+`pg_dump` creates a SQL script file that can be used to recreate the database.
+
+```{bash}
+# Full database backup of 'pagila' (SQL format)
+# This command is run in your terminal, not in psql
+pg_dump -U postgres -d pagila > pagila_backup.sql
+
+# Compressed custom format (more flexible for restoring)
+pg_dump -U postgres -d pagila -Fc > pagila_backup.backup
+
+# Schema-only backup
+pg_dump -U postgres -d pagila --schema-only > pagila_schema.sql
+
+# Specific tables only
+pg_dump -U postgres -d pagila -t customer -t film > customer_film_backup.sql
+```
+
+## Restoring a Backup with `psql` and `pg_restore`
+
+Restoring depends on the format of the backup.
+
+```{bash}
+# For .sql files, you can use psql
+# First, create a new database
+createdb -U postgres pagila_restored
+
+# Then, restore the backup into the new database
+psql -U postgres -d pagila_restored < pagila_backup.sql
+
+# For custom format (.backup), use pg_restore
+# This is often safer and more powerful
+pg_restore -U postgres -d pagila_restored --clean pagila_backup.backup
+```
+
+---
+
+# Part 2: Performance Monitoring
+
+A key part of a DBA's job is to monitor the database for performance issues.
+
+## Monitoring Active Connections
+
+The `pg_stat_activity` view is your window into what the database is doing right now.
+
+```{sql}
+-- View active connections and queries
+SELECT 
+    pid,
+    usename,
+    application_name,
+    client_addr,
+    state,
+    LEFT(query, 60) as query_preview
+FROM pg_stat_activity
+WHERE state != 'idle'
+ORDER BY query_start;
+
+-- Count connections by state
+SELECT 
+    state,
+    COUNT(*) as connection_count
+FROM pg_stat_activity
+GROUP BY state
+ORDER BY connection_count DESC;
+```
+
+## Identifying Slow Queries with `pg_stat_statements`
+
+The `pg_stat_statements` extension is one of the most powerful tools for query analysis.
+
+```{sql}
+-- First, you need to enable the extension (once per database)
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+-- Now, you can query it to find problematic queries
+-- Top slow queries by average execution time
+SELECT 
+    query,
+    calls,
+    total_exec_time,
+    mean_exec_time,
+    rows
+FROM pg_stat_statements
+ORDER BY mean_exec_time DESC
+LIMIT 10;
+
+-- Most frequently executed queries
+SELECT 
+    query,
+    calls,
+    total_exec_time,
+    mean_exec_time
+FROM pg_stat_statements
+ORDER BY calls DESC
+LIMIT 10;
+
+-- To reset the stats and start fresh
+-- SELECT pg_stat_statements_reset();
+```
+
+---
+
+# Part 3: Index Usage and Effectiveness
+
+Indexes are crucial for performance, but they have a cost. It's important to monitor if they are being used.
+
+## Finding Unused Indexes
+
+The `pg_stat_user_indexes` view tracks how many times each index was used.
+
+```{sql}
+-- Unused indexes (potential candidates for dropping)
+SELECT 
+    schemaname,
+    tablename,
+    indexname,
+    pg_size_pretty(pg_relation_size(indexrelid)) as index_size
+FROM pg_stat_user_indexes
+WHERE idx_scan = 0
+AND indexrelid NOT IN (
+    SELECT indexrelid FROM pg_index WHERE indisprimary OR indisunique
+)
+ORDER BY pg_relation_size(indexrelid) DESC;
+```
+
+## Checking Table Scan vs. Index Scan Ratio
+
+Are your tables being scanned sequentially instead of using indexes?
+
+```{sql}
+-- Check the ratio of index scans to sequential scans
+SELECT 
+    schemaname,
+    tablename,
+    seq_scan as table_scans,
+    idx_scan as index_scans,
+    CASE 
+        WHEN seq_scan + idx_scan = 0 THEN 0
+        ELSE ROUND((idx_scan::float / (seq_scan + idx_scan)::float) * 100, 2)
+    END as index_usage_percentage
+FROM pg_stat_user_tables
+WHERE seq_scan + idx_scan > 0
+ORDER BY index_usage_percentage ASC;
+```
+A low `index_usage_percentage` might indicate missing indexes or poorly written queries.
+
+---
+
+# Part 4: Routine Database Maintenance
+
+PostgreSQL uses Multi-Version Concurrency Control (MVCC), which requires periodic maintenance.
+
+## `VACUUM` - Reclaiming Storage
+
+When you `DELETE` or `UPDATE` rows, the old versions are not immediately removed. `VACUUM` reclaims this space.
+
+```{sql}
+-- Check for "dead tuples" (rows waiting to be vacuumed)
+SELECT 
+    schemaname, tablename,
+    n_live_tup,
+    n_dead_tup,
+    last_autovacuum,
+    ROUND((n_dead_tup::float / GREATEST(n_live_tup + n_dead_tup, 1)::float) * 100, 2) as dead_percentage
+FROM pg_stat_user_tables
+ORDER BY dead_percentage DESC;
+
+-- Manually vacuum a table
+-- NOTE: Autovacuum usually handles this, but we can do it manually.
+VACUUM film;
+```
+
+## `ANALYZE` - Updating Statistics
+
+The query planner relies on statistics about the data in your tables. `ANALYZE` updates these statistics.
+
+```{sql}
+-- Check when tables were last analyzed
+SELECT 
+    schemaname, 
+    tablename, 
+    last_autoanalyze,
+    last_analyze
+FROM pg_stat_user_tables
+ORDER BY last_autoanalyze DESC NULLS FIRST;
+
+-- Manually analyze a table
+ANALYZE film;
+
+-- It's common to run both together
+VACUUM ANALYZE film;
+```
+
+---
+
+# Part 5: Index Maintenance
+
+Indexes can become "bloated" over time, which reduces their effectiveness.
+
+## Rebuilding Indexes with `REINDEX`
+
+`REINDEX` rebuilds an index, which can shrink its size and improve performance.
+
+```{sql}
+-- Check the size of an index before reindexing
+SELECT pg_size_pretty(pg_relation_size('public.idx_actor_last_name'));
+
+-- Rebuild the index
+REINDEX INDEX idx_actor_last_name;
+
+-- Check the size again to see the difference
+SELECT pg_size_pretty(pg_relation_size('public.idx_actor_last_name'));
+```
+
+`REINDEX` locks the table, preventing writes. For production systems, you can use `REINDEX CONCURRENTLY`, which takes longer but doesn't block writes.
+
+```{sql}
+-- Reindex concurrently (doesn't block writes)
+-- REINDEX INDEX CONCURRENTLY idx_actor_last_name;
+```
+
+---
+
+# Part 6: Database and Table Sizes
+
+Monitoring the size of your database and tables is essential for capacity planning.
+
+```{sql}
+-- Get the size of the entire database
+SELECT pg_size_pretty(pg_database_size('pagila')) as database_size;
+
+-- Get the sizes of the largest tables
+SELECT 
+    tablename,
+    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as total_size
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
+LIMIT 10;
+```

@@ -1,0 +1,2068 @@
+---
+title: "Database Course"
+subtitle: "Introduction to PL/pgSQL: Programming in PostgreSQL"
+institute: "<br>Polydisciplinary Faculty of Taroudant <br><br>2025-2026<br><br>" 
+author: "Lotfi NAJDI"
+format: 
+  clean-revealjs:
+    transition: slide
+    incremental: false
+    slide-number: true
+---
+
+## What is PL/pgSQL? {.center}
+
+::: fragment
+**PL/pgSQL** stands for **Procedural Language/PostgreSQL**
+:::
+
+::: fragment
+It's a **programming language** that extends SQL with procedural constructs
+:::
+
+::: fragment
+Think of it as **"SQL with superpowers"** 💪
+:::
+
+::: fragment
+*Adds variables, loops, conditions, and error handling to your SQL toolkit*
+:::
+
+
+
+## A Simple Analogy 🧰
+
+::: center
+Think of SQL vs PL/pgSQL like **basic tools vs a power drill**.
+:::
+
+::: fragment
+-   **SQL**: Great for simple, direct tasks (hammer, screwdriver)
+-   **PL/pgSQL**: Handles complex, multi-step operations (power drill with attachments)
+-   Same goal (building something), different capabilities
+-   You choose the right tool for the job
+:::
+
+::: fragment
+**Sometimes you need more than just SELECT, INSERT, UPDATE, DELETE**
+:::
+
+
+
+
+
+
+
+## Today's Learning Journey 🗺️
+
+::: {.incremental}
+1. ✅ What is PL/pgSQL & Why use it 
+2. 🔄 Block Structure & Your First Program 
+3. 🔄 Variables & Data Types 
+4. 🔄 Working with Database Data 
+5. 🔄 Control Flow (IF statements) 
+6. 🔄 Loops (FOR, WHILE)
+7. 🔄 Error Handling 
+:::
+
+
+
+
+
+## Why Use PL/pgSQL? 🤔
+
+::: center
+PL/pgSQL gives you **four main superpowers**:
+:::
+
+::: fragment
+1.  **Variables and Logic** - Store values, make decisions
+:::
+
+::: fragment
+2.  **Loops and Iteration** - Process data repeatedly
+:::
+
+::: fragment
+3.  **Error Handling** - Gracefully handle problems
+:::
+
+::: fragment
+4.  **Code Reusability** - Write once, use many times
+:::
+
+
+
+
+## Why PL/pgSQL? A Real Example 
+
+```sql
+DO $$
+DECLARE
+    rental_rate_value NUMERIC;
+    customer_budget NUMERIC := 5.00;
+BEGIN
+    -- Get rental rate safely
+    SELECT rental_rate INTO rental_rate_value 
+    FROM film WHERE film_id = 42;
+    
+    -- Check and decide automatically
+    IF rental_rate_value <= customer_budget THEN
+        UPDATE customer SET store_id = 2 
+        WHERE customer_id = 10;
+        
+        INSERT INTO rental (rental_date, customer_id, inventory_id, staff_id)
+        VALUES (NOW(), 10, 100, 1);
+        
+        RAISE NOTICE 'Rental created! Cost: $%', rental_rate_value;
+    ELSE
+        RAISE NOTICE 'Too expensive! Rate: $% (Budget: $%)', 
+                     rental_rate_value, customer_budget;
+    END IF;
+END $$;
+```
+
+::: {.callout-tip title="💡 Key Benefits"}
+- ✅ **Safe**: Checks before acting
+- ✅ **Automatic**: All steps execute together
+- ✅ **Atomic**: All-or-nothing (no partial updates)
+- ✅ **Smart**: Makes decisions based on data
+:::
+
+
+
+## What We're NOT Covering Today
+
+
+::: fragment
+We will cover these topics in later sessions:
+
+\- **Functions** - Reusable named code blocks
+
+\- **Procedures** - Stored procedures with transaction control
+
+\- **Triggers** - Automatic responses to database events
+
+\- **Cursors** - Advanced row-by-row processing
+:::
+
+::: fragment
+**Today: Master the building blocks first!** 🎯
+:::
+
+
+
+## Named vs Anonymous Blocks
+
+::: center
+**Understanding the Two Types of PL/pgSQL Code**
+:::
+
+:::: {.columns}
+::: {.column width="50%"}
+### Anonymous Blocks (DO)
+```sql
+DO $$
+DECLARE
+    total INTEGER := 0;
+BEGIN
+    SELECT COUNT(*) INTO total
+    FROM customer;
+    RAISE NOTICE 'Total: %', total;
+END $$;
+```
+
+**Characteristics:**
+- ✅ Execute immediately
+- ✅ No parameters
+- ✅ Not stored in database
+- ✅ Great for testing/scripts
+- ❌ Cannot be called again
+- ❌ No RETURN value
+:::
+
+::: {.column width="50%"}
+### Named Blocks (Functions)
+```sql
+CREATE FUNCTION get_customer_count()
+RETURNS INTEGER AS $$
+DECLARE
+    total INTEGER := 0;
+BEGIN
+    SELECT COUNT(*) INTO total
+    FROM customer;
+    RETURN total;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Call it:
+SELECT get_customer_count();
+```
+
+**Characteristics:**
+- ✅ Stored in database
+- ✅ Reusable
+- ✅ Can accept parameters
+- ✅ Can RETURN values
+- ✅ Can be called from SQL
+:::
+::::
+
+
+
+## Two Ways to Write PL/pgSQL Code
+
+::: center
+**Anonymous Blocks vs Named Functions**
+:::
+
+::: fragment
+### Anonymous Blocks (DO blocks)
+
+-   **One-time use** - Run once, then gone
+-   **No parameters** - Can't accept input
+-   **Great for**: Testing, one-off tasks, data migrations
+-   **Like**: A disposable script
+:::
+
+::: fragment
+### Named Functions (coming later!)
+
+-   **Reusable** - Call them multiple times
+-   **Accept parameters** - Input and output values
+-   **Great for**: Business logic, repeated operations
+-   **Like**: A saved program
+:::
+
+
+
+
+## Block Execution Flow 🔄
+
+::: {.center}
+**How PL/pgSQL Processes Your Code**
+:::
+
+```
+┌─────────────────────┐
+│   DO $$             │  ◄── Start here
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ DECLARE (optional)  │  ◄── Define variables
+│   var1 INTEGER;     │      (skip if none needed)
+│   var2 TEXT;        │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ BEGIN               │  ◄── Main code starts
+│   Statement 1;      │
+│   Statement 2;      │      Execute line by line
+│   ...               │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ EXCEPTION (opt)     │  ◄── Handle errors
+│   WHEN ... THEN     │      (if something goes wrong)
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│   END $$;           │  ◄── Finish
+└─────────────────────┘
+```
+
+
+
+## Your First PL/pgSQL Block
+
+### Goal: Display a simple message
+
+```sql
+DO $$
+DECLARE
+    -- Variable declarations go here (none needed yet)
+    -- Example: my_variable INTEGER := 10;
+BEGIN
+    -- Main execution block starts here
+    -- Your code goes here
+    
+    -- Print a message to the console/log
+    RAISE NOTICE 'Hello from PL/pgSQL!';
+    
+    -- Additional code can be added here
+END $$;
+```
+
+::: fragment
+**Expected output:**
+
+```text
+NOTICE:  Hello from PL/pgSQL!
+```
+:::
+
+
+
+## Block Structure Explained
+
+```sql
+DO $$                    -- Start anonymous block
+DECLARE                  -- Optional: declare variables
+    -- variables here
+BEGIN                    -- Required: your code starts
+    -- your code here
+END $$;                  -- Required: block ends
+```
+
+::: fragment
+**Key parts:** 
+- `DO $$` ... `$$;` wraps the entire block 
+- `DECLARE` section is **optional** (skip if no variables) 
+- `BEGIN` ... `END` section is **required** 
+- `;` ends each statement inside the block
+:::
+
+::: {.fragment}
+::: {.callout-warning title="⚠️ Common Beginner Mistake"}
+**Error**: `syntax error at or near "BEGIN"`  
+**Cause**: Forgot the `$$` delimiters  
+**Fix**: Always wrap with `DO $$` ... `END $$;`
+:::
+:::
+
+
+
+## Exercise 1: Hello World
+
+```sql
+DO $$
+BEGIN
+    RAISE NOTICE 'Welcome to PL/pgSQL programming!';
+    RAISE NOTICE 'Current time: %', NOW();
+END $$;
+```
+
+::: fragment
+**Expected output:**
+
+```text         
+NOTICE:  Welcome to PL/pgSQL programming!
+NOTICE:  Current time: 2025-10-28 14:30:45.123456
+```
+:::
+
+
+
+## Exercise 2: Personalized Greeting
+
+```sql
+DO $$
+DECLARE
+    my_name TEXT := 'Your Name Here';  -- ✏️ Change this!
+BEGIN
+    RAISE NOTICE 'Hello, %! Welcome to PL/pgSQL', my_name;
+    RAISE NOTICE 'Current database: %', current_database();
+    RAISE NOTICE '2 + 2 = %', 2 + 2;
+END $$;
+```
+
+::: fragment
+**Expected output for khadija , pagila:**
+
+```text         
+NOTICE:  Hello, khadija! Welcome to PL/pgSQL
+NOTICE:  Current database: pagila
+NOTICE:  2 + 2 = 4
+```
+:::
+
+
+
+
+## Understanding RAISE NOTICE
+
+```sql
+DO $$
+BEGIN
+    RAISE NOTICE 'Simple message';
+    RAISE NOTICE 'Message with value: %', 42;
+    RAISE NOTICE 'Multiple values: % and %', 'Alice', 100;
+END $$;
+```
+
+::: fragment
+**Output:**
+
+```text   
+NOTICE:  Simple message
+NOTICE:  Message with value: 42
+NOTICE:  Multiple values: Alice and 100
+```
+:::
+
+::: {.fragment}
+::: {.callout-tip title="💡 Quick Tip"}
+The `%` is a **placeholder** - like a blank to fill in!
+- First `%` gets the first value
+- Second `%` gets the second value, etc.
+:::
+:::
+
+
+
+## Variables: Storing Data
+### Goal: Store and display customer information
+
+```sql
+DO $$
+DECLARE
+    customer_name VARCHAR(100);
+    total_orders INTEGER;
+    average_amount DECIMAL(10,2);
+    today_date DATE := CURRENT_DATE;  -- Initialize on declaration
+BEGIN
+    -- Assign values to variables
+    customer_name := 'John Doe';
+    total_orders := 15;
+    average_amount := 250.75;
+    
+    RAISE NOTICE 'Customer: %, Orders: %, Avg: $%', 
+                 customer_name, total_orders, average_amount;
+END $$;
+```
+
+::: fragment
+**Expected output:**
+
+```text         
+NOTICE:  Customer: John Doe, Orders: 15, Avg: $250.75
+```
+:::
+
+
+## Variables: Storing Data (Contd.)
+
+::: fragment
+**Key points:** 
+- Use `:=` for assignment (not `=`) 
+- Can initialize during declaration with `:=` 
+- Variables must be declared before use
+:::
+
+::: {.fragment}
+::: {.callout-warning title="⚠️ Common Mistake"}
+**Wrong**: `customer_name = 'John Doe';` ❌  
+**Right**: `customer_name := 'John Doe';` ✅
+
+In PL/pgSQL:
+- `=` is for **comparison** (like "equals?")
+- `:=` is for **assignment** (like "set to")
+:::
+:::
+
+
+
+## Better: Use %TYPE for Variables
+
+### Goal: Match database column types automatically
+
+```sql
+DO $$
+DECLARE
+    -- Instead of guessing VARCHAR(100), match the table!
+    customer_name customers.name%TYPE;
+    customer_email customers.email%TYPE;
+    order_total orders.total%TYPE;
+BEGIN
+    customer_name := 'Alice Johnson';
+    customer_email := 'alice@example.com';
+    order_total := 1299.99;
+    
+    RAISE NOTICE 'Customer: % (%)', customer_name, customer_email;
+    RAISE NOTICE 'Order total: $%', order_total;
+END $$;
+```
+
+::: fragment
+**Why use %TYPE?** - ✅ Automatically matches column definition - ✅ Updates if column type changes - ✅ Prevents type mismatches
+:::
+
+
+
+## 🤔 Quick Quiz: Test Your Understanding
+
+**Which is correct for assignment in PL/pgSQL?**
+
+A) `customer_name = 'John';`  
+B) `customer_name := 'John';`  
+C) `SET customer_name = 'John';`  
+D) `customer_name == 'John';`
+
+::: {.fragment}
+**Answer: B** ✅  
+- `:=` is assignment in PL/pgSQL
+- `=` is for comparison (like "is it equal?")
+- `SET` is for configuration settings, not variables
+- `==` doesn't exist in PostgreSQL
+:::
+
+
+## 🤔 Quick Quiz: Test Your Understanding
+
+::: {.fragment}
+**Quick follow-up:** What does this print?
+```sql
+DO $$
+DECLARE
+    x INTEGER := 5;
+BEGIN
+    IF x = 5 THEN
+        RAISE NOTICE 'Match!';
+    END IF;
+END $$;
+```
+
+**Answer:** "Match!" - Here `=` is used correctly for comparison!
+:::
+
+
+
+## Variable Types in PostgreSQL
+
+::: center
+**PL/pgSQL supports all PostgreSQL data types**
+:::
+
+:::: {.columns}
+::: {.column width="50%"}
+### Numeric Types
+- `INTEGER` / `INT` - Whole numbers
+- `BIGINT` - Large integers
+- `NUMERIC(p,s)` / `DECIMAL(p,s)` - Exact decimals
+- `REAL` / `FLOAT` - Approximate decimals
+- `SERIAL` / `BIGSERIAL` - Auto-increment
+
+### String Types
+- `VARCHAR(n)` - Variable length (limit n)
+- `CHAR(n)` - Fixed length
+- `TEXT` - Unlimited length
+:::
+
+::: {.column width="50%"}
+### Date/Time Types
+- `DATE` - Date only
+- `TIME` - Time only
+- `TIMESTAMP` - Date + Time
+- `INTERVAL` - Time duration
+
+### Boolean & Special
+- `BOOLEAN` - TRUE/FALSE/NULL
+- `UUID` - Universal unique ID
+- `JSON` / `JSONB` - JSON data
+- `ARRAY` - Array of values
+:::
+::::
+
+
+
+## Declaring Variables: Examples
+
+```sql
+DO $$
+DECLARE
+    -- Numeric types
+    customer_count INTEGER;
+    balance NUMERIC(10,2) := 1000.50;
+    percentage REAL := 15.5;
+    
+    -- String types
+    customer_name VARCHAR(100);
+    description TEXT;
+    status_code CHAR(3) := 'ACT';
+    
+    -- Date/Time types
+    birth_date DATE;
+    created_at TIMESTAMP := NOW();
+    duration INTERVAL := '2 hours 30 minutes';
+    
+    -- Boolean
+    is_active BOOLEAN := TRUE;
+    
+    -- Special types
+    user_id UUID;
+    tags TEXT[] := ARRAY['tag1', 'tag2', 'tag3'];
+BEGIN
+    RAISE NOTICE 'Balance: $%, Active: %', balance, is_active;
+    RAISE NOTICE 'Duration: %, Tags: %', duration, tags;
+END $$;
+```
+
+
+
+## Using %TYPE (Single Column Type)
+
+::: center
+**Best Practice: Let the database define your types**
+:::
+
+
+```sql
+DECLARE
+    -- Match a specific column type
+    cust_email customer.email%TYPE;
+    film_title film.title%TYPE;
+    rental_cost payment.amount%TYPE;
+BEGIN
+    -- Variables automatically match
+    -- column definitions
+END;
+```
+
+**Use when:** You need one specific column's type
+
+
+
+## Array Variables
+
+### Goal: Store and manipulate multiple values
+
+```sql
+DO $$
+DECLARE
+    -- Declare arrays
+    film_ids INTEGER[] := ARRAY[1, 2, 3, 4, 5];
+    categories TEXT[];
+    prices NUMERIC[] := ARRAY[2.99, 4.99, 9.99];
+    
+    single_id INTEGER;
+    total_price NUMERIC := 0;
+BEGIN
+    -- Access array elements (1-indexed!)
+    single_id := film_ids[1];  -- Returns 1
+    RAISE NOTICE 'First film ID: %', single_id;
+    
+    -- Array length
+    RAISE NOTICE 'Array has % films', array_length(film_ids, 1);
+    
+    -- Loop through array
+    FOR i IN 1..array_length(prices, 1) LOOP
+        total_price := total_price + prices[i];
+    END LOOP;
+    
+    RAISE NOTICE 'Total price: $%', total_price;
+    
+    -- Populate from query
+    SELECT ARRAY_AGG(name) INTO categories
+    FROM category
+    LIMIT 5;
+    
+    RAISE NOTICE 'Categories: %', categories;
+END $$;
+```
+
+
+
+## %ROWTYPE (Entire Row Structure)
+
+
+```sql
+DECLARE
+    -- Match entire table structure
+    cust_row customer%ROWTYPE;
+    film_row film%ROWTYPE;
+BEGIN
+    SELECT * INTO cust_row
+    FROM customer 
+    WHERE customer_id = 1;
+    
+    -- Access: cust_row.first_name
+    --         cust_row.email
+END;
+```
+
+**Use when:** You need all columns from a table
+
+
+
+
+## %ROWTYPE vs RECORD
+
+::: center
+**Both hold multiple columns, but with key differences**
+:::
+
+:::: {.columns}
+::: {.column width="50%"}
+### %ROWTYPE (Typed)
+```sql
+DECLARE
+    cust customer%ROWTYPE;
+BEGIN
+    SELECT * INTO cust
+    FROM customer
+    WHERE customer_id = 1;
+    
+    -- Structure is FIXED
+    -- Must match table exactly
+    -- Type-checked at compile
+END;
+```
+
+**Pros:**
+- ✅ Type safety
+- ✅ Auto-complete in IDEs
+- ✅ Clear structure
+
+**Cons:**
+- ❌ Table must exist
+- ❌ Must match table structure
+:::
+
+::: {.column width="50%"}
+### RECORD (Dynamic)
+```sql
+DECLARE
+    result RECORD;
+BEGIN
+    SELECT c.first_name, c.email,
+           COUNT(*) as rentals
+    INTO result
+    FROM customer c
+    LEFT JOIN rental r USING(customer_id)
+    WHERE c.customer_id = 1
+    GROUP BY c.first_name, c.email;
+    
+    -- Structure is FLEXIBLE
+    -- Adapts to any query
+END;
+```
+
+**Pros:**
+- ✅ Works with any query
+- ✅ Flexible structure
+- ✅ Great for joins/aggregates
+
+**Cons:**
+- ❌ No type checking
+- ❌ Runtime errors possible
+:::
+::::
+
+
+
+
+## Custom Types
+
+### Goal: Create custom structured types
+
+```sql
+-- First, create a custom type (outside DO block)
+CREATE TYPE address_type AS (
+    street TEXT,
+    city TEXT,
+    postal_code VARCHAR(10),
+    country VARCHAR(50)
+);
+
+-- Then use it in PL/pgSQL
+DO $$
+DECLARE
+    customer_address address_type;
+    store_address address_type;
+BEGIN
+    -- Assign values
+    customer_address.street := '123 Main St';
+    customer_address.city := 'New York';
+    customer_address.postal_code := '10001';
+    customer_address.country := 'USA';
+    
+    RAISE NOTICE 'Address: %, %, %', 
+        customer_address.street,
+        customer_address.city,
+        customer_address.postal_code;
+        
+    -- Or use ROW constructor
+    store_address := ROW('456 Oak Ave', 'Boston', '02101', 'USA');
+    
+    RAISE NOTICE 'Store: %', store_address.city;
+END $$;
+```
+
+::: fragment
+**Use custom types for:** Complex business objects, reusable structures, API responses
+:::
+
+
+
+## Getting Data from Database
+- The `SELECT ... INTO` statement retrieves data from the database and stores it in PL/pgSQL variables.
+- The `INTO` clause specifies the target variable(s) for the retrieved data.
+- Make sure the SELECT returns exactly one row when using `INTO` without `STRICT`.
+
+
+## Example: Getting Data from Database
+
+### Goal: Retrieve a single customer's order summary
+
+```sql
+DO $$
+DECLARE
+    customer_email customers.email%TYPE;
+    order_count INTEGER;
+    total_spent DECIMAL(10,2);
+BEGIN
+    -- Get data from database into variables
+    SELECT c.email, COUNT(*), COALESCE(SUM(o.total), 0)
+    INTO customer_email, order_count, total_spent
+    FROM customers c
+    LEFT JOIN orders o ON c.customer_id = o.customer_id
+    WHERE c.customer_id = 123
+    GROUP BY c.email;  -- GROUP BY required with aggregates!
+    
+    RAISE NOTICE 'Customer % has % orders totaling $%', 
+                 customer_email, order_count, total_spent;
+END $$;
+```
+
+::: fragment
+**Expected output:**
+
+```text         
+NOTICE:  Customer alice@example.com has 5 orders totaling $1250.00
+```
+:::
+
+
+
+## The STRICT Keyword: Catching Data Issues
+
+STRICT makes your code safer and more explicit by catching unexpected data conditions early.
+
+### Without STRICT (Default Behavior)
+- If multiple rows exist, PostgreSQL silently takes the FIRST row
+- Silent failures can lead to data integrity issues
+- No indication of unexpected multiple matches
+
+### With STRICT (Recommended)
+- Raises error if not EXACTLY one row is found
+- Makes data assumptions explicit
+- Prevents silent data issues
+
+**What STRICT does:**
+- ✅ **0 rows** → Raises `NO_DATA_FOUND` exception
+- ✅ **1 row** → Success, variable populated
+- ✅ **2+ rows** → Raises `TOO_MANY_ROWS` exception
+
+##  The STRICT Keyword: Safely retrieve a single customer name
+
+```sql
+DO $$
+DECLARE
+    customer_name customers.name%TYPE;
+BEGIN
+    -- STRICT means: expect exactly 1 row, or raise exception
+    SELECT name INTO STRICT customer_name
+    FROM customers
+    WHERE customer_id = 123;
+    
+    RAISE NOTICE 'Found customer: %', customer_name;
+    
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE NOTICE 'Customer not found!';
+    WHEN TOO_MANY_ROWS THEN
+        RAISE NOTICE 'Multiple customers found - data integrity issue!';
+END $$;
+```
+
+
+
+
+##  RECORD Type
+
+- A **composite type** that can hold an entire row from a query
+- **Dynamically typed** : structure determined at runtime
+- structure determined at runtime
+- Access columns using **dot notation**: `record_var.column_name`
+- Perfect for **loops** and **dynamic queries**
+
+
+## Using RECORD Type
+```sql
+DO $$
+DECLARE
+    customer_rec RECORD;  -- Can hold any row structure
+BEGIN
+    SELECT * INTO customer_rec 
+    FROM customer 
+    WHERE customer_id = 1;
+    
+    -- Access using dot notation
+    RAISE NOTICE 'Name: % %', 
+        customer_rec.first_name, 
+        customer_rec.last_name;
+END $$;
+```
+
+**Key Point:** RECORD = Flexible container for query results
+
+
+
+## RECORD vs Individual Variables
+
+:::: {.columns}
+::: {.column}
+**Without RECORD (Verbose):**
+```sql
+DECLARE
+    cust_id INTEGER;
+    cust_first TEXT;
+    cust_last TEXT;
+    cust_email TEXT;
+    cust_active INTEGER;
+BEGIN
+    SELECT customer_id, first_name, last_name, email, active
+    INTO cust_id, cust_first, cust_last, cust_email, cust_active
+    FROM customer WHERE customer_id = 1;
+END;
+```
+:::
+::: {.column}
+**With RECORD (Clean):**
+```sql
+DECLARE
+    cust RECORD;
+BEGIN
+    SELECT * INTO cust 
+    FROM customer WHERE customer_id = 1;
+    
+    -- Access: cust.customer_id, cust.first_name, etc.
+END;
+```
+:::
+::::
+
+
+
+## RECORD Example: Customer Profile Display
+
+
+### Goal: Display complete customer information with formatting
+
+```sql
+DO $$
+DECLARE
+    cust_record RECORD;
+    full_name TEXT;
+BEGIN
+    -- Get complete customer record
+    SELECT * INTO cust_record
+    FROM customer
+    WHERE customer_id = 5;
+    
+    -- Build full name from record fields
+    full_name := cust_record.first_name || ' ' || cust_record.last_name;
+    
+    RAISE NOTICE '====== Customer Profile ======';
+    RAISE NOTICE 'ID: %', cust_record.customer_id;
+    RAISE NOTICE 'Name: %', full_name;
+    RAISE NOTICE 'Email: %', cust_record.email;
+    RAISE NOTICE 'Store ID: %', cust_record.store_id;
+    RAISE NOTICE 'Active: %', CASE WHEN cust_record.active = 1 
+                                    THEN 'Yes' ELSE 'No' END;
+END $$;
+```
+
+::: fragment
+**Expected output:**
+```
+NOTICE:  ====== Customer Profile ======
+NOTICE:  ID: 5
+NOTICE:  Name: Elizabeth Brown
+NOTICE:  Email: elizabeth.brown@sakilacustomer.org
+NOTICE:  Store ID: 1
+NOTICE:  Active: Yes
+```
+:::
+
+
+
+
+## Multiple RECORDs in One Block
+
+### Goal: Compare two customers side-by-side
+
+```sql
+DO $$
+DECLARE
+    customer1 RECORD;
+    customer2 RECORD;
+    rental_count1 INTEGER;
+    rental_count2 INTEGER;
+BEGIN
+    -- Get first customer
+    SELECT * INTO customer1 FROM customer WHERE customer_id = 1;
+    SELECT COUNT(*) INTO rental_count1 
+    FROM rental WHERE customer_id = 1;
+    
+    -- Get second customer
+    SELECT * INTO customer2 FROM customer WHERE customer_id = 2;
+    SELECT COUNT(*) INTO rental_count2 
+    FROM rental WHERE customer_id = 2;
+    
+    -- Compare
+    RAISE NOTICE '--- Customer Comparison ---';
+    RAISE NOTICE 'Customer 1: % % (% rentals)', 
+        customer1.first_name, customer1.last_name, rental_count1;
+    RAISE NOTICE 'Customer 2: % % (% rentals)', 
+        customer2.first_name, customer2.last_name, rental_count2;
+    
+    IF rental_count1 > rental_count2 THEN
+        RAISE NOTICE '% is more active!', customer1.first_name;
+    ELSE
+        RAISE NOTICE '% is more active!', customer2.first_name;
+    END IF;
+END $$;
+```
+
+
+## When to Use RECORD vs Specific Types
+
+::: center
+**Decision Guide**
+:::
+
+:::: {.columns}
+::: {.column width="50%"}
+### ✅ Use RECORD when:
+
+- Looping through query results
+- Working with `SELECT *`
+- Query structure varies
+- Prototyping/testing
+- Don't need all columns
+- Working with joins
+:::
+
+::: {.column width="50%"}
+### ✅ Use %TYPE when:
+
+- Need specific column
+- Type safety is critical
+- Code documentation
+- Single value retrieval
+- Long-term maintenance
+- Performance critical
+:::
+::::
+
+::: fragment
+**Best Practice:** Start with RECORD for flexibility, refactor to %TYPE when structure stabilizes
+:::
+
+
+
+## Conditional Logic: IF Statements
+
+we could use IF statements to categorize customers based on their total spending.
+
+```sql
+DO $$
+DECLARE
+    customer_level VARCHAR(20);
+    total_spent DECIMAL(10,2);
+BEGIN
+    -- Get customer's total spending (NULL-safe)
+    SELECT COALESCE(SUM(total), 0) INTO total_spent
+    FROM orders
+    WHERE customer_id = 123;
+    
+    -- Determine customer level
+    IF total_spent > 5000 THEN
+        customer_level := 'PREMIUM';
+    ELSIF total_spent > 1000 THEN
+        customer_level := 'GOLD';
+    ELSIF total_spent > 500 THEN
+        customer_level := 'SILVER';
+    ELSE
+        customer_level := 'BRONZE';
+    END IF;
+    
+    RAISE NOTICE 'Customer level: % (spent $%)', customer_level, total_spent;
+END $$;
+```
+
+::: fragment
+**Expected output:**
+
+```text         
+NOTICE:  Customer level: GOLD (spent $2450.00)
+```
+:::
+
+
+
+## NULL-Safe Comparisons
+
+### Problem: NULL breaks comparisons
+
+```sql
+-- ⚠️ WRONG: NULL comparisons always return NULL (not TRUE/FALSE)
+IF total_spent > 1000 THEN  
+    -- If total_spent is NULL, this never executes!
+END IF;
+```
+
+::: fragment
+**Why? In SQL:** - `NULL > 1000` returns `NULL` (not FALSE) - `IF NULL THEN` is treated as FALSE - Your condition silently fails!
+:::
+
+
+
+## Solutions for NULL Handling
+
+### Option 1: Use COALESCE (recommended)
+
+```sql
+DO $$
+DECLARE
+    total_spent DECIMAL(10,2);
+BEGIN
+    SELECT SUM(total) INTO total_spent 
+    FROM orders WHERE customer_id = 123;
+    
+    -- Treat NULL as 0
+    IF COALESCE(total_spent, 0) > 1000 THEN
+        RAISE NOTICE 'High-value customer';
+    END IF;
+END $$;
+```
+
+::: fragment
+### Option 2: Check for NULL explicitly
+
+```sql
+    -- Check NULL first, then compare
+    IF total_spent IS NOT NULL AND total_spent > 1000 THEN
+        RAISE NOTICE 'High-value customer';
+    END IF;
+```
+:::
+
+::: fragment
+💡 **Best practice**: Use `COALESCE(SUM(...), 0)` directly in SELECT
+:::
+
+
+
+## Loops: FOR Loop with Range
+
+### Goal: Calculate and display squares of numbers 1-5
+
+```sql
+DO $$
+DECLARE
+    i INTEGER;
+    result INTEGER;
+BEGIN
+    FOR i IN 1..5 LOOP
+        result := i * i;
+        RAISE NOTICE 'Square of % is %', i, result;
+    END LOOP;
+    RAISE NOTICE 'Loop complete!';
+END $$;
+```
+
+::: fragment
+**Expected output:**
+
+```text         
+NOTICE:  Square of 1 is 1
+NOTICE:  Square of 2 is 4
+NOTICE:  Square of 3 is 9
+NOTICE:  Square of 4 is 16
+NOTICE:  Square of 5 is 25
+```
+:::
+
+
+
+## FOR Loop with Query Results
+
+### Goal: Process top 5 films by rental rate
+
+
+**Real Pagila Example:**
+```sql
+DO $$
+DECLARE
+    film_rec RECORD;  -- Holds each film row
+BEGIN
+    FOR film_rec IN 
+        SELECT film_id, title, rental_rate, length
+        FROM film
+        WHERE rental_rate > 2.99
+        ORDER BY title
+        LIMIT 5
+    LOOP
+        RAISE NOTICE 'Film #%: "%" - $% (%min)', 
+            film_rec.film_id,
+            film_rec.title,
+            film_rec.rental_rate,
+            film_rec.length;
+    END LOOP;
+END $$;
+```
+
+**Output:**
+```
+Film #10: "ALADDIN CALENDAR" - $4.99 (63min)
+Film #16: "ALLEY EVOLUTION" - $2.99 (180min)
+...
+```
+
+
+
+## WHILE Loops
+
+- While loops are useful when the number of iterations is not predetermined.
+- For loops are recommended when the number of iterations is known.
+
+### Goal: Countdown from 7 to 1
+
+```sql
+DO $$
+DECLARE
+    counter INTEGER := 7;
+BEGIN
+    WHILE counter > 0 LOOP   -- while condition is true, continue looping 
+        RAISE NOTICE 'Countdown: %', counter;
+        counter := counter - 1;
+    END LOOP;
+    RAISE NOTICE 'We are done!';
+END $$;
+```
+
+::: fragment
+**Expected output:**
+```
+NOTICE:  Countdown: 7
+NOTICE:  Countdown: 6
+...
+NOTICE:  Countdown: 1
+NOTICE:  We are done!
+```
+:::
+
+::: {.fragment}
+::: {.callout-tip title="💡 When to Use WHILE"}
+Use WHILE when:
+- You don't know how many iterations you need
+- Loop continues until a condition is met
+- Example: Keep reading records until you find a match
+:::
+:::
+
+
+
+## Exception Handling
+
+the EXCEPTION block allows you to catch and handle errors gracefully within your PL/pgSQL code: 
+- NO_DATA_FOUND : Raised when a SELECT INTO statement returns no rows.
+- TOO_MANY_ROWS : Raised when a SELECT INTO statement returns more than one row.
+- divided_by_zero : Raised when there is an attempt to divide a number by zero.
+- OTHERS : Catches all other exceptions.
+
+
+## Syntax of Exception Handling
+```sql
+BEGIN
+    -- Your main code here
+EXCEPTION
+    WHEN exception_name1 THEN
+        -- Handle exception 1
+    WHEN exception_name2 THEN
+        -- Handle exception 2
+    WHEN OTHERS THEN
+        -- Handle all other exceptions
+END;
+```
+
+
+
+## Example of Exception Handling
+
+```sql
+DO $$
+DECLARE
+    customer_id INTEGER := 999999;  -- Non-existent customer
+    customer_name customers.name%TYPE;
+BEGIN
+    -- Try to get customer name
+    SELECT name INTO STRICT customer_name
+    FROM customers
+    WHERE customers.customer_id = customer_id;
+    
+    RAISE NOTICE 'Found customer: %', customer_name;
+    
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE NOTICE 'Customer % not found', customer_id;
+    WHEN TOO_MANY_ROWS THEN
+        RAISE NOTICE 'Multiple customers found with ID %', customer_id;
+    WHEN OTHERS THEN
+        RAISE NOTICE 'An unexpected error occurred: %', SQLERRM;
+END $$;
+```
+
+::: fragment
+**Expected output:**
+
+```text         
+NOTICE:  Customer 999999 not found
+```
+:::
+
+
+
+
+## 🆘 When You're Stuck: Debugging Checklist
+
+### Step 1: Read the Error Message
+```
+ERROR:  syntax error at or near "END"
+LINE 5:   END IF;
+          ^
+```
+**Look for:** LINE number tells you exactly where to look!
+
+### Step 2: Common Fixes Checklist
+- [ ] Did you wrap with `DO $$` and `END $$;`?
+- [ ] Are you using `:=` for assignment (not `=`)?
+- [ ] Does every statement end with `;`?
+- [ ] Did you DECLARE variables before using them?
+- [ ] Are you using `INTO` when getting data from SELECT?
+
+### Step 3: Simplify
+- Comment out code until it works
+- Add it back line by line
+- Use RAISE NOTICE to print variable values
+
+### Step 4: Ask for Help
+- Share the COMPLETE error message
+- Share your code (all of it, including DO $$)
+- Explain what you expected vs what happened
+
+
+
+## 🔥 Troubleshooting Lab: Fix These Broken Codes
+
+### Scenario 1: What's Wrong Here?
+
+```sql
+DO $$
+DECLARE
+    customer_name TEXT;
+BEGIN
+    SELECT first_name INTO customer_name
+    FROM customer;  -- ⚠️ Returns 599 rows!
+    
+    RAISE NOTICE 'Customer: %', customer_name;
+END $$;
+```
+
+::: {.fragment}
+**Problem:** No WHERE clause → returns multiple rows → only first is used (silently!)
+
+**Solutions:**
+1. Add `WHERE customer_id = 1` (get specific customer)
+2. Add `STRICT` to catch the error: `SELECT first_name INTO STRICT customer_name`
+3. Use a loop if you want all customers
+:::
+
+
+
+## 🔥 Troubleshooting Lab (continued)
+
+### Scenario 2: The Silent NULL
+
+```sql
+DO $$
+DECLARE
+    total_paid NUMERIC;
+BEGIN
+    SELECT SUM(amount) INTO total_paid
+    FROM payment
+    WHERE customer_id = 99999;  -- No such customer
+    
+    IF total_paid > 100 THEN
+        RAISE NOTICE 'High value customer';
+    ELSE
+        RAISE NOTICE 'Regular customer';  -- This won't execute either!
+    END IF;
+END $$;
+```
+
+::: {.fragment}
+**Problem:** `SUM()` of zero rows returns NULL, `NULL > 100` is NULL (not FALSE), so ELSE also doesn't execute!
+
+**Solution:**
+```sql
+SELECT COALESCE(SUM(amount), 0) INTO total_paid  -- NULL becomes 0
+FROM payment WHERE customer_id = 99999;
+```
+:::
+
+
+
+## Debugging Your PL/pgSQL Code 🐛
+
+::: {.incremental}
+**Top 5 Debugging Tips:**
+
+1. **Use RAISE NOTICE liberally** - Print variable values at each step
+2. **Test in small chunks** - Don't write 50 lines before testing!
+3. **Check for NULL** - Most mysterious bugs involve NULL values
+4. **Use STRICT** - Catch data issues early
+5. **Read error messages carefully** - PostgreSQL tells you the line number!
+:::
+
+::: {.fragment}
+### Common Error Messages Decoded:
+
+| **Error** | **Likely Cause** | **Fix** |
+|-----------|------------------|---------|
+| `column "x" does not exist` | Typo in column name | Check spelling, verify table schema |
+| `syntax error at or near "END"` | Missing semicolon `;` | Add `;` after statements |
+| `query has no destination` | Forgot `INTO` clause | Add `INTO variable_name` |
+| `division by zero` | Math error | Check divisor isn't zero |
+:::
+
+
+
+## Real-World Example: Monthly Rental Report 📊
+
+### Goal: Generate a comprehensive monthly report for the video store
+
+```sql
+DO $$
+DECLARE
+    report_month DATE := '2005-06-01';  -- June 2005
+    total_rentals INTEGER;
+    total_revenue NUMERIC(10,2);
+    top_customer_name TEXT;
+    top_customer_spent NUMERIC(10,2);
+    most_rented_film TEXT;
+BEGIN
+    -- Count rentals for the month
+    SELECT COUNT(*) INTO total_rentals
+    FROM rental
+    WHERE rental_date >= report_month 
+      AND rental_date < report_month + INTERVAL '1 month';
+    
+    -- Calculate revenue
+    SELECT COALESCE(SUM(amount), 0) INTO total_revenue
+    FROM payment
+    WHERE payment_date >= report_month
+      AND payment_date < report_month + INTERVAL '1 month';
+    
+    -- Find top customer
+    SELECT c.first_name || ' ' || c.last_name, SUM(p.amount)
+    INTO top_customer_name, top_customer_spent
+    FROM customer c
+    JOIN payment p USING (customer_id)
+    WHERE p.payment_date >= report_month
+      AND p.payment_date < report_month + INTERVAL '1 month'
+    GROUP BY c.customer_id, c.first_name, c.last_name
+    ORDER BY SUM(p.amount) DESC
+    LIMIT 1;
+    
+    -- Find most rented film
+    SELECT f.title INTO most_rented_film
+    FROM film f
+    JOIN inventory i USING (film_id)
+    JOIN rental r USING (inventory_id)
+    WHERE r.rental_date >= report_month
+      AND r.rental_date < report_month + INTERVAL '1 month'
+    GROUP BY f.film_id, f.title
+    ORDER BY COUNT(*) DESC
+    LIMIT 1;
+    
+    -- Print the report
+    RAISE NOTICE '========================================';
+    RAISE NOTICE 'Monthly Report: %', TO_CHAR(report_month, 'Month YYYY');
+    RAISE NOTICE '========================================';
+    RAISE NOTICE 'Total Rentals: %', total_rentals;
+    RAISE NOTICE 'Total Revenue: $%', total_revenue;
+    RAISE NOTICE 'Top Customer: % ($%)', top_customer_name, top_customer_spent;
+    RAISE NOTICE 'Most Rented Film: %', most_rented_film;
+    RAISE NOTICE '========================================';
+END $$;
+```
+
+::: {.fragment}
+**This combines everything we learned:** Variables, SELECT INTO, calculations, and reporting!
+:::
+
+
+
+## When to Use Plain SQL vs PL/pgSQL
+
+::: center
+**PL/pgSQL is NOT automatically faster!**
+:::
+
+::: fragment
+### ✅ Use plain SQL when possible:
+
+```sql
+-- Simple, efficient, and clear
+UPDATE products 
+SET stock = stock - 1 
+WHERE product_id = 42;
+```
+
+**Why?** SQL is optimized, simpler, and easier to maintain
+:::
+
+
+
+## When You Actually Need PL/pgSQL
+
+### ✅ Use PL/pgSQL when you have:
+
+::: fragment
+**Conditional logic:**
+
+```sql
+DO $$
+BEGIN
+  IF (SELECT stock FROM products WHERE product_id = 42) > 0 THEN
+    UPDATE products SET stock = stock - 1 WHERE product_id = 42;
+  ELSE
+    RAISE EXCEPTION 'Out of stock';
+  END IF;
+END $$;
+```
+:::
+
+::: fragment
+**Multiple steps:**
+
+```sql
+DO $$
+BEGIN
+  UPDATE products SET stock = stock - 1 WHERE product_id = 42;
+  INSERT INTO audit_log (action, timestamp) 
+  VALUES ('Stock decreased', NOW());
+  UPDATE sales_summary SET today_count = today_count + 1;
+END $$;
+```
+:::
+
+::: fragment
+💡 **Rule of thumb**: Use SQL for data, PL/pgSQL for logic
+:::
+
+
+
+## Choosing the Right Tool 🛠️
+
+| **Task** | **Use SQL** | **Use PL/pgSQL** |
+|----------|-------------|------------------|
+| Simple SELECT | ✅ Yes | ❌ Overkill |
+| Update one record | ✅ Yes | ❌ Overkill |
+| If-then logic | ❌ Can't do it | ✅ Yes |
+| Process each row differently | ❌ Hard/impossible | ✅ Yes |
+| Multi-step transaction | ❌ Limited | ✅ Yes |
+| Complex calculations | ❌ Gets messy | ✅ Clean & clear |
+| Report generation | ❌ Very hard | ✅ Perfect for it |
+
+::: {.fragment}
+**Golden Rule**: Start with SQL. Switch to PL/pgSQL when SQL gets awkward.
+:::
+
+
+
+## Common Use Cases
+
+### When to use anonymous PL/pgSQL blocks:
+
+::: fragment
+-   **One-time data migrations** - Move data between tables
+:::
+
+::: fragment
+-   **Complex data cleanup** - Multi-step transformations
+:::
+
+::: fragment
+-   **Testing logic** - Before creating functions
+:::
+
+::: fragment
+-   **Batch processing** - ETL operations, bulk updates
+:::
+
+::: fragment
+-   **Ad-hoc business logic** - One-off calculations
+:::
+
+
+
+## Best Practices
+
+::: fragment
+✅ **Keep blocks focused** - One clear purpose per block
+:::
+
+::: fragment
+✅ **Use meaningful names** - For variables and labels
+:::
+
+::: fragment
+✅ **Handle NULL values** - Always use COALESCE or IS NULL
+:::
+
+::: fragment
+✅ **Add GROUP BY with aggregates** - Required for correct results
+:::
+
+::: fragment
+✅ **Use STRICT or check FOUND** - Don't assume data exists
+:::
+
+::: fragment
+✅ **Comment your code** - Especially complex logic
+:::
+
+::: fragment
+✅ **Test with edge cases** - Empty results, NULLs, duplicates
+:::
+
+
+
+## Common Mistakes to Avoid
+
+::: fragment
+🚫 **Forgetting DECLARE section** - Variables must be declared first
+:::
+
+::: fragment
+🚫 **Using = instead of :=** - `=` is comparison, `:=` is assignment
+:::
+
+::: fragment
+🚫 **Not handling exceptions** - Unhandled errors crash your block
+:::
+
+::: fragment
+🚫 **Forgetting GROUP BY** - Required when mixing columns and aggregates
+:::
+
+::: fragment
+🚫 **Ignoring NULLs** - NULL comparisons always return NULL
+:::
+
+::: fragment
+🚫 **Not using STRICT or FOUND** - Silent failures are hard to debug
+:::
+
+
+
+## PL/pgSQL Quick Reference Card 📋
+
+| **Concept** | **Syntax** | **Example** |
+|------------|-----------|-------------|
+| Start block | `DO $$...END $$;` | `DO $$ BEGIN...END $$;` |
+| Declare variable | `var_name TYPE;` | `customer_id INTEGER;` |
+| Assign value | `var := value;` | `total := 100;` |
+| Print message | `RAISE NOTICE` | `RAISE NOTICE 'Value: %', total;` |
+| Get from DB | `SELECT...INTO` | `SELECT name INTO var FROM...` |
+| If statement | `IF...THEN...END IF;` | `IF total > 100 THEN...` |
+| For loop (range) | `FOR i IN 1..10 LOOP` | `FOR i IN 1..5 LOOP` |
+| For loop (query) | `FOR rec IN SELECT...` | `FOR rec IN SELECT * FROM...` |
+| While loop | `WHILE condition LOOP` | `WHILE count > 0 LOOP` |
+| Handle errors | `EXCEPTION WHEN...` | `WHEN NO_DATA_FOUND THEN` |
+
+::: {.fragment}
+💾 **Tip**: Bookmark this slide for quick reference!
+:::
+
+
+
+## 📋 Common PL/pgSQL Patterns You'll Use Often
+
+### Pattern 1: Safe Single Row Retrieval
+```sql
+DECLARE
+    customer_name TEXT;
+BEGIN
+    SELECT first_name INTO STRICT customer_name
+    FROM customer WHERE customer_id = 1;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE NOTICE 'Not found';
+END;
+```
+**Use when:** Getting exactly one record
+
+
+
+## 📋 Common Patterns (continued)
+
+### Pattern 2: Loop Through Query Results
+```sql
+DECLARE
+    film_rec RECORD;
+BEGIN
+    FOR film_rec IN 
+        SELECT title, rental_rate FROM film WHERE rental_rate > 2.99
+    LOOP
+        RAISE NOTICE 'Film: % ($%)', film_rec.title, film_rec.rental_rate;
+    END LOOP;
+END;
+```
+**Use when:** Processing multiple rows
+
+
+
+## 📋 Common Patterns (continued)
+
+### Pattern 3: Conditional Multi-Step Process
+```sql
+DECLARE
+    stock_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO stock_count FROM inventory WHERE film_id = 1;
+    
+    IF stock_count > 0 THEN
+        -- Do something
+        INSERT INTO rental (...) VALUES (...);
+        UPDATE inventory SET ...;
+    ELSE
+        RAISE NOTICE 'Out of stock';
+    END IF;
+END;
+```
+**Use when:** Decision-based database operations
+
+
+
+## 📋 Common Patterns (continued)
+
+### Pattern 4: Calculate and Report
+```sql
+DECLARE
+    total NUMERIC;
+    average NUMERIC;
+BEGIN
+    SELECT SUM(amount), AVG(amount) INTO total, average
+    FROM payment WHERE customer_id = 1;
+    
+    RAISE NOTICE 'Total: $%, Average: $%', total, average;
+END;
+```
+**Use when:** Generating summaries or reports
+
+
+
+## Practice Exercises
+
+### 🟢 Exercise 1 (Easy): Hello World
+Write a block that prints "Hello World" and the current timestamp
+
+::: {.fragment}
+**Expected Output:**
+```
+NOTICE:  Hello World
+NOTICE:  Current time: 2025-11-06 10:30:00
+```
+
+<details>
+<summary>💡 Hint</summary>
+Use `NOW()` function for timestamp with `RAISE NOTICE`
+</details>
+:::
+
+
+
+## Practice Exercises (continued)
+
+### 🟡 Exercise 2 (Medium): Number Squares
+Create a loop that prints numbers 1 to 5 with their squares
+
+::: {.fragment}
+**Expected Output:**
+```
+NOTICE:  1 squared is 1
+NOTICE:  2 squared is 4
+NOTICE:  3 squared is 9
+NOTICE:  4 squared is 16
+NOTICE:  5 squared is 25
+```
+
+<details>
+<summary>💡 Hint</summary>
+Use `FOR i IN 1..5 LOOP` and calculate `i * i`
+</details>
+:::
+
+
+
+## Practice Exercises (continued)
+
+### 🟠 Exercise 3 (Medium): Safe Customer Lookup
+Write a block that:
+- Retrieves a customer by ID from Pagila (use STRICT)
+- Handles the case where customer doesn't exist
+- Prints the customer's full name if found
+
+::: {.fragment}
+<details>
+<summary>💡 Hint</summary>
+- Use `SELECT first_name, last_name INTO STRICT...`
+- Add `EXCEPTION WHEN NO_DATA_FOUND THEN...`
+- Try with customer_id = 1 (exists) and 99999 (doesn't exist)
+</details>
+:::
+
+
+
+## Practice Exercises (continued)
+
+### 🔴 Exercise 4 (Advanced): Customer Category
+Write a block that:
+- Gets total payment amount for a customer
+- Categorizes them as BRONZE/SILVER/GOLD/PLATINUM
+- Prints category and total
+
+::: {.fragment}
+**Category Rules:**
+- PLATINUM: > $150
+- GOLD: > $100
+- SILVER: > $50
+- BRONZE: ≤ $50
+
+<details>
+<summary>💡 Hint</summary>
+```sql
+SELECT COALESCE(SUM(amount), 0) INTO total_paid
+FROM payment WHERE customer_id = 1;
+-- Then use IF/ELSIF/ELSE
+```
+</details>
+:::
+
+
+
+## 💡 Exercise 1 Solution: Step-by-Step
+
+```sql
+DO $$                               -- 1. Start the block
+BEGIN                               -- 2. No variables needed
+    RAISE NOTICE 'Hello World';     -- 3. Print first message
+    RAISE NOTICE 'Current time: %', NOW();  -- 4. Print timestamp
+END $$;                             -- 5. Close the block
+```
+
+::: {.fragment}
+**Why this works:**
+1. No DECLARE section needed (no variables)
+2. `RAISE NOTICE` outputs to console/log
+3. `%` is a placeholder for NOW() result
+4. `NOW()` returns current timestamp
+:::
+
+::: {.fragment}
+**Common beginner mistakes:**
+- ❌ Forgetting `$$` → Error: "syntax error at or near BEGIN"
+- ❌ Using `PRINT` instead of `RAISE NOTICE` → Error: "syntax error"
+- ❌ Missing `;` after statements → Error: "syntax error"
+:::
+
+
+
+## 💡 Exercise 2 Solution: Number Squares
+
+```sql
+DO $$
+DECLARE
+    i INTEGER;              -- Loop counter
+    square_result INTEGER;  -- Store the square
+BEGIN
+    FOR i IN 1..5 LOOP      -- Loop from 1 to 5
+        square_result := i * i;  -- Calculate square
+        RAISE NOTICE '% squared is %', i, square_result;
+    END LOOP;
+END $$;
+```
+
+::: {.fragment}
+**Alternative (simpler):**
+```sql
+DO $$
+BEGIN
+    FOR i IN 1..5 LOOP
+        RAISE NOTICE '% squared is %', i, i * i;  -- Calculate inline
+    END LOOP;
+END $$;
+```
+:::
+
+::: {.fragment}
+**Key points:**
+- Loop variable `i` doesn't need to be declared separately
+- Can calculate inline or use a variable
+- `:=` is used for assignment
+:::
+
+
+
+## 💡 Exercise 3 Solution: Safe Customer Lookup
+
+```sql
+DO $$
+DECLARE
+    customer_first TEXT;
+    customer_last TEXT;
+    search_id INTEGER := 1;  -- Try changing to 99999!
+BEGIN
+    -- STRICT means: expect exactly 1 row
+    SELECT first_name, last_name 
+    INTO STRICT customer_first, customer_last
+    FROM customer
+    WHERE customer_id = search_id;
+    
+    RAISE NOTICE 'Found: % %', customer_first, customer_last;
+    
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE NOTICE 'Customer ID % does not exist', search_id;
+    WHEN TOO_MANY_ROWS THEN
+        RAISE NOTICE 'Data integrity issue: multiple customers with same ID!';
+END $$;
+```
+
+::: {.fragment}
+**What to try:**
+1. Run with `search_id := 1` → Should find customer ✅
+2. Run with `search_id := 99999` → Should catch NO_DATA_FOUND ✅
+3. Remove `STRICT` and try both → See the difference!
+:::
+
+
+
+## 💡 Exercise 4 Solution: Customer Category
+
+```sql
+DO $$
+DECLARE
+    search_id INTEGER := 1;
+    total_paid NUMERIC(10,2);
+    category TEXT;
+BEGIN
+    -- Get total payments (NULL-safe with COALESCE)
+    SELECT COALESCE(SUM(amount), 0) INTO total_paid
+    FROM payment
+    WHERE customer_id = search_id;
+    
+    -- Categorize based on amount
+    IF total_paid > 150 THEN
+        category := 'PLATINUM';
+    ELSIF total_paid > 100 THEN
+        category := 'GOLD';
+    ELSIF total_paid > 50 THEN
+        category := 'SILVER';
+    ELSE
+        category := 'BRONZE';
+    END IF;
+    
+    RAISE NOTICE 'Customer % Category: %', search_id, category;
+    RAISE NOTICE 'Total Paid: $%', total_paid;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Error: %', SQLERRM;
+END $$;
+```
+
+::: {.fragment}
+**Try with different customers:**
+- Customer 1 → Likely PLATINUM (lots of rentals)
+- Customer 599 → Might be lower tier
+- Customer 99999 → 0 payments → BRONZE
+:::
+
+
+
+## ❌ Common Misconceptions Beginners Have
+
+| **Misconception** | **Reality** |
+|-------------------|-------------|
+| "PL/pgSQL is faster than SQL" | ❌ Usually slower! Use SQL when possible |
+| "I can use = to assign values" | ❌ Use `:=` for assignment, `=` for comparison |
+| "DECLARE is always required" | ❌ Skip DECLARE if you have no variables |
+| "Variables are accessible everywhere" | ❌ They're only in their block scope |
+| "NULL equals 0 or empty string" | ❌ NULL is distinct - use COALESCE or IS NULL |
+| "SELECT without INTO is fine" | ❌ Must use INTO to store results in PL/pgSQL |
+| "One customer_id = one row always" | ❌ Always verify! Use STRICT or check FOUND |
+
+::: {.callout-tip title="💡 Master These"}
+Understanding these misconceptions will save you hours of debugging!
+:::
+
+
+
+## What You've Learned Today 🎓
+
+::: {.incremental}
+✅ **What PL/pgSQL is** and when to use it
+
+✅ **Block structure**: `DO $$`, `DECLARE`, `BEGIN`, `END $$;`
+
+✅ **Variables**: Declaration, types, `%TYPE`, `%ROWTYPE`, `RECORD`
+
+✅ **Getting data**: `SELECT...INTO`, `STRICT` keyword
+
+✅ **Control flow**: `IF/ELSIF/ELSE` statements
+
+✅ **Loops**: `FOR` (range & query), `WHILE`
+
+✅ **Error handling**: `EXCEPTION`, `NO_DATA_FOUND`, `TOO_MANY_ROWS`
+
+✅ **Best practices**: NULL handling, debugging tips, when to use PL/pgSQL
+:::
+
+
+
+## Next Steps 🚀
+
+::: {.incremental}
+1. **Practice the exercises** - Hands-on is the best way to learn!
+
+2. **Coming in future sessions:**
+   - Creating reusable **Functions**
+   - Working with **Stored Procedures**
+   - Building **Triggers** for automated actions
+   - Advanced techniques with **Cursors**
+
+3. **Keep experimenting** with the Pagila database
+
+4. **Remember**: Start simple, test often, read error messages!
+:::
+
+::: {.fragment}
+::: {.callout-tip title="📚 Additional Resources"}
+- PostgreSQL Documentation: [PL/pgSQL Guide](https://www.postgresql.org/docs/current/plpgsql.html)
+- Practice with Pagila database examples
+- Ask questions - that's how you learn!
+:::
+:::
+
+
+

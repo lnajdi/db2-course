@@ -1,0 +1,356 @@
+
+
+## 0. What does “monitoring” mean?
+
+With Postgres, you mainly want to keep an eye on:
+
+1. **Is the DB up?** (availability)
+2. **Are queries slow or stuck?**
+3. **Are we running out of connections, RAM, CPU, disk?**
+4. **Are there dangerous locks or blocking?**
+5. **Is replication OK?** (if you use replicas)
+6. **Is disk/WAL growing too fast?**
+
+You can do a LOT just with **built-in views** like:
+
+* `pg_stat_activity`
+* `pg_stat_database`
+* `pg_stat_bgwriter`
+* `pg_stat_replication` (if using replicas)
+* `pg_stat_statements` extension for slow queries
+
+---
+
+## 1. Very basic health checks
+
+### 1.1 Can I connect?
+
+From PowerShell / terminal:
+
+```powershell
+psql -U postgres -d pagilla -c "SELECT 1;"
+```
+
+If it returns `1`, the DB is alive.
+
+You can also keep a tiny script that runs this every few minutes and alerts you if it fails (for example with Windows Task Scheduler sending email / logging).
+
+---
+
+## 2. See current sessions and queries – `pg_stat_activity`
+
+This is the **main “what is happening now” view**.
+
+```sql
+SELECT pid,
+       usename,
+       datname,
+       state,
+       wait_event_type,
+       wait_event,
+       query_start,
+       NOW() - query_start AS running_for,
+       LEFT(query, 80) AS query
+FROM pg_stat_activity
+ORDER BY query_start NULLS LAST;
+```
+
+Useful things to look at:
+
+* `state`:
+
+  * `active` – query is running
+  * `idle` – session connected but doing nothing
+  * `idle in transaction` – ⚠️ transaction left open
+* `running_for` – how long the query has been running
+* `wait_event_type` / `wait_event` – what it is waiting on (IO, lock, etc.)
+
+If you see queries running **for minutes** or stuck on `lock`, you might have blocking.
+
+To **cancel** or **terminate** a query:
+
+```sql
+-- cancel a query (gentle)
+SELECT pg_cancel_backend(<pid>);
+
+-- terminate a session (hard)
+SELECT pg_terminate_backend(<pid>);
+```
+
+Replace `<pid>` with the PID from `pg_stat_activity`.
+
+---
+
+## 3. Database-level stats – `pg_stat_database`
+
+This shows per-database stats: number of commits, rows fetched, rows updated, etc.
+
+```sql
+SELECT datname,
+       numbackends      AS connections,
+       xact_commit,
+       xact_rollback,
+       blks_read,
+       blks_hit,
+       tup_returned,
+       tup_fetched,
+       tup_inserted,
+       tup_updated,
+       tup_deleted
+FROM pg_stat_database
+ORDER BY datname;
+```
+
+Key ideas:
+
+* `connections` – how many sessions are connected to each DB.
+* `blks_hit` vs `blks_read`
+
+  * High `blks_hit` means good use of shared buffers.
+* `xact_rollback` – lots of rollbacks can mean application issues.
+
+You can **reset** stats (for example before a test):
+
+```sql
+SELECT pg_stat_reset();
+```
+
+*(Do this only when you know you can lose previous counters.)*
+
+---
+
+## 4. Connections: avoid “too many connections”
+
+Postgres has `max_connections`. If apps create too many, you get errors.
+
+Check:
+
+```sql
+SELECT count(*) AS current_connections
+FROM pg_stat_activity;
+
+SHOW max_connections;
+```
+
+If `count(*)` is frequently near `max_connections`, consider:
+
+* Using a **connection pooler** (pgBouncer), or
+* Reducing app connection usage.
+
+---
+
+## 5. Finding slow queries – logging + `pg_stat_statements`
+
+### 5.1 Simple way: log slow queries
+
+In `postgresql.conf` (needs restart or reload afterwards), set:
+
+* `log_min_duration_statement = 500`  (log queries slower than 500 ms)
+* `log_statement = 'none'` (don’t log every query; use duration)
+
+Then you can review your Postgres logs and see which queries are slow.
+
+---
+
+### 5.2 Better way: `pg_stat_statements` extension
+
+1. Enable it in `postgresql.conf`:
+
+   ```text
+   shared_preload_libraries = 'pg_stat_statements'
+   ```
+
+   Then restart Postgres.
+
+2. In each DB (or template), run:
+
+   ```sql
+   CREATE EXTENSION pg_stat_statements;
+   ```
+
+3. Now you can query aggregated stats:
+
+   ```sql
+   SELECT
+     query,
+     calls,
+     total_time,
+     mean_time,
+     rows
+   FROM pg_stat_statements
+   ORDER BY total_time DESC
+   LIMIT 20;
+   ```
+
+This shows you **which queries are consuming most time overall** (even if each run is short individually).
+
+Focus on:
+
+* High `total_time` and `calls` → heavily used query
+* High `mean_time` → individually slow
+
+Then you can fix indexes, rewrite queries, etc.
+
+---
+
+## 6. Locks and blocking
+
+Sometimes queries block each other because of locks on rows/indexes.
+
+To see blocked/blocking processes:
+
+```sql
+SELECT
+    blocked.pid       AS blocked_pid,
+    blocked.query     AS blocked_query,
+    blocking.pid      AS blocking_pid,
+    blocking.query    AS blocking_query,
+    blocked.wait_event_type,
+    blocked.wait_event
+FROM pg_stat_activity blocked
+JOIN pg_locks bl       ON bl.pid = blocked.pid AND NOT bl.granted
+JOIN pg_locks bl2      ON bl.locktype = bl2.locktype
+                       AND bl.database IS NOT DISTINCT FROM bl2.database
+                       AND bl.relation IS NOT DISTINCT FROM bl2.relation
+                       AND bl.page IS NOT DISTINCT FROM bl2.page
+                       AND bl.tuple IS NOT DISTINCT FROM bl2.tuple
+                       AND bl.virtualxid IS NOT DISTINCT FROM bl2.virtualxid
+                       AND bl.transactionid IS NOT DISTINCT FROM bl2.transactionid
+                       AND bl.classid IS NOT DISTINCT FROM bl2.classid
+                       AND bl.objid IS NOT DISTINCT FROM bl2.objid
+                       AND bl.objsubid IS NOT DISTINCT FROM bl2.objsubid
+JOIN pg_stat_activity blocking ON bl2.pid = blocking.pid
+WHERE blocked.wait_event_type = 'Lock';
+```
+
+You’ll see which query is **blocked** and which one is **blocking** it.
+
+You can then cancel/terminate the blocking PID (carefully).
+
+---
+
+## 7. Disk, WAL, and vacuum
+
+### 7.1 Check database size
+
+```sql
+SELECT
+  datname,
+  pg_size_pretty(pg_database_size(datname)) AS size
+FROM pg_database
+ORDER BY pg_database_size(datname) DESC;
+```
+
+See which DBs are largest.
+
+### 7.2 Table sizes (for e.g. pagilla)
+
+```sql
+SELECT
+  schemaname,
+  relname,
+  pg_size_pretty(pg_total_relation_size(format('%I.%I', schemaname, relname))) AS total_size
+FROM pg_stat_user_tables
+ORDER BY pg_total_relation_size(format('%I.%I', schemaname, relname)) DESC
+LIMIT 20;
+```
+
+This shows which tables (like `rental`, `payment`) eat space.
+
+### 7.3 WAL directory size
+
+Look at `pg_wal/` (inside data dir). If it grows too much:
+
+* Maybe archiving is not working
+* Or `max_wal_size` is too large
+* Or long-running transactions preventing checkpoint/recycling
+
+Just watching **disk usage** on the filesystem is already a useful “monitoring” signal.
+
+---
+
+## 8. Background writer and checkpoints – `pg_stat_bgwriter`
+
+This view shows how background writer and checkpoints behave.
+
+```sql
+SELECT * FROM pg_stat_bgwriter;
+```
+
+Useful metrics:
+
+* `checkpoints_timed`, `checkpoints_req`
+* `buffers_checkpoint`, `buffers_clean`, `buffers_backend`
+
+As you gain experience, you can tune parameters (like `checkpoint_timeout`, `shared_buffers`, etc.) based on these stats, but at beginner level just check that:
+
+* Checkpoints aren’t happening insanely often
+* There aren’t crazy amounts of buffers written by backends
+
+---
+
+## 9. Replication (if you have replicas)
+
+If you run streaming replication, check `pg_stat_replication` on the primary:
+
+```sql
+SELECT
+  pid,
+  usename,
+  client_addr,
+  state,
+  sync_state,
+  write_lag,
+  flush_lag,
+  replay_lag
+FROM pg_stat_replication;
+```
+
+Look at:
+
+* `state` – `streaming` is good.
+* `sync_state` – `sync`, `async`, or `potential`.
+* `replay_lag` – high lag = replica is behind.
+
+---
+
+## 10. Very simple “manual monitoring routine” you can start with
+
+You don’t need fancy tools at first. You can run these regularly:
+
+1. **Sessions / queries**
+
+   ```sql
+   SELECT state, count(*) FROM pg_stat_activity GROUP BY state;
+   ```
+
+   * inspect long-running queries from section 2.
+
+2. **Connections**
+
+   ```sql
+   SELECT count(*) FROM pg_stat_activity;
+   SHOW max_connections;
+   ```
+
+3. **Database sizes**
+
+   ```sql
+   SELECT datname, pg_size_pretty(pg_database_size(datname))
+   FROM pg_database
+   ORDER BY pg_database_size(datname) DESC;
+   ```
+
+4. **Top tables by size**
+
+   (query from section 7.2)
+
+5. **Slow queries**
+
+   * From logs, or
+   * From `pg_stat_statements` top list.
+
+When you feel ready, you can move to a **real monitoring stack** (Prometheus + postgres_exporter + Grafana, or tools like pgwatch2, pganalyze, etc.), but knowing these built-ins first is super valuable.
+
+---
+

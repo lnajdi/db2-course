@@ -1,0 +1,124 @@
+---
+title: "Setup and Connection Guide"
+format: html
+---
+
+This guide will walk you through setting up the PostgreSQL database using Docker and connecting to it.
+
+## Prerequisites
+
+*   Docker and Docker Compose must be installed on your system.
+
+## 1. Start the Database
+
+Navigate to the `demos/setup` directory in your terminal and run the following command to start the PostgreSQL container:
+
+```bash
+docker-compose up -d
+```
+
+This command starts a PostgreSQL container in detached mode. The database will be named `pagila`, and the schema and data from the `data/pagila` directory will be automatically imported. The default password for the `postgres` user is `password`.
+
+## 2. Connect to the Database
+
+You can connect to the database in two ways:
+
+### Option A: Using a Local `psql` Client (Recommended)
+
+This method requires you to have the `psql` client installed on your machine.
+
+#### Installing the `psql` Client (if you don't have it)
+
+**On Windows:**
+
+1.  **Download the installer** from the [PostgreSQL website](https://www.postgresql.org/download/windows/).
+2.  Run the installer. At the "Select Components" step, you only need to select **"Command Line Tools"**. You can uncheck the PostgreSQL Server and other components.
+3.  After installation, add the `bin` directory (e.g., `C:\Program Files\PostgreSQL\16\bin`) to your system's `PATH` environment variable to run `psql` from any terminal.
+4.  Verify the installation by opening a **new terminal** and running `psql --version`.
+
+**On macOS (using Homebrew):**
+
+```bash
+brew install libpq
+brew link --force libpq
+```
+
+**On Linux (Debian/Ubuntu):**
+
+```bash
+sudo apt-get update
+sudo apt-get install postgresql-client
+```
+
+#### Connecting with `psql`
+
+Once the container is running, you can connect to the `pagila` database using `psql`. You will be prompted for the password, which is `password`.
+
+```bash
+psql -h localhost -p 5432 -U postgres -d pagila
+```
+
+Alternatively, you can provide the password directly (useful for scripting).
+
+**For PowerShell:**
+```powershell
+$env:PGPASSWORD='password'; psql -h localhost -p 5432 -U postgres -d pagila
+```
+
+**For bash/zsh:**
+```bash
+PGPASSWORD=password psql -h localhost -p 5432 -U postgres -d pagila
+```
+
+#### Verifying the Connection
+
+After connecting, you can run a simple query to check if the data is loaded correctly. For example, to see the first 5 actors:
+
+```sql
+SELECT * FROM actor LIMIT 5;
+```
+
+To see all tables in the current schema, you can use:
+```sql
+\dt
+```
+
+### Option B: Using Docker `exec`
+
+If you don't want to install `psql` locally, you can connect directly to the `psql` client running inside the Docker container.
+
+```bash
+docker exec -it postgres_db psql -U postgres -d pagila
+```
+*Note: `postgres_db` is the name of the container defined in the `docker-compose.yml` file.*
+
+Once connected, you can verify the data as shown in the previous section.
+
+## 3. Stop the Database
+
+To stop the PostgreSQL container, run the following command from the `demos/setup` directory:
+
+```bash
+docker-compose down
+```
+
+## 4. Troubleshooting
+
+### Issue: No tables found after connecting (`Did not find any relations`)
+
+Sometimes, if the database was not created correctly on the first run, Docker will not re-run the initialization scripts on subsequent starts. The container logs might show a message like `Skipping initialization`.
+
+To fix this, you need to completely remove the container and its associated data volume to force a fresh start.
+
+1.  Navigate to the `demos/setup` directory.
+2.  Run the following command:
+
+    ```bash
+    docker-compose down --volumes
+    ```
+3.  Start the container again:
+    ```bash
+    docker-compose up -d
+    ```
+
+Wait for about a minute for the database to initialize, then try connecting again. Your tables should now be present.

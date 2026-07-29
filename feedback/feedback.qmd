@@ -1,0 +1,215 @@
+---
+title: "Feedback Diagrammes"
+format: pdf
+toc: true
+toc-depth: 2
+---
+
+## PARTIE 1 : Diagramme de Classes
+
+### 1. ❌ Redondance Budget / Projet
+
+Budget a `montantTotal` et Projet a `budgetAlloue` → même information en double - Si Budget change, Projet n'est pas mis à jour automatiquement - Quelle valeur est correcte ?
+
+Choisir UNE des options :
+
+-   Option A : Supprimer `budgetAlloue` de Projet → utiliser uniquement Budget
+
+-   Option B : Supprimer la classe Budget → garder uniquement dans Projet
+
+-   Option C : Créer une classe `AllocationBudget` si un budget finance plusieurs projets
+
+Recommandation : Option C - Les projets publics (communes, régions) ont des budgets globaux - Les promoteurs gèrent plusieurs chantiers avec une enveloppe commune - Permet de suivre la répartition par projet
+
+```         
+Budget (2 500 000 DH)
+  ├── AllocationBudget (40%) → Projet A
+  ├── AllocationBudget (36%) → Projet B
+  └── AllocationBudget (24%) → Projet C
+```
+
+------------------------------------------------------------------------
+
+### 2. ❌ Cardinalité Facture-Paiement (1..\*)
+
+La cardinalité `1..*` signifie "minimum 1 paiement obligatoire" - Impossible de créer une facture sans paiement - Absurde : on doit payer AVANT d'émettre la facture ?
+
+1.  Facture émise → 0 paiement (délai 30/60 jours)
+2.  Acompte reçu → 1 paiement partiel
+3.  Solde payé → 2+ paiements
+
+Changer en `0..*` (zéro ou plusieurs paiements)
+
+------------------------------------------------------------------------
+
+### 3. ❌ Cardinalité Ouvrier-Projet (1..\*)
+
+`1..*` = un ouvrier DOIT avoir au moins 1 projet - Impossible d'avoir un nouvel embauché non affecté - Impossible d'avoir un ouvrier entre deux chantiers - Impossible d'avoir un ouvrier en formation/congé
+
+Changer en `0..*` (zéro ou plusieurs projets)
+
+Amélioration : Créer classe d'association `AffectationProjet` :
+
+```         
+- dateDebut, dateFin
+- role, tauxJournalier
+```
+
+------------------------------------------------------------------------
+
+### 4. ❌ Classe Paiement Sans Méthodes
+
+Paiement n'a que des attributs, aucune méthode - Comment effectuer un paiement ? - Comment valider un chèque ? - Comment gérer un impayé ?
+
+Solution : Ajouter méthodes :
+
+```         
++ effectuer()
++ valider()
++ rejeter(motif)
++ genererRecu()
++ marquerImpaye()
+```
+
+Ajouter attributs :
+
+```         
+- statut : "EN_ATTENTE", "VALIDE", "REJETE", "IMPAYE"
+- reference : numéro chèque ou virement
+- banque : Attijariwafa, BMCE, etc.
+```
+
+------------------------------------------------------------------------
+
+### 5. ❌ Classe Tâche Manquante
+
+Impossible de savoir : - Que fait un ouvrier sur un projet ? - Où en est le gros œuvre ? - Qui a terminé quelle tâche ?
+
+Créer classe Tache :
+
+```         
+- titre, description
+- dateDebut, dateFinPrevue, dateFinReelle
+- statut : "A_FAIRE", "EN_COURS", "TERMINE"
+- pourcentageAvancement
+- heuresEstimees, heuresReelles
+
++ demarrer()
++ terminer()
++ assignerOuvrier()
++ calculerRetard()
+```
+
+Relation :
+
+```         
+Projet ◆──── Tache ──── Ouvrier
+```
+
+------------------------------------------------------------------------
+
+### 6. ⚠️ Encapsulation : Attributs en Public (+)
+
+Tous les attributs sont `+` (public) - N'importe qui peut modifier directement - Aucune validation possible
+
+Exemples dangereux :
+
+```         
+projet.budget = -500000  → Budget négatif !
+ouvrier.tauxHoraire = -50 → Salaire négatif !
+```
+
+Mettre attributs en `-` (private) + getters/setters avec validation
+
+------------------------------------------------------------------------
+
+### 7. ⚠️ Manque de Composition (◆)
+
+Utiliser composition (◆) quand : Si le conteneur est supprimé → les éléments sont supprimés
+
+Corrections :
+
+```         
+Projet ◆──── Facture   (si projet supprimé → factures supprimées)
+Projet ◆──── Rapport   (si projet supprimé → rapports supprimés)
+Projet ◆──── Tache     (si projet supprimé → tâches supprimées)
+Projet ───── Ouvrier   (association simple)
+```
+
+------------------------------------------------------------------------
+
+## PARTIE 2 : Diagramme Use Case
+
+### 1. ❌ ERREUR CRITIQUE : Acteur "Système"
+
+Problème majeur : Le "Système" ne peut PAS être un acteur ! - Un acteur = entité EXTERNE au système - Le système = la boîte qui contient les cas d'utilisation
+
+Solutions :
+
+Option A : Transformer en `«include»`
+
+```         
+Gérant → Consulter Tableau Bord
+          └─«include»─ Calculer Indicateurs
+```
+
+Option B : Créer acteur `Timer` pour tâches automatiques
+
+```         
+Timer → Générer rapports hebdomadaires
+Timer → Envoyer notifications quotidiennes
+```
+
+Option C : Supprimer les UC purement techniques
+
+------------------------------------------------------------------------
+
+### 2. ❌ Relations «extend» et «include» Incorrectes
+
+Rappel : - `«include»` = TOUJOURS exécuté (obligatoire) - `«extend»` = PARFOIS exécuté (optionnel)
+
+Erreurs détectées :
+
+| Erreur | Correction |
+|-------------------------------|-----------------------------------------|
+| Saisir Temps `«extend»` Déclarer Avancement | Déclarer Avancement `«include»` Saisir Temps |
+| Joindre Pièces `«extend»` Déclarer Avancement | Déclarer Avancement `«extend»` Joindre Pièces |
+| Signaler Problème `«include»` Consulter Tâches | Séparer en 2 UC indépendants |
+
+------------------------------------------------------------------------
+
+### 3. ❌ Doublons dans le Diagramme
+
+Mêmes UC écrits plusieurs fois : - "Calculer Indicateurs Statistiques" (majuscules) - "Calculer indicateurs statistiques" (minuscules) - "Analyser écarts budgétaires" (2 fois)
+
+Fusionner en un seul UC partagé avec `«include»`
+
+------------------------------------------------------------------------
+
+### 4. ❌ UC Manquants
+
+Ajouter pour un système complet :
+
+Tous acteurs : - S'authentifier - Se déconnecter - Modifier mot de passe
+
+Gérant : - Créer projet - Clôturer projet - Affecter Chef de Chantier
+
+Comptable : - Créer facture - Enregistrer paiement - Relancer client (impayé)
+
+Chef de Chantier : - Créer tâche - Affecter ouvrier à tâche - Valider avancement
+
+------------------------------------------------------------------------
+
+### 5. ⚠️ Terminologie Incohérente
+
+Entre UC et Classes :
+
+| Diagramme UC       | Diagramme Classes  | Problème               |
+|--------------------|--------------------|------------------------|
+| "Chef de Chantier" | "ChefProjet"       | Noms différents        |
+| "Consulter Tâches" | (classe manquante) | Pas de classe Tâche    |
+| "Gérer matériel"   | (classe manquante) | Pas de classe Matériel |
+
+Recommandation :\*\* Utiliser "Chef de Chantier" partout (vocabulaire BTP marocain)
+
+------------------------------------------------------------------------

@@ -1,0 +1,945 @@
+---
+title: "Database Course"
+subtitle: "PostgreSQL Procedures & Functions: Building Reusable Database Logic"
+institute: "<br>Polydisciplinary Faculty of Taroudant <br><br>2025-2026<br><br>" 
+author: "Lotfi NAJDI"
+format: 
+  clean-revealjs:
+    transition: slide
+    incremental: false
+    slide-number: true
+---
+
+
+## What are Functions & Procedures? {.center}
+
+:::{.fragment}
+**Reusable blocks of code** that live in your database
+:::
+
+
+:::{.fragment}
+Write once → Use many times with different inputs
+:::
+
+---
+
+## Functions vs Procedures: The Basics
+
+
+:::{.fragment}
+**Both store reusable code, but...**
+:::
+
+:::{.fragment}
+ **Functions should return values**, 
+:::
+
+:::{.fragment}
+while **Procedures perform actions** without returning values.
+:::
+
+:::{.fragment}
+**Simple rule**: Need an answer? Use a function. Need to do something? Use a procedure.
+:::
+
+---
+
+## When Would You Use These? 💡
+
+:::{.fragment}
+**Functions**: "What is...?"
+- What's the sales tax on $100?
+- What's the full name of employee #42?
+- Is this email address valid?
+:::
+
+:::{.fragment}
+**Procedures**: "Please do..."
+- Update customer address
+- Process a refund
+- Send notification emails
+:::
+
+---
+
+## Benefits: Why Bother? 🌟
+
+:::{.fragment}
+**1. Write once, use everywhere**  
+No more copying the same code!
+:::
+
+:::{.fragment}
+**2. Easier to fix bugs**  
+Fix in one place, works everywhere
+:::
+
+:::{.fragment}
+**3. Faster execution**  
+Database optimizes your code
+:::
+
+:::{.fragment}
+**4. Better security**  
+Control who can do what with your data
+:::
+
+---
+
+## Functions 
+
+In PL/pgSQL, functions are created using the `CREATE FUNCTION` statement. They can take parameters, perform calculations or operations, and return a single value or a table of values.
+
+Syntax:
+```sql
+CREATE [OR REPLACE] FUNCTION function_name(parameter1 TYPE, parameter2 TYPE, ...)
+RETURNS return_type AS $$
+BEGIN
+    -- Function logic here
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+## Your First Function: Hello World!
+
+```sql
+CREATE OR REPLACE FUNCTION say_hello()
+RETURNS TEXT AS $$
+BEGIN
+    RETURN 'Hello, World!';
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Using it:
+```sql
+SELECT say_hello();
+-- Result: "Hello, World!"
+```
+
+:::{.fragment}
+**That's it!** You've created your first function! 🎉
+:::
+
+---
+
+## Adding Parameters (Inputs)
+
+```sql
+CREATE OR REPLACE FUNCTION say_hello(person_name TEXT)
+RETURNS TEXT AS $$
+BEGIN
+    RETURN 'Hello, ' || person_name || '!';  -- || concatenates text
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Using it with different inputs:
+```sql
+SELECT say_hello('Alice');  -- Result: "Hello, Alice!"
+SELECT say_hello('Bob');    -- Result: "Hello, Bob!"
+SELECT say_hello('مريم');   -- Result: "Hello, مريم!" (Unicode works!)
+```
+
+:::{.fragment}
+**Parameters**: The "ingredients" you pass into your function
+:::
+
+:::{.fragment}
+⚠️ **Common Error**: Forgetting to match parameter types when calling!
+```sql
+-- This will ERROR because 123 is not TEXT:
+SELECT say_hello(123);  
+-- Fix: Convert to text:
+SELECT say_hello(123::TEXT);  -- or CAST(123 AS TEXT)
+```
+:::
+
+---
+
+## Practice Example: Simple Math
+
+```sql
+CREATE OR REPLACE FUNCTION add_numbers(num1 INTEGER, num2 INTEGER)
+RETURNS INTEGER AS $$
+BEGIN
+    RETURN num1 + num2;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Try it yourself:
+```sql
+SELECT add_numbers(5, 3);      -- Result: 8
+SELECT add_numbers(100, 250);  -- Result: 350
+```
+
+:::{.fragment}
+**Notice**: Different data types (TEXT vs INTEGER)
+:::
+---
+
+## Example of Function for Calculating Sales Tax:
+```sql
+CREATE OR REPLACE FUNCTION calculate_tax(amount NUMERIC, tax_rate NUMERIC)
+RETURNS NUMERIC AS $$
+BEGIN
+    RETURN amount * tax_rate;
+END;
+$$ LANGUAGE plpgsql;
+```
+## Using the Function:
+```sql
+SELECT calculate_tax(100, 0.08);  -- Result: 8.00
+```
+
+---
+
+## Using the Functions in Real Example with Real Queries
+
+## Using Functions in Real Queries with Invoice Data
+
+Assuming we have `invoices` and `invoice_items` tables , use the calculate_tax to calculate total tax for each invoice.
+
+```sql
+-- Calculate total tax for each invoice
+SELECT 
+    invoice_id,
+    customer_region,
+    SUM(calculate_tax(item_price * quantity, 0.07)) AS total_tax
+FROM invoice_items
+JOIN invoices ON invoice_items.invoice_id = invoices.id
+JOIN customers ON invoices.customer_id = customers.id 
+GROUP BY invoice_id, customer_region;
+``` 
+
+
+## Adding Logic to Functions
+```sql
+CREATE OR REPLACE FUNCTION calculate_discounted_price(original_price NUMERIC)
+RETURNS NUMERIC AS $$
+BEGIN
+    IF original_price > 1000 THEN
+        RETURN original_price * 0.90;  -- 10% discount
+    ELSIF original_price > 500 THEN
+        RETURN original_price * 0.95;  -- 5% discount
+    ELSE
+        RETURN original_price;          -- No discount
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+```
+
+---
+
+## Calling Functions in PL/pgSQL Code Blocks
+```sql
+DO $$
+DECLARE
+    invoice_total NUMERIC;
+    tax_amount NUMERIC;
+BEGIN
+
+    -- Calculate total for a specific invoice
+    SELECT SUM(item_price * quantity) INTO invoice_total
+    FROM invoice_items
+    WHERE invoice_id = 101;
+    
+    -- Calculate tax using the function
+    tax_amount := calculate_tax(invoice_total, 0.07);
+    
+    RAISE NOTICE 'Invoice Total: %, Tax Amount: %', invoice_total, tax_amount;
+END;
+$$ LANGUAGE plpgsql;
+```
+---
+
+
+## Adding Variables to Functions
+
+```sql
+CREATE OR REPLACE FUNCTION calculate_final_price(original_price NUMERIC, tax_rate NUMERIC)
+RETURNS NUMERIC AS $$
+DECLARE
+    discounted_price NUMERIC;
+    tax_amount NUMERIC;
+    final_price NUMERIC;
+BEGIN
+
+    -- Calculate discounted price
+    discounted_price := calculate_discounted_price(original_price);
+    
+    -- Calculate tax amount
+    tax_amount := calculate_tax(discounted_price, tax_rate);
+    
+    -- Calculate final price
+    final_price := discounted_price + tax_amount;
+    
+    RETURN final_price;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+## Variable Lifecycle: Understanding Memory 🧠
+:::{.fragment}
+**Scope**: Variables exist only within the function/procedure they are declared in.
+:::
+:::{.fragment}
+**Lifetime**: Variables are created when the function/procedure starts and destroyed when it ends.
+:::
+:::{.fragment}
+**Isolation**: Each call to a function/procedure has its own set of variables (no sharing between calls).
+:::
+
+---
+
+
+## Set-Returning Function (SRF) or "Table Function"
+
+In PL/pgSQL, you can create functions that return a set of rows (a table) using the `RETURNS TABLE` syntax.
+
+```sql
+CREATE OR REPLACE FUNCTION get_customers_by_region(region_name TEXT)
+RETURNS TABLE(     -- table is a type that defines the structure of the returned rows
+    customer_id INTEGER,
+    customer_name TEXT,
+    customer_email TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT id, name, email
+    FROM customers
+    WHERE region = region_name;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+### Using the Set-Returning Function:
+```sql
+SELECT * FROM get_customers_by_region('North America');
+-- Returns a table of customers in North America
+```
+
+---
+
+## Calling the Functions
+- You can call functions directly in SQL queries using the `SELECT` statement.
+- Functions can be used in `SELECT`, `WHERE`, `JOIN`, and other SQL clauses.
+- From PL/pgSQL code blocks, you can call functions just like in regular SQL.
+
+---
+
+
+## Viewing Your Functions
+
+### See all functions you've created:
+```sql
+SELECT routine_name 
+FROM information_schema.routines 
+WHERE routine_schema = 'public'
+  AND routine_type = 'FUNCTION';
+```
+
+### See function details (in psql):
+```
+\df function_name
+```
+
+### Delete a function:
+```sql
+DROP FUNCTION IF EXISTS function_name;
+```
+---
+
+
+
+## Procedures
+In PL/pgSQL, procedures are created using the `CREATE PROCEDURE` statement. They can take parameters and perform operations such as modifying data in tables, but they do not return values.
+syntax:
+```sql
+CREATE [OR REPLACE] PROCEDURE procedure_name(parameter1 TYPE, parameter2 TYPE, ...)
+AS $$
+BEGIN
+    -- Procedure logic here
+END;
+$$ LANGUAGE plpgsql;
+
+```
+
+
+
+## Your First Procedure
+
+```sql
+CREATE OR REPLACE PROCEDURE greet_user(user_name TEXT)
+AS $$
+BEGIN
+    RAISE NOTICE 'Welcome, %!', user_name;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Calling a procedure (different from functions!):
+```sql
+CALL greet_user('Alice');
+-- Output: NOTICE: Welcome, Alice!
+```
+
+:::{.fragment}
+**Key difference**: `CALL` instead of `SELECT`, no `RETURNS`
+:::
+
+---
+
+
+## Example of Procedure for Updating Invoice Status:
+```sql
+CREATE OR REPLACE PROCEDURE update_invoice_status(invoice_id INTEGER, new_status TEXT)  
+AS $$
+BEGIN
+    UPDATE invoices
+    SET status = new_status
+    WHERE id = invoice_id;
+END;
+$$ LANGUAGE plpgsql;
+```
+## Using the Procedure:
+```sql
+CALL update_invoice_status(101, 'Paid');
+-- This will update the status of invoice with ID 101 to 'Paid'
+```
+
+## Example of Procedure Applying Salary Raise to Employees in a Department:
+```sql
+CREATE OR REPLACE PROCEDURE apply_salary_raise(dept_name TEXT, raise_percent NUMERIC)
+AS $$
+BEGIN
+    UPDATE employees
+    SET salary = salary * (1 + raise_percent / 100)
+    WHERE department = dept_name;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+## Using the Procedure:
+```sql
+CALL apply_salary_raise('Sales', 5);
+-- This will give a 5% raise to all employees in the Sales department
+```
+
+## Key Differences: Functions vs Procedures
+
+| Feature                    | Function                  | Procedure                        |
+| -------------------------- | ------------------------- | -------------------------------- |
+| Called with                | `SELECT my_func(...)`     | `CALL my_proc(...)`              |
+| Returns value              | Yes (`RETURNS ...`)       | No direct return; uses OUT/INOUT |
+| Use in queries             | Yes (SELECT, WHERE, etc.) | No (can't use in SELECT)         |
+| Transaction control inside | No (in SQL functions)     | Yes (`COMMIT`, `ROLLBACK`, etc.) |
+
+:::{.fragment}
+**Key Insight**: Functions are for **computing values**, procedures are for **performing actions**
+:::
+
+---
+
+## Handling Errors Gracefully
+
+```sql
+CREATE OR REPLACE FUNCTION safe_divide(num1 NUMERIC, num2 NUMERIC)
+RETURNS NUMERIC AS $$
+BEGIN
+    -- Check for NULL inputs
+    IF num1 IS NULL OR num2 IS NULL THEN
+        RAISE NOTICE 'Input cannot be NULL';
+        RETURN NULL;
+    END IF;
+    
+    -- Check for division by zero
+    IF num2 = 0 THEN
+        RAISE NOTICE 'Cannot divide by zero!';
+        RETURN NULL;
+    END IF;
+    
+    RETURN num1 / num2;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Testing it:
+```sql
+SELECT safe_divide(10, 2);     -- Result: 5
+SELECT safe_divide(10, 0);     -- Result: NULL (with notice)
+SELECT safe_divide(NULL, 5);   -- Result: NULL (with notice)
+```
+
+---
+
+## Error Handling Levels 🚨
+
+:::{.incremental}
+**1. NOTICE** - Information message (function continues)
+```sql
+RAISE NOTICE 'This is just a warning';
+```
+
+**2. WARNING** - Warning message (function continues)
+```sql
+RAISE WARNING 'Something might be wrong';
+```
+
+**3. EXCEPTION** - Stops execution immediately
+```sql
+RAISE EXCEPTION 'Critical error - stopping now!';
+```
+:::
+
+:::{.fragment}
+### Example with EXCEPTION:
+```sql
+CREATE OR REPLACE FUNCTION strict_divide(num1 NUMERIC, num2 NUMERIC)
+RETURNS NUMERIC AS $$
+BEGIN
+    IF num2 = 0 THEN
+        RAISE EXCEPTION 'Division by zero not allowed!';
+    END IF;
+    RETURN num1 / num2;
+END;
+$$ LANGUAGE plpgsql;
+```
+```sql
+SELECT strict_divide(10, 0);  -- ERROR: Division by zero not allowed!
+```
+:::
+
+---
+
+## Common Pattern: Validation
+
+```sql
+CREATE OR REPLACE FUNCTION is_valid_age(age INTEGER)
+RETURNS BOOLEAN AS $$
+BEGIN
+    -- Check if age is reasonable
+    IF age < 0 OR age > 150 THEN
+        RETURN FALSE;
+    END IF;
+    
+    RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Usage in queries:
+```sql
+SELECT * FROM users WHERE is_valid_age(age) = TRUE;
+```
+
+---
+
+
+## When Functions/Procedures ARE Good 👍
+
+:::{.incremental}
+**✅ Complex business logic used multiple places**
+```sql
+-- Reusable across app, reports, triggers
+CREATE FUNCTION apply_discount_rules(customer_id, amount) ...
+```
+
+**✅ Data validation that must be consistent**
+```sql
+-- Same validation everywhere
+CREATE FUNCTION is_valid_credit_card(card_number) ...
+```
+
+**✅ Encapsulating multi-step operations**
+```sql
+-- Process order: check inventory, create invoice, send email
+CREATE PROCEDURE process_customer_order(...) ...
+```
+
+**✅ Maintaining data integrity**
+```sql
+-- Ensure referential integrity custom rules
+CREATE FUNCTION check_inventory_before_sale() ...
+```
+:::
+
+---
+
+## Practical Exercise Ideas 💪
+
+:::{.fragment}
+**Easy** (Start here!):
+- Function to convert Celsius to Fahrenheit  
+  `celsius_to_fahrenheit(25)` → `77`
+- Function to calculate rectangle area  
+  `rectangle_area(5, 10)` → `50`
+- Procedure to update product price  
+  `CALL update_price(product_id, new_price)`
+:::
+
+:::{.fragment}
+**Medium**:
+- Function to validate email format  
+  `is_valid_email('test@example.com')` → `TRUE`
+- Function to calculate age from birthdate  
+  `calculate_age('1990-01-01')` → `35`
+- Procedure to transfer money between accounts  
+  `CALL transfer_money(from_account, to_account, amount)`
+:::
+
+:::{.fragment}
+**Challenge**:
+- Function to calculate compound interest  
+  `compound_interest(principal, rate, years)` → `final_amount`
+- Procedure to process customer order  
+  `CALL process_order(customer_id, product_ids[], quantities[])`
+- Function to generate report summary  
+  `get_sales_summary(start_date, end_date)` → `TABLE`
+:::
+
+---
+
+## Hands-On: Temperature Converter 🌡️
+
+:::{.fragment}
+**Your Task**: Create a function to convert Celsius to Fahrenheit
+
+**Formula**: `F = (C × 9/5) + 32`
+:::
+
+:::{.fragment}
+**Try it yourself first!** Then see solution on next slide...
+:::
+
+---
+
+## Solution: Temperature Converter
+
+```sql
+CREATE OR REPLACE FUNCTION celsius_to_fahrenheit(celsius NUMERIC)
+RETURNS NUMERIC AS $$
+DECLARE
+    fahrenheit NUMERIC;
+BEGIN
+    -- Check for absolute zero violation (below -273.15°C)
+    IF celsius < -273.15 THEN
+        RAISE EXCEPTION 'Temperature cannot be below absolute zero!';
+    END IF;
+    
+    -- Apply formula: F = (C × 9/5) + 32
+    fahrenheit := (celsius * 9.0 / 5.0) + 32;
+    
+    -- Round to 2 decimal places
+    RETURN ROUND(fahrenheit, 2);
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Test it:
+```sql
+SELECT celsius_to_fahrenheit(0);      -- 32.00 (freezing point)
+SELECT celsius_to_fahrenheit(100);    -- 212.00 (boiling point)
+SELECT celsius_to_fahrenheit(-40);    -- -40.00 (C and F meet!)
+SELECT celsius_to_fahrenheit(25);     -- 77.00 (room temperature)
+```
+
+---
+
+## Hands-On: Email Validator 📧
+
+**Your Task**: Create a function to validate email format
+
+:::{.fragment}
+**Requirements**:
+- Must contain exactly one `@` symbol
+- Must have text before `@`
+- Must have text after `@`
+- Must contain a `.` after `@`
+:::
+
+:::{.fragment}
+**Bonus**: No spaces allowed
+:::
+
+:::{.fragment}
+**Try it yourself!** Solution on next slide...
+:::
+
+---
+
+## Solution: Email Validator
+
+```sql
+CREATE OR REPLACE FUNCTION is_valid_email(email TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+    at_count INTEGER;
+    at_position INTEGER;
+    domain_part TEXT;
+BEGIN
+    -- Check for NULL or empty
+    IF email IS NULL OR email = '' THEN
+        RETURN FALSE;
+    END IF;
+    
+    -- Check for spaces
+    IF email LIKE '% %' THEN
+        RETURN FALSE;
+    END IF;
+    
+    -- Count @ symbols (must be exactly 1)
+    at_count := LENGTH(email) - LENGTH(REPLACE(email, '@', ''));
+    IF at_count != 1 THEN
+        RETURN FALSE;
+    END IF;
+    
+    -- Get position of @
+    at_position := POSITION('@' IN email);
+    
+    -- Check text exists before @
+    IF at_position = 1 THEN
+        RETURN FALSE;
+    END IF;
+    
+    -- Check text exists after @ and contains .
+    domain_part := SUBSTRING(email FROM at_position + 1);
+    IF LENGTH(domain_part) < 3 OR domain_part NOT LIKE '%.%' THEN
+        RETURN FALSE;
+    END IF;
+    
+    RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Test it:
+```sql
+SELECT is_valid_email('user@example.com');     -- TRUE
+SELECT is_valid_email('invalid.email');        -- FALSE (no @)
+SELECT is_valid_email('@example.com');         -- FALSE (nothing before @)
+SELECT is_valid_email('user@domain');          -- FALSE (no . after @)
+SELECT is_valid_email('user @example.com');    -- FALSE (has space)
+```
+
+
+---
+
+
+## Real-World Example: Library System 📚
+
+```sql
+-- Check if book is available
+CREATE OR REPLACE FUNCTION is_book_available(book_id INTEGER)
+RETURNS BOOLEAN AS $$
+DECLARE
+    copies_total INTEGER;
+    copies_out INTEGER;
+    available INTEGER;
+BEGIN
+    -- Get book inventory
+    SELECT total_copies, checked_out_copies
+    INTO copies_total, copies_out
+    FROM books
+    WHERE id = book_id;
+    
+    -- Check if book exists
+    IF copies_total IS NULL THEN
+        RAISE NOTICE 'Book ID % not found', book_id;
+        RETURN FALSE;
+    END IF;
+    
+    -- Calculate available copies
+    available := copies_total - copies_out;
+    
+    -- Log for debugging
+    RAISE NOTICE 'Book %: % total, % out, % available', 
+                 book_id, copies_total, copies_out, available;
+    
+    RETURN available > 0;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### Usage Example:
+```sql
+-- Check before attempting checkout
+SELECT is_book_available(101);  
+-- NOTICE: Book 101: 5 total, 3 out, 2 available
+-- Result: TRUE
+
+-- Use in a WHERE clause
+SELECT title, author 
+FROM books 
+WHERE is_book_available(id) = TRUE;
+```
+
+---
+
+## Real-World Example: Check Out Book
+
+```sql
+CREATE OR REPLACE PROCEDURE checkout_book(
+    p_book_id INTEGER,
+    p_user_id INTEGER
+)
+AS $$
+DECLARE
+    v_book_title TEXT;
+    v_due_date DATE;
+BEGIN
+    -- Validate inputs
+    IF p_book_id IS NULL OR p_user_id IS NULL THEN
+        RAISE EXCEPTION 'Book ID and User ID are required';
+    END IF;
+    
+    -- Check if book is available
+    IF NOT is_book_available(p_book_id) THEN
+        SELECT title INTO v_book_title 
+        FROM books WHERE id = p_book_id;
+        RAISE EXCEPTION 'Book "%" is not available', v_book_title;
+    END IF;
+    
+    -- Check if user already has this book
+    IF EXISTS (
+        SELECT 1 FROM checkouts 
+        WHERE book_id = p_book_id 
+        AND user_id = p_user_id 
+        AND return_date IS NULL
+    ) THEN
+        RAISE EXCEPTION 'User already has this book checked out';
+    END IF;
+    
+    -- Calculate due date (2 weeks from today)
+    v_due_date := CURRENT_DATE + INTERVAL '14 days';
+    
+    -- Create checkout record
+    INSERT INTO checkouts (book_id, user_id, checkout_date, due_date)
+    VALUES (p_book_id, p_user_id, CURRENT_DATE, v_due_date);
+    
+    -- Update book inventory
+    UPDATE books
+    SET checked_out_copies = checked_out_copies + 1
+    WHERE id = p_book_id;
+    
+    -- Get book title for confirmation message
+    SELECT title INTO v_book_title FROM books WHERE id = p_book_id;
+    
+    RAISE NOTICE 'Book "%" checked out successfully! Due: %', 
+                 v_book_title, v_due_date;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### How to use it:
+```sql
+CALL checkout_book(101, 5);
+-- NOTICE: Book "Database Design" checked out successfully! Due: 2025-11-20
+
+-- Error handling in action:
+CALL checkout_book(101, 5);  -- Try to checkout same book again
+-- ERROR: User already has this book checked out
+```
+
+---
+
+## Common Patterns Cheat Sheet 📋
+
+:::{.fragment}
+**Pattern 1: Simple Calculation**
+```sql
+CREATE FUNCTION pattern(input TYPE) RETURNS TYPE AS $$
+BEGIN
+    RETURN input * some_formula;
+END;
+$$ LANGUAGE plpgsql;
+```
+:::
+
+:::{.fragment}
+**Pattern 2: Lookup & Return**
+```sql
+CREATE FUNCTION pattern(id INT) RETURNS TYPE AS $$
+DECLARE result TYPE;
+BEGIN
+    SELECT column INTO result FROM table WHERE id = id;
+    RETURN COALESCE(result, default_value);
+END;
+$$ LANGUAGE plpgsql;
+```
+:::
+
+:::{.fragment}
+**Pattern 3: Validation Function**
+```sql
+CREATE FUNCTION is_valid_pattern(value TYPE) RETURNS BOOLEAN AS $$
+BEGIN
+    IF value meets_criteria THEN
+        RETURN TRUE;
+    END IF;
+    RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql;
+```
+:::
+
+:::{.fragment}
+**Pattern 4: Update Procedure**
+```sql
+CREATE PROCEDURE update_pattern(id INT, new_value TYPE) AS $$
+BEGIN
+    -- Validate
+    IF NOT is_valid(new_value) THEN
+        RAISE EXCEPTION 'Invalid value';
+    END IF;
+    -- Update
+    UPDATE table SET column = new_value WHERE id = id;
+END;
+$$ LANGUAGE plpgsql;
+```
+:::
+
+---
+
+## Summary: Key Takeaways 📝
+
+:::{.fragment}
+✅ **Functions return values**, procedures perform actions
+:::
+
+:::{.fragment}
+✅ **Parameters** let you pass in different inputs
+:::
+
+:::{.fragment}
+✅ **Variables** store temporary calculations (use `:=`)
+:::
+
+
+:::{.fragment}
+✅ **Always validate** your inputs (NULL checks, range checks)
+:::
+
+:::{.fragment}
+✅ **Use meaningful names** with prefixes (`p_` for parameters, `v_` for variables)
+:::
+
+:::{.fragment}
+✅ **Test incrementally** - build and test step by step
+:::
+
+:::{.fragment}
+✅ **Add error handling** - RAISE NOTICE, WARNING, or EXCEPTION
+:::
+
+
+

@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL Views and Materialized Views Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: moveBackground 20s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes moveBackground {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 850px;
+            padding: 30px;
+            animation: fadeIn 0.8s ease-out;
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 3px solid transparent;
+            background: linear-gradient(white, white) padding-box,
+                        linear-gradient(90deg, #667eea, #764ba2) border-box;
+            border-radius: 12px 12px 0 0;
+            padding-bottom: 15px;
+            position: relative;
+        }
+
+        .quiz-header::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+
+        .quiz-title {
+            color: #2d3748;
+            font-size: 1.6em;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .quiz-subtitle {
+            color: #718096;
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+
+        .progress-container {
+            margin-bottom: 15px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .question-counter {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.95em;
+        }
+
+        .score-display {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 0.95em;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background-color: #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .question-container {
+            margin-bottom: 15px;
+        }
+
+        .question-text {
+            font-size: 1.05em;
+            color: #2d3748;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            font-weight: 500;
+            transition: transform 0.3s ease;
+        }
+
+        .question-text:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+            font-size: 0.8em;
+            line-height: 1.3;
+        }
+
+        .options-container {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .option-button {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.95em;
+            color: #4a5568;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        .option-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .option-button:hover::before {
+            left: 100%;
+        }
+
+        .option-button:hover {
+            border-color: #667eea;
+            transform: translateX(4px) translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .option-button.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .option-button.correct {
+            border-color: #38a169;
+            background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+            color: #22543d;
+            animation: correctPulse 0.6s ease;
+        }
+
+        .option-button.incorrect {
+            border-color: #e53e3e;
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            color: #742a2a;
+            animation: incorrectShake 0.6s ease;
+        }
+
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .option-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-letter {
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin-right: 10px;
+            display: inline-block;
+            min-width: 28px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+            font-size: 0.9em;
+        }
+
+        .controls-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #edf2f7, #e2e8f0);
+            border-color: #cbd5e0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .hint-container {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef5e7 100%);
+            border: 2px solid #f6cc3e;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            color: #744210;
+            display: none;
+            box-shadow: 0 4px 12px rgba(246, 204, 62, 0.2);
+            position: relative;
+            overflow: hidden;
+            font-size: 0.9em;
+        }
+
+        .hint-container::before {
+            content: '💡';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 1.5em;
+            opacity: 0.2;
+        }
+
+        .hint-container.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation {
+            background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+            border: 2px solid #9ae6b4;
+            border-radius: 10px;
+            padding: 12px;
+            margin: 10px 0;
+            color: #22543d;
+            display: none;
+            box-shadow: 0 4px 12px rgba(154, 230, 180, 0.2);
+            border-left: 4px solid #38a169;
+            font-size: 0.9em;
+        }
+
+        .explanation.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .explanation h4 {
+            color: #22543d;
+            margin-bottom: 6px;
+            font-size: 1em;
+        }
+
+        .explanation p {
+            line-height: 1.5;
+        }
+
+        .results-container {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .final-score {
+            font-size: 4em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 25px;
+            animation: scoreReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes scoreReveal {
+            0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .results-message {
+            font-size: 1.3em;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .performance-breakdown {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-radius: 16px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 1.05em;
+            transition: transform 0.2s ease;
+        }
+
+        .performance-item:hover {
+            transform: translateX(5px);
+        }
+
+        .performance-item:last-child {
+            border-bottom: none;
+        }
+
+        .performance-item span:first-child {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .performance-item span:last-child {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        .restart-btn {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .quiz-container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .quiz-title {
+                font-size: 1.8em;
+            }
+
+            .question-text {
+                font-size: 1.2em;
+                padding: 15px;
+            }
+
+            .option-button {
+                padding: 15px;
+                font-size: 1em;
+            }
+
+            .controls-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .difficulty-easy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .difficulty-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .difficulty-hard {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 class="quiz-title">PostgreSQL Views & Materialized Views</h1>
+            <p class="quiz-subtitle">Test your knowledge of database views</p>
+        </div>
+
+        <div id="quiz-content">
+            <div class="progress-container">
+                <div class="progress-info">
+                    <span class="question-counter" id="question-counter">Question 1 of 20</span>
+                    <span class="score-display" id="score-display">Score: 0/20</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <div class="question-container">
+                <div class="question-text" id="question-text">Loading question...</div>
+                <div class="options-container" id="options-container"></div>
+                <div class="hint-container" id="hint-container"></div>
+                <div class="explanation" id="explanation"></div>
+            </div>
+
+            <div class="controls-container">
+                <button class="btn btn-secondary" id="hint-btn" onclick="showHint()">
+                    💡 Show Hint
+                </button>
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>
+                    Next Question →
+                </button>
+            </div>
+        </div>
+
+        <div class="results-container" id="results-container">
+            <div class="final-score" id="final-score">0/20</div>
+            <div class="results-message" id="results-message"></div>
+            <div class="performance-breakdown">
+                <div class="performance-item">
+                    <span>Correct Answers:</span>
+                    <span id="correct-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Incorrect Answers:</span>
+                    <span id="incorrect-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Accuracy:</span>
+                    <span id="accuracy-percent">0%</span>
+                </div>
+            </div>
+            <button class="btn btn-primary restart-btn" onclick="restartQuiz()">
+                🔄 Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What is a database view in PostgreSQL?",
+                options: [
+                    "A physical table that permanently stores data on disk",
+                    "A virtual table based on the result of a SELECT statement",
+                    "A backup copy of an existing table",
+                    "An index that speeds up query performance"
+                ],
+                correctAnswer: 1,
+                hint: "Think about whether views actually store data or just show it.",
+                explanation: "A view is a virtual table that doesn't store data physically. It's based on a SELECT statement and shows data dynamically from underlying tables.",
+                difficulty: "easy"
+            },
+            {
+                question: "Which statement is TRUE about regular views in PostgreSQL?",
+                options: [
+                    "They store data physically and need manual updates",
+                    "They are always faster than querying base tables directly",
+                    "They always reflect the current state of underlying tables",
+                    "They can only be created from a single table"
+                ],
+                correctAnswer: 2,
+                hint: "Consider whether views show live data or cached data.",
+                explanation: "Regular views are dynamic and always reflect the current state of their underlying tables because they execute the SELECT statement each time they're queried.",
+                difficulty: "easy"
+            },
+            {
+                question: "Which is NOT a primary benefit of using database views?",
+                options: [
+                    "Simplifying complex queries for end users",
+                    "Providing controlled access to sensitive data",
+                    "Improving storage efficiency by reducing data duplication",
+                    "Creating consistent interfaces for applications"
+                ],
+                correctAnswer: 2,
+                hint: "Think about whether views actually store any data.",
+                explanation: "Views don't improve storage efficiency because they don't store data - they're virtual tables that generate results dynamically.",
+                difficulty: "medium"
+            },
+            {
+                question: "When should you choose a materialized view over a regular view?",
+                options: [
+                    "When you need real-time data that updates automatically",
+                    "When you want to minimize disk space usage",
+                    "When you have expensive queries and can tolerate slightly stale data",
+                    "When you need to perform INSERT operations through the view"
+                ],
+                correctAnswer: 2,
+                hint: "Consider the trade-off between performance and data freshness.",
+                explanation: "Materialized views are best for expensive, complex queries where you can accept that data might be slightly outdated in exchange for much faster query performance.",
+                difficulty: "medium"
+            },
+            {
+                question: "What is the correct syntax to create a view in PostgreSQL?",
+                options: [
+                    "CREATE TABLE viewname AS SELECT ...",
+                    "CREATE VIEW viewname AS SELECT ...",
+                    "CREATE VIRTUAL TABLE viewname AS SELECT ...",
+                    "MAKE VIEW viewname FROM SELECT ..."
+                ],
+                correctAnswer: 1,
+                hint: "The keyword should clearly indicate you're creating a view, not a table.",
+                explanation: "The correct syntax is CREATE VIEW viewname AS SELECT ... which creates a virtual table based on the SELECT statement.",
+                difficulty: "easy"
+            },
+            {
+                question: "Which view definition would be updatable in PostgreSQL?",
+                options: [
+                    "CREATE VIEW v AS SELECT customer_id, COUNT(*) FROM customer GROUP BY customer_id",
+                    "CREATE VIEW v AS SELECT DISTINCT customer_id, first_name FROM customer",
+                    "CREATE VIEW v AS SELECT customer_id, first_name, last_name FROM customer WHERE active = 1",
+                    "CREATE VIEW v AS SELECT c.customer_id, f.title FROM customer c JOIN film f ON c.customer_id = f.film_id"
+                ],
+                correctAnswer: 2,
+                hint: "Updatable views must reference a single table without aggregations, DISTINCT, or complex expressions.",
+                explanation: "This view references a single table with simple column selections and a WHERE clause, making it updatable according to PostgreSQL rules.",
+                difficulty: "hard"
+            },
+            {
+                question: "Materialized views in PostgreSQL automatically update when the underlying data changes.",
+                options: ["True", "False"],
+                correctAnswer: 1,
+                hint: "Think about whether materialized views are 'live' or need manual intervention.",
+                explanation: "False. Materialized views store computed results physically and do not automatically update. They must be manually refreshed using REFRESH MATERIALIZED VIEW.",
+                difficulty: "medium"
+            },
+            {
+                question: "In the following view creation, what is the primary security benefit?<br><div class='code-block'>CREATE VIEW customer_public AS<br>SELECT customer_id, first_name, last_name, email<br>FROM customer;</div>",
+                options: [
+                    "It improves query performance by caching results",
+                    "It hides sensitive columns like addresses and payment information",
+                    "It prevents unauthorized users from accessing the database",
+                    "It encrypts the displayed data automatically"
+                ],
+                correctAnswer: 1,
+                hint: "Look at which columns are included vs excluded from the original table.",
+                explanation: "The view selects only basic contact information, hiding potentially sensitive columns like addresses, phone numbers, or payment details that might exist in the full customer table.",
+                difficulty: "medium"
+            },
+            {
+                question: "What would be the result of this view when queried?<div class='code-block'>CREATE VIEW film_stats AS<br>SELECT<br>&nbsp;&nbsp;f.title,<br>&nbsp;&nbsp;COUNT(r.rental_id) as rental_count,<br>&nbsp;&nbsp;AVG(f.rental_rate) as avg_rate<br>FROM film f<br>LEFT JOIN inventory i ON f.film_id = i.film_id<br>LEFT JOIN rental r ON i.inventory_id = r.inventory_id<br>GROUP BY f.film_id, f.title;</div>",
+                options: [
+                    "Only films that have been rented at least once",
+                    "All films with their rental statistics, including films never rented",
+                    "Only the most popular films based on rental count",
+                    "An error because the syntax is incorrect"
+                ],
+                correctAnswer: 1,
+                hint: "Pay attention to the type of JOINs used in the query.",
+                explanation: "The LEFT JOINs ensure all films are included, even those never rented (they'll show rental_count = 0). The GROUP BY aggregates rental statistics for each film.",
+                difficulty: "hard"
+            },
+            {
+                question: "What happens when you try to insert a record through this view?<div class='code-block'>CREATE VIEW active_customers AS<br>SELECT customer_id, first_name, last_name, active<br>FROM customer<br>WHERE active = 1<br>WITH CHECK OPTION;</div>",
+                options: [
+                    "All insertions are allowed regardless of the active value",
+                    "Only insertions with active = 1 are allowed",
+                    "No insertions are allowed through this view",
+                    "The CHECK OPTION is ignored in PostgreSQL"
+                ],
+                correctAnswer: 1,
+                hint: "Consider what WITH CHECK OPTION enforces about inserted data.",
+                explanation: "WITH CHECK OPTION ensures that any INSERT or UPDATE through the view must satisfy the view's WHERE condition, so only active = 1 records can be inserted.",
+                difficulty: "hard"
+            },
+            {
+                question: "Creating a view on a very large table automatically improves query performance.",
+                options: ["True", "False"],
+                correctAnswer: 1,
+                hint: "Consider whether views change how the underlying query is executed.",
+                explanation: "False. Regular views don't improve performance by themselves - they still execute the underlying SELECT statement each time. Performance improvements come from better indexing, query optimization, or using materialized views.",
+                difficulty: "medium"
+            },
+            {
+                question: "What happens when you try to drop a view that other views depend on?",
+                options: [
+                    "The dependent views are automatically dropped",
+                    "PostgreSQL prevents the drop and shows an error",
+                    "The view is dropped but dependent views become invalid",
+                    "Only the data is removed but the view definition remains"
+                ],
+                correctAnswer: 1,
+                hint: "Think about how PostgreSQL handles dependencies between database objects.",
+                explanation: "PostgreSQL prevents dropping views that other views depend on, showing a dependency error. You must use CASCADE to force drop dependent objects.",
+                difficulty: "medium"
+            },
+            {
+                question: "What is the advantage of using CREATE OR REPLACE VIEW instead of CREATE VIEW?",
+                options: [
+                    "It provides better performance optimization",
+                    "It allows modification of existing views without dropping dependencies",
+                    "It automatically creates indexes on the view",
+                    "It makes the view read-only for security"
+                ],
+                correctAnswer: 1,
+                hint: "Consider what happens when you need to modify an existing view that other objects use.",
+                explanation: "CREATE OR REPLACE VIEW allows you to modify an existing view's definition without breaking dependent objects like other views or applications that reference it.",
+                difficulty: "easy"
+            },
+            {
+                question: "Materialized views consume disk space to store their computed results.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Think about the difference between 'materialized' and regular views.",
+                explanation: "True. Materialized views physically store their computed results on disk, which is why they're called 'materialized' - they make the virtual results into physical storage.",
+                difficulty: "easy"
+            },
+            {
+                question: "Which is the best practice for naming views?",
+                options: [
+                    "Always prefix with 'v_' to indicate it's a view",
+                    "Use the same name as the base table for simplicity",
+                    "Use descriptive names that indicate the view's purpose",
+                    "Keep names as short as possible to save typing"
+                ],
+                correctAnswer: 2,
+                hint: "Consider what makes code most maintainable and understandable.",
+                explanation: "Descriptive names that clearly indicate the view's purpose make code more maintainable and help other developers understand what the view contains.",
+                difficulty: "easy"
+            },
+            {
+                question: "You can add additional WHERE conditions when querying a view, even if the view already has its own WHERE clause.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Think about whether views behave like tables when you query them.",
+                explanation: "True. You can query views just like tables, adding additional WHERE conditions. PostgreSQL combines your conditions with the view's existing conditions.",
+                difficulty: "medium"
+            },
+            {
+                question: "Which system view would you query to see all views in the current database?",
+                options: [
+                    "pg_tables",
+                    "pg_views",
+                    "pg_indexes",
+                    "pg_columns"
+                ],
+                correctAnswer: 1,
+                hint: "Look for the system catalog that specifically tracks views.",
+                explanation: "pg_views is the system catalog that contains information about all views in the database, including their definitions.",
+                difficulty: "hard"
+            },
+            {
+                question: "What is the benefit of creating this view?<div class='code-block'>CREATE VIEW premium_customers AS<br>SELECT customer_id, first_name, last_name, email<br>FROM customer c<br>JOIN (<br>&nbsp;&nbsp;SELECT customer_id, SUM(amount) as total_spent<br>&nbsp;&nbsp;FROM payment<br>&nbsp;&nbsp;GROUP BY customer_id<br>&nbsp;&nbsp;HAVING SUM(amount) > 100<br>) p ON c.customer_id = p.customer_id;</div>",
+                options: [
+                    "It improves database security by encrypting customer data",
+                    "It encapsulates business logic for identifying premium customers",
+                    "It automatically updates customer status in the database",
+                    "It creates a backup of important customer information"
+                ],
+                correctAnswer: 1,
+                hint: "Consider what business rule is being applied in the view definition.",
+                explanation: "The view encapsulates the business logic that defines 'premium customers' (those who spent >$100), making this rule reusable and consistent across applications.",
+                difficulty: "medium"
+            },
+            {
+                question: "You can create indexes on materialized views to improve their query performance.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider whether materialized views behave more like tables or regular views.",
+                explanation: "True. Since materialized views store data physically like tables, you can create indexes on them to improve query performance.",
+                difficulty: "hard"
+            },
+            {
+                question: "In which scenario would creating a regular table be better than creating a view?",
+                options: [
+                    "When you need to simplify access to joined data from multiple tables",
+                    "When you want to provide controlled access to sensitive information",
+                    "When you need to store computed results that are expensive to calculate",
+                    "When you want to create a consistent interface that hides schema changes"
+                ],
+                correctAnswer: 2,
+                hint: "Consider when you need persistent storage rather than dynamic queries.",
+                explanation: "When computations are expensive and the results don't need to be real-time, storing them in a table (or using a materialized view) is better than recalculating with a regular view each time.",
+                difficulty: "medium"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+        let quizCompleted = false;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            const question = quizData[currentQuestion];
+            const questionCounter = document.getElementById('question-counter');
+            const scoreDisplay = document.getElementById('score-display');
+            const progressFill = document.getElementById('progress-fill');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const hintContainer = document.getElementById('hint-container');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Update progress
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+            progressFill.style.width = `${((currentQuestion + 1) / quizData.length) * 100}%`;
+
+            // Load question
+            questionText.innerHTML = question.question;
+
+            // Load options
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}.</span>${option}`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+
+            // Reset controls
+            selectedAnswer = null;
+            hintContainer.classList.remove('show');
+            explanation.classList.remove('show');
+            nextBtn.disabled = true;
+            hintBtn.style.display = 'block';
+
+            if (currentQuestion === quizData.length - 1) {
+                nextBtn.textContent = 'Show Results';
+            }
+        }
+
+        function selectAnswer(answerIndex) {
+            if (selectedAnswer !== null) return;
+
+            selectedAnswer = answerIndex;
+            const question = quizData[currentQuestion];
+            const options = document.querySelectorAll('.option-button');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Disable all options
+            options.forEach(option => option.classList.add('disabled'));
+
+            // Show correct/incorrect styling
+            options[question.correctAnswer].classList.add('correct');
+            if (answerIndex !== question.correctAnswer) {
+                options[answerIndex].classList.add('incorrect');
+            } else {
+                score++;
+                document.getElementById('score-display').textContent = `Score: ${score}/${quizData.length}`;
+            }
+
+            // Show explanation
+            explanation.innerHTML = `
+                <h4>✨ Explanation</h4>
+                <p><strong>Correct Answer:</strong> ${question.explanation}</p>
+            `;
+            explanation.classList.add('show');
+
+            // Enable next button and hide hint button
+            nextBtn.disabled = false;
+            hintBtn.style.display = 'none';
+        }
+
+        function showHint() {
+            const question = quizData[currentQuestion];
+            const hintContainer = document.getElementById('hint-container');
+            hintContainer.innerHTML = `<strong>💡 Hint:</strong> ${question.hint}`;
+            hintContainer.classList.add('show');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+            const finalScore = document.getElementById('final-score');
+            const resultsMessage = document.getElementById('results-message');
+            const correctCount = document.getElementById('correct-count');
+            const incorrectCount = document.getElementById('incorrect-count');
+            const accuracyPercent = document.getElementById('accuracy-percent');
+
+            quizContent.style.display = 'none';
+            resultsContainer.classList.add('show');
+
+            const accuracy = Math.round((score / quizData.length) * 100);
+            
+            finalScore.textContent = `${score}/${quizData.length}`;
+            correctCount.textContent = score;
+            incorrectCount.textContent = quizData.length - score;
+            accuracyPercent.textContent = `${accuracy}%`;
+
+            let message = '';
+            if (accuracy >= 90) {
+                message = '🏆 Outstanding! You have excellent knowledge of PostgreSQL views!';
+            } else if (accuracy >= 80) {
+                message = '🎉 Great job! You have a strong understanding of database views.';
+            } else if (accuracy >= 70) {
+                message = '👍 Good work! You understand the basics well, with room for improvement.';
+            } else if (accuracy >= 60) {
+                message = '📚 You\'re on the right track! Review the material and try again.';
+            } else {
+                message = '💪 Keep studying! Views are fundamental to database design.';
+            }
+
+            resultsMessage.textContent = message;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            selectedAnswer = null;
+            quizCompleted = false;
+
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+
+            resultsContainer.classList.remove('show');
+            quizContent.style.display = 'block';
+
+            loadQuestion();
+        }
+
+        // Initialize quiz
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>

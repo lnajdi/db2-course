@@ -1,0 +1,1064 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
+%
+\documentclass[
+  a4paper,
+]{article}
+
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else  
+    % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=2cm,top=2.5cm,bottom=2.5cm]{geometry}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\setcounter{secnumdepth}{5}
+% Make \paragraph and \subparagraph free-standing
+\makeatletter
+\ifx\paragraph\undefined\else
+  \let\oldparagraph\paragraph
+  \renewcommand{\paragraph}{
+    \@ifstar
+      \xxxParagraphStar
+      \xxxParagraphNoStar
+  }
+  \newcommand{\xxxParagraphStar}[1]{\oldparagraph*{#1}\mbox{}}
+  \newcommand{\xxxParagraphNoStar}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+  \let\oldsubparagraph\subparagraph
+  \renewcommand{\subparagraph}{
+    \@ifstar
+      \xxxSubParagraphStar
+      \xxxSubParagraphNoStar
+  }
+  \newcommand{\xxxSubParagraphStar}[1]{\oldsubparagraph*{#1}\mbox{}}
+  \newcommand{\xxxSubParagraphNoStar}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+\makeatother
+
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{241,243,245}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.40,0.45,0.13}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\BuiltInTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{\textit{#1}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\ExtensionTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.28,0.35,0.67}{#1}}
+\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.00,0.46,0.62}{#1}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.68,0.00,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{\textcolor[rgb]{0.00,0.23,0.31}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.07,0.07,0.07}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.13,0.47,0.30}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.37,0.37,0.37}{\textit{#1}}}
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\AtBeginDocument{%
+\ifdefined\contentsname
+  \renewcommand*\contentsname{Table des matières}
+\else
+  \newcommand\contentsname{Table des matières}
+\fi
+\ifdefined\listfigurename
+  \renewcommand*\listfigurename{Liste des Figures}
+\else
+  \newcommand\listfigurename{Liste des Figures}
+\fi
+\ifdefined\listtablename
+  \renewcommand*\listtablename{Liste des Tables}
+\else
+  \newcommand\listtablename{Liste des Tables}
+\fi
+\ifdefined\figurename
+  \renewcommand*\figurename{Figure}
+\else
+  \newcommand\figurename{Figure}
+\fi
+\ifdefined\tablename
+  \renewcommand*\tablename{Table}
+\else
+  \newcommand\tablename{Table}
+\fi
+}
+\@ifpackageloaded{float}{}{\usepackage{float}}
+\floatstyle{ruled}
+\@ifundefined{c@chapter}{\newfloat{codelisting}{h}{lop}}{\newfloat{codelisting}{h}{lop}[chapter]}
+\floatname{codelisting}{Listing}
+\newcommand*\listoflistings{\listof{codelisting}{Liste des Listings}}
+\makeatother
+\makeatletter
+\makeatother
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\@ifpackageloaded{subcaption}{}{\usepackage{subcaption}}
+\makeatother
+
+\ifLuaTeX
+\usepackage[bidi=basic]{babel}
+\else
+\usepackage[bidi=default]{babel}
+\fi
+\babelprovide[main,import]{french}
+% get rid of language-specific shorthands (see #6817):
+\let\LanguageShortHands\languageshorthands
+\def\languageshorthands#1{}
+\usepackage{bookmark}
+
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same} % disable monospaced font for URLs
+\hypersetup{
+  pdftitle={PostgreSQL sur Windows --- Guide d'Installation},
+  pdfauthor={Guide pour débutants},
+  pdflang={fr},
+  colorlinks=true,
+  linkcolor={blue},
+  filecolor={Maroon},
+  citecolor={Blue},
+  urlcolor={Blue},
+  pdfcreator={LaTeX via pandoc}}
+
+
+\title{PostgreSQL sur Windows --- Guide d'Installation}
+\author{Guide pour débutants}
+\date{2025-10-27}
+
+\begin{document}
+\maketitle
+
+\renewcommand*\contentsname{Table des matières}
+{
+\hypersetup{linkcolor=}
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+
+Ce guide vous accompagne étape par étape : installation de PostgreSQL,
+vérification de votre configuration, utilisation de la console
+\texttt{psql}, chargement de la base de données exemple Pagila, et
+utilisation de clients GUI conviviaux pour débutants. Des conseils
+clairs et des solutions rapides sont inclus tout au long du guide.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Avant de Commencer}\label{avant-de-commencer}
+
+\textbf{Vous aurez besoin de} - Un PC Windows avec droits administrateur
+et quelques Go d'espace disque libre. - Un navigateur web moderne pour
+télécharger les fichiers. - Environ \textbf{30--60 minutes} dans une
+session calme et sans interruption.
+
+\textbf{Termes clés (rapide)} - \textbf{Server} --- le moteur de base de
+données PostgreSQL fonctionnant sur votre PC. - \textbf{Client} --- les
+outils que vous utilisez pour communiquer avec le server (ex. :
+\texttt{psql}, pgAdmin, DBeaver). - \textbf{Database} --- un conteneur
+de tables, vues, etc. (un seul server peut héberger plusieurs
+databases). - \textbf{Role/User} --- un compte qui se connecte et
+possède des permissions.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Installer PostgreSQL
+(Windows)}\label{installer-postgresql-windows}
+
+\subsection{Télécharger PostgreSQL}\label{tuxe9luxe9charger-postgresql}
+
+\textbf{Lien officiel :}
+\url{https://www.postgresql.org/download/windows/}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Ouvrez la page \textbf{officielle PostgreSQL pour Windows} et
+  choisissez \textbf{Interactive installer by EDB}.
+\item
+  Téléchargez la dernière version stable pour \textbf{Windows x86‑64}.
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Lien direct :}
+    \url{https://www.enterprisedb.com/downloads/postgres-postgresql-downloads}
+  \end{itemize}
+\item
+  Exécutez l'installateur (\texttt{.exe}) et conservez les composants
+  par défaut : \textbf{Server}, \textbf{pgAdmin}, \textbf{Command Line
+  Tools}.
+\item
+  Lorsqu'on vous le demande, \textbf{définissez un mot de passe pour le
+  superuser \texttt{postgres}} et conservez-le en lieu sûr.
+\item
+  Conservez le \textbf{Port} à \texttt{5432} et acceptez la
+  \textbf{Locale} par défaut.
+\item
+  Terminez l'assistant d'installation.
+\end{enumerate}
+
+\begin{quote}
+\textbf{Composants installés} - \textbf{PostgreSQL Server} --- le moteur
+qui stocke vos données\\
+- \textbf{\texttt{psql}} --- le shell SQL en ligne de commande\\
+- \textbf{pgAdmin} --- l'outil de gestion graphique officiel
+\end{quote}
+
+\subsection{Vérifier l'installation (au
+choix)}\label{vuxe9rifier-linstallation-au-choix}
+
+\textbf{Option A --- Menu Démarrer} - Menu Démarrer → \textbf{SQL Shell
+(psql)} → appuyez sur \textbf{Entrée} pour chaque invite → entrez votre
+mot de passe. Si vous voyez \texttt{postgres=\#}, c'est bon.
+
+\textbf{Option B --- Invite de commandes (CMD)}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\StringTok{"C:\textbackslash{}Program Files\textbackslash{}PostgreSQL\textbackslash{}17\textbackslash{}bin\textbackslash{}psql.exe"}\NormalTok{ {-}{-}version}
+\end{Highlighting}
+\end{Shaded}
+
+\emph{(remplacez \texttt{17} par votre version installée)}
+
+\textbf{Sortie attendue :}
+
+\begin{verbatim}
+psql (PostgreSQL) 17.0
+\end{verbatim}
+
+\textbf{Si Windows indique ``psql n'est pas reconnu''}
+
+\begin{itemize}
+\tightlist
+\item
+  Utilisez \textbf{Démarrer → SQL Shell (psql)} (fonctionne sans PATH),
+  \textbf{ou}
+\item
+  Ajoutez le dossier bin de PostgreSQL à votre \textbf{PATH} :
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Système → À propos → Paramètres système avancés
+  \item
+    Variables d'environnement → Path → Modifier → Nouveau
+  \item
+    Ajoutez :
+    \texttt{C:\textbackslash{}Program\ Files\textbackslash{}PostgreSQL\textbackslash{}17\textbackslash{}bin}
+  \item
+    Puis rouvrez votre terminal
+  \end{itemize}
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Démarrer/Arrêter le Service de Base de Données (si
+nécessaire)}\label{duxe9marrerarruxeater-le-service-de-base-de-donnuxe9es-si-nuxe9cessaire}
+
+\begin{itemize}
+\tightlist
+\item
+  Appuyez sur \textbf{Win + R}, tapez \texttt{services.msc}, appuyez sur
+  \textbf{Entrée}.
+\item
+  Trouvez \textbf{PostgreSQL }. Clic droit → \textbf{Démarrer} (ou
+  \textbf{Redémarrer/Arrêter}). Il démarre normalement automatiquement
+  avec Windows.
+\end{itemize}
+
+Si vous voyez des timeouts de connexion ou ``could not connect to
+server'', vérifiez d'abord ce service.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{\texorpdfstring{Première Connexion avec
+\texttt{psql}}{Première Connexion avec psql}}\label{premiuxe8re-connexion-avec-psql}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Ouvrez \textbf{SQL Shell (psql)} depuis le menu Démarrer.
+\item
+  Appuyez sur \textbf{Entrée} à chaque invite pour accepter les valeurs
+  par défaut (Server \texttt{localhost}, Database \texttt{postgres},
+  Port \texttt{5432}, User \texttt{postgres}).
+\item
+  Entrez votre \textbf{mot de passe \texttt{postgres}}. Vous devriez
+  voir une invite comme \texttt{postgres=\#}.
+\end{enumerate}
+
+\subsection{\texorpdfstring{Qu'est-ce que \texttt{psql} ? (introduction
+douce)}{Qu'est-ce que psql ? (introduction douce)}}\label{quest-ce-que-psql-introduction-douce}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{\texttt{psql}} est une console textuelle pour communiquer avec
+  PostgreSQL. Vous tapez une commande, appuyez sur \textbf{Entrée}, et
+  le server répond.
+\item
+  \textbf{Pourquoi l'apprendre ?} C'est rapide, correspond à la
+  documentation officielle, et vous aide à résoudre des problèmes même
+  quand un GUI ne peut pas se connecter.
+\item
+  \textbf{Ce que vous verrez :} une invite comme \texttt{postgres=\#}
+  (ou le nom de votre database). Terminez les instructions SQL par un
+  \textbf{point-virgule} (\texttt{;}). Si vous l'oubliez, \texttt{psql}
+  attendra plus d'entrée.
+\item
+  \textbf{Deux types de commandes :}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{SQL} (se termine par \texttt{;}) --- ex. :
+    \texttt{SELECT\ version();}
+  \item
+    \textbf{Meta‑commands} (commencent par un backslash) --- ex. :
+    \texttt{\textbackslash{}dt} (lister les tables),
+    \texttt{\textbackslash{}d\ film} (décrire une table). Ce sont des
+    fonctionnalités de \texttt{psql} lui-même, pas du SQL.
+  \end{itemize}
+\item
+  \textbf{Mini démonstration :}
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{SELECT} \DecValTok{1}\NormalTok{;}
+\KeywordTok{CREATE} \KeywordTok{DATABASE}\NormalTok{ testdb;}
+\NormalTok{\textbackslash{}c testdb}
+\KeywordTok{CREATE} \KeywordTok{TABLE}\NormalTok{ t(x }\DataTypeTok{int}\NormalTok{);}
+\KeywordTok{INSERT} \KeywordTok{INTO}\NormalTok{ t }\KeywordTok{VALUES}\NormalTok{ (}\DecValTok{1}\NormalTok{),(}\DecValTok{2}\NormalTok{);}
+\KeywordTok{SELECT} \OperatorTok{*} \KeywordTok{FROM}\NormalTok{ t;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Erreurs courantes des débutants :} point-virgule manquant ;
+  connexion à la mauvaise database ; tout faire en tant que superuser
+  \texttt{postgres} (créez un user normal pour le travail quotidien).
+\end{itemize}
+
+\begin{quote}
+\textbf{Analogie :} PostgreSQL est la \textbf{bibliothèque} (server).
+\texttt{psql} est le \textbf{bureau du bibliothécaire} : vous demandez
+des choses (SQL) et obtenez des réponses. Les GUIs ajoutent des cartes
+et des boutons, mais le bureau fonctionne toujours.
+\end{quote}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{\texorpdfstring{Charger la Base de Données Exemple
+\textbf{Pagila}}{Charger la Base de Données Exemple Pagila}}\label{charger-la-base-de-donnuxe9es-exemple-pagila}
+
+Pagila est un exemple classique (magasin de location de DVD) avec des
+tables réalistes (films, acteurs, clients, locations). C'est parfait
+pour pratiquer les jointures, les agrégats et les clés étrangères.
+
+\subsection{Télécharger les
+fichiers}\label{tuxe9luxe9charger-les-fichiers}
+
+\textbf{Lien officiel Pagila :}
+\url{https://github.com/devrimgunduz/pagila}
+
+Créez le dossier \texttt{C:\textbackslash{}Pagila\_Project} et
+téléchargez les deux fichiers suivants :
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Schema :}
+  \href{https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-schema.sql}{pagila-schema.sql}
+\item
+  \textbf{Data :}
+  \href{https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-insert-data.sql}{pagila-data.sql}
+\end{itemize}
+
+\emph{(Clic droit sur les liens → Enregistrer sous\ldots{} → Enregistrer
+dans \texttt{C:\textbackslash{}Pagila\_Project})}
+
+\subsection{Créer la database}\label{cruxe9er-la-database}
+
+Dans \texttt{psql} :
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{CREATE} \KeywordTok{DATABASE}\NormalTok{ pagila;}
+\NormalTok{\textbackslash{}c pagila}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Charger le schema et les données (choisissez une
+méthode)}\label{charger-le-schema-et-les-donnuxe9es-choisissez-une-muxe9thode}
+
+\textbf{Méthode A --- depuis l'intérieur de \texttt{psql} (plus facile)}
+
+\begin{quote}
+\textbf{Note :} Utilisez des slashes normaux (/) dans les chemins
+\texttt{psql}, même sous Windows.
+\end{quote}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textbackslash{}i }\StringTok{\textquotesingle{}C:/Pagila\_Project/pagila{-}schema.sql\textquotesingle{}}
+\NormalTok{\textbackslash{}i }\StringTok{\textquotesingle{}C:/Pagila\_Project/pagila{-}data.sql\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{Méthode B --- depuis l'Invite de commandes (CMD) ou PowerShell}
+
+\textbf{Pour CMD :}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{cd}\NormalTok{ C:\textbackslash{}Pagila\_Project}
+\BuiltInTok{set} \VariableTok{PSQL}\NormalTok{=}\StringTok{"C:\textbackslash{}Program Files\textbackslash{}PostgreSQL\textbackslash{}17\textbackslash{}bin\textbackslash{}psql.exe"}
+\PreprocessorTok{\%}\VariableTok{PSQL}\PreprocessorTok{\%}\NormalTok{ {-}U postgres }\AttributeTok{{-}d}\NormalTok{ pagila }\AttributeTok{{-}f}\NormalTok{ pagila}\AttributeTok{{-}schema}\NormalTok{.sql}
+\PreprocessorTok{\%}\VariableTok{PSQL}\PreprocessorTok{\%}\NormalTok{ {-}U postgres }\AttributeTok{{-}d}\NormalTok{ pagila }\AttributeTok{{-}f}\NormalTok{ pagila}\AttributeTok{{-}data}\NormalTok{.sql}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{Pour PowerShell :}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cd}\NormalTok{ C}\OperatorTok{:}\NormalTok{\textbackslash{}Pagila\_Project}
+\VariableTok{$PSQL} \OperatorTok{=} \StringTok{"C:\textbackslash{}Program Files\textbackslash{}PostgreSQL\textbackslash{}17\textbackslash{}bin\textbackslash{}psql.exe"}
+\OperatorTok{\&} \VariableTok{$PSQL} \OperatorTok{{-}}\NormalTok{U postgres }\OperatorTok{{-}}\NormalTok{d pagila }\OperatorTok{{-}}\NormalTok{f pagila{-}schema}\OperatorTok{.}\FunctionTok{sql}
+\OperatorTok{\&} \VariableTok{$PSQL} \OperatorTok{{-}}\NormalTok{U postgres }\OperatorTok{{-}}\NormalTok{d pagila }\OperatorTok{{-}}\NormalTok{f pagila{-}data}\OperatorTok{.}\FunctionTok{sql}
+\end{Highlighting}
+\end{Shaded}
+
+\emph{(Remplacez \texttt{17} par votre version installée.)}
+
+\subsection{Confirmer que ça a
+fonctionné}\label{confirmer-que-uxe7a-a-fonctionnuxe9}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textbackslash{}c pagila}
+\NormalTok{\textbackslash{}dt}
+\KeywordTok{SELECT} \FunctionTok{COUNT}\NormalTok{(}\OperatorTok{*}\NormalTok{) }\KeywordTok{FROM}\NormalTok{ film;       }\CommentTok{{-}{-} \textasciitilde{}1,000}
+\KeywordTok{SELECT} \FunctionTok{COUNT}\NormalTok{(}\OperatorTok{*}\NormalTok{) }\KeywordTok{FROM}\NormalTok{ customer;   }\CommentTok{{-}{-} \textasciitilde{}599}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Vous Préférez un GUI ? Clients
+Populaires}\label{vous-pruxe9fuxe9rez-un-gui-clients-populaires}
+
+Choisissez \textbf{un} pour commencer ; vous pourrez toujours essayer
+les autres plus tard. (Les débutants choisissent souvent
+\textbf{pgAdmin} ou \textbf{DBeaver}.)
+
+\subsection{A) pgAdmin (officiel)}\label{a-pgadmin-officiel}
+
+\textbf{Télécharger :} \url{https://www.pgadmin.org/download/}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Idéal pour :} Administration + apprentissage des concepts
+  PostgreSQL de base
+\item
+  \textbf{Connexion :} Ouvrir pgAdmin → Register → Server\ldots{} → Host
+  \texttt{localhost}, Port \texttt{5432}, Database \texttt{postgres},
+  User \texttt{postgres} (ou \texttt{student}), mot de passe →
+  \textbf{Save}
+\item
+  \textbf{Utilisation :} Créer des databases/roles, naviguer, exécuter
+  des requêtes dans \textbf{Query Tool}
+\end{itemize}
+
+\subsection{B) DBeaver Community (gratuit,
+multi-DB)}\label{b-dbeaver-community-gratuit-multi-db}
+
+\textbf{Télécharger :} \url{https://dbeaver.io/download/}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Idéal pour :} Requêtes quotidiennes et exploration de données
+  ; fonctionne avec de nombreuses databases
+\item
+  \textbf{Connexion :} New Database Connection → PostgreSQL → Host
+  \texttt{localhost}, Port \texttt{5432}, Database \texttt{pagila} (ou
+  \texttt{postgres}), User + Password → \textbf{Test} → \textbf{Finish}
+\item
+  \textbf{Fonctionnalités sympas :} Diagrammes ER, éditeurs de données,
+  import/export CSV/Excel
+\end{itemize}
+
+\subsection{C) Visual Studio Code + extension PostgreSQL
+(gratuit)}\label{c-visual-studio-code-extension-postgresql-gratuit}
+
+\textbf{Télécharger :}
+\url{https://marketplace.visualstudio.com/items?itemName=ms-ossdata.vscode-postgresql}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Idéal pour :} Développeurs qui vivent dans VS Code
+\item
+  \textbf{Connexion :} Extensions → rechercher \textbf{PostgreSQL}
+  (Microsoft) → Install → Command Palette → \textbf{PostgreSQL: Add
+  Connection} → remplir host/port/database/user/password
+\item
+  \textbf{Fonctionnalités sympas :} Exécuter des requêtes à côté de
+  votre code ; IntelliSense ; grille de résultats
+\end{itemize}
+
+\subsection{Quel GUI choisir ? (choix
+rapides)}\label{quel-gui-choisir-choix-rapides}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Totalement nouveau aux databases ?} \textbf{pgAdmin}
+  (officiel, choix sûr par défaut)
+\item
+  \textbf{Explorateur moderne et convivial ?} \textbf{DBeaver Community}
+\item
+  \textbf{Je vis dans VS Code} → Extension \textbf{PostgreSQL for VS
+  Code}
+\end{itemize}
+
+\subsection{Comment se connecter (mêmes paramètres dans la plupart des
+GUIs)}\label{comment-se-connecter-muxeames-paramuxe8tres-dans-la-plupart-des-guis}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Host:} \texttt{localhost}
+\item
+  \textbf{Port:} \texttt{5432} (sauf si vous l'avez changé)
+\item
+  \textbf{Database:} \texttt{pagila} (après création) ou
+  \texttt{postgres} pour commencer
+\item
+  \textbf{User:} \texttt{postgres} (admin) ou votre propre user (ex. :
+  \texttt{student})
+\item
+  \textbf{Password:} celui que vous avez défini lors de l'installation
+  ou pour ce role
+\end{itemize}
+
+\subsection{Conseils pro}\label{conseils-pro}
+
+\begin{itemize}
+\tightlist
+\item
+  Enregistrez la connexion pour ne pas avoir à retaper les identifiants.
+\item
+  Créez une seconde connexion pour votre user normal (pas
+  \texttt{postgres}) pour pratiquer le principe du moindre privilège.
+\item
+  Apprenez la fonction \textbf{export vers CSV/Excel} du client pour les
+  devoirs et rapports de laboratoire.
+\end{itemize}
+
+\subsection{Pièges courants des GUIs}\label{piuxe8ges-courants-des-guis}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Service non démarré :} Démarrez \textbf{Services} →
+  \emph{PostgreSQL } → \textbf{Démarrer/Redémarrer}.
+\item
+  \textbf{Mauvais host/port :} Host par défaut \textbf{localhost}, port
+  \textbf{5432}. Si \emph{localhost} échoue, essayez \textbf{127.0.0.1}.
+\item
+  \textbf{Identifiants/Database incorrects :} Assurez-vous que le
+  \textbf{user} et la \textbf{database} existent ; testez avec
+  \texttt{psql} d'abord.
+\item
+  \textbf{Mot de passe enregistré/ancien :} Mettez à jour le mot de
+  passe enregistré dans votre GUI.
+\item
+  \textbf{Invites SSL (local) :} Pour le travail local, SSL est
+  généralement inutile --- définissez le mode sur \textbf{Prefer} (ou
+  \textbf{Disable} si autorisé) sauf si votre configuration nécessite
+  SSL.
+\end{itemize}
+
+\subsection{Dépanner une connexion GUI --- flux
+rapide}\label{duxe9panner-une-connexion-gui-flux-rapide}
+
+\begin{verbatim}
+1) PostgreSQL fonctionne-t-il ? Services → PostgreSQL <version> devrait être En cours d'exécution.
+
+2) Le server répond-il ?
+
+   **CMD:**
+\end{verbatim}
+
+``\%PGBIN\%\pg\_isready.exe'' -h localhost -p 5432 ```
+
+\textbf{PowerShell:}
+\texttt{\&\ "\$PGBIN\textbackslash{}pg\_isready.exe"\ -h\ localhost\ -p\ 5432}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi})}
+\setcounter{enumi}{2}
+\item
+  Pouvez-vous vous connecter avec psql ?
+
+  \textbf{CMD:}
+
+\begin{verbatim}
+"%PGBIN%\psql.exe" -U postgres -d postgres -c "SELECT 1;"
+\end{verbatim}
+
+  \textbf{PowerShell:}
+
+\begin{verbatim}
+& "$PGBIN\psql.exe" -U postgres -d postgres -c "SELECT 1;"
+\end{verbatim}
+\item
+  Le port écoute-t-il ? CMD: netstat -ano \textbar{} findstr 5432
+  PowerShell: Get-NetTCPConnection -LocalPort 5432
+\item
+  Essayez des variations de host : 127.0.0.1 au lieu de localhost (IPv4
+  vs IPv6).
+\item
+  Réinitialisez/créez un user (si nécessaire) : ALTER ROLE postgres
+  PASSWORD `NewStrongPassword!';
+\item
+  Pare-feu/outils de sécurité : autorisez postgres.exe sur le port 5432
+  (réseau privé).
+\end{enumerate}
+
+\begin{verbatim}
+
+> **Connexions distantes (plus tard) :** Pour qu'un autre ordinateur se connecte à votre server, vous devrez ajuster `postgresql.conf` (`listen_addresses`) et `pg_hba.conf`. Pour ce guide débutant (même PC), aucun changement n'est requis.
+
+### Commandes Windows utiles (copier/coller)
+
+**Pour CMD (Invite de commandes) :**
+
+Définissez d'abord le chemin :
+```cmd
+set PGBIN=C:\Program Files\PostgreSQL\17\bin
+\end{verbatim}
+
+Puis utilisez :
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\StringTok{"}\PreprocessorTok{\%}\VariableTok{PGBIN}\PreprocessorTok{\%}\StringTok{\textbackslash{}psql.exe"}\NormalTok{ {-}{-}version}
+
+\StringTok{"}\PreprocessorTok{\%}\VariableTok{PGBIN}\PreprocessorTok{\%}\StringTok{\textbackslash{}pg\_isready.exe"}\NormalTok{ {-}h localhost }\AttributeTok{{-}p}\NormalTok{ 5432}
+
+\StringTok{"}\PreprocessorTok{\%}\VariableTok{PGBIN}\PreprocessorTok{\%}\StringTok{\textbackslash{}psql.exe"}\NormalTok{ {-}U postgres }\AttributeTok{{-}d}\NormalTok{ postgres }
+\NormalTok{{-}c }\StringTok{"SELECT current\_database();"}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{Pour PowerShell :}
+
+Définissez d'abord le chemin :
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\VariableTok{$PGBIN} \OperatorTok{=} \StringTok{"C:\textbackslash{}Program Files\textbackslash{}PostgreSQL\textbackslash{}17\textbackslash{}bin"}
+\end{Highlighting}
+\end{Shaded}
+
+Puis utilisez :
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OperatorTok{\&} \StringTok{"}\VariableTok{$PGBIN}\StringTok{\textbackslash{}psql.exe"} \OperatorTok{{-}{-}}\NormalTok{version}
+
+\OperatorTok{\&} \StringTok{"}\VariableTok{$PGBIN}\StringTok{\textbackslash{}pg\_isready.exe"} \OperatorTok{{-}}\NormalTok{h localhost }\OperatorTok{{-}}\NormalTok{p }\DecValTok{5432}
+
+\OperatorTok{\&} \StringTok{"}\VariableTok{$PGBIN}\StringTok{\textbackslash{}psql.exe"} \OperatorTok{{-}}\NormalTok{U postgres }\OperatorTok{{-}}\NormalTok{d postgres }
+\OperatorTok{{-}}\NormalTok{c }\StringTok{"SELECT current\_database();"}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{\texorpdfstring{Essentiels \texttt{psql}
+(Aide-Mémoire)}{Essentiels psql (Aide-Mémoire)}}\label{essentiels-psql-aide-muxe9moire}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textbackslash{}q                 }\CommentTok{{-}{-} quitter psql}
+\NormalTok{\textbackslash{}l                 }\CommentTok{{-}{-} lister les databases}
+\NormalTok{\textbackslash{}c dbname          }\CommentTok{{-}{-} se connecter à une database (ex. : \textbackslash{}c pagila)}
+\NormalTok{\textbackslash{}dt                }\CommentTok{{-}{-} lister les tables dans le schema actuel}
+\NormalTok{\textbackslash{}d table\_name      }\CommentTok{{-}{-} décrire une table (ex. : \textbackslash{}d film)}
+\NormalTok{\textbackslash{}du                }\CommentTok{{-}{-} lister les roles/users}
+\NormalTok{\textbackslash{}timing            }\CommentTok{{-}{-} activer/désactiver le chronométrage des requêtes}
+\NormalTok{\textbackslash{}i path.sql        }\CommentTok{{-}{-} exécuter les commandes depuis un fichier}
+\NormalTok{\textbackslash{}?                 }\CommentTok{{-}{-} aide pour les meta{-}commands}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Vos Premières Requêtes
+(Pagila)}\label{vos-premiuxe8res-requuxeates-pagila}
+
+Connectez-vous à \texttt{pagila} :
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{\textbackslash{}c pagila}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Requêtes d'échauffement
+(simples)}\label{requuxeates-duxe9chauffement-simples}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{{-}{-} Combien de films ?}
+\KeywordTok{SELECT} \FunctionTok{COUNT}\NormalTok{(}\OperatorTok{*}\NormalTok{) }\KeywordTok{FROM}\NormalTok{ film;}
+
+\CommentTok{{-}{-} Voir quelques films}
+\KeywordTok{SELECT} \OperatorTok{*} \KeywordTok{FROM}\NormalTok{ film }\KeywordTok{LIMIT} \DecValTok{5}\NormalTok{;}
+
+\CommentTok{{-}{-} Films classés G}
+\KeywordTok{SELECT}\NormalTok{ title, rating }\KeywordTok{FROM}\NormalTok{ film }\KeywordTok{WHERE}\NormalTok{ rating }\OperatorTok{=} \StringTok{\textquotesingle{}G\textquotesingle{}} \KeywordTok{LIMIT} \DecValTok{10}\NormalTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Requêtes
+intermédiaires}\label{requuxeates-intermuxe9diaires}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{{-}{-} Top 10 des films PG les plus chers à louer}
+\KeywordTok{SELECT}\NormalTok{ title, rental\_rate}
+\KeywordTok{FROM}\NormalTok{ film}
+\KeywordTok{WHERE}\NormalTok{ rating }\OperatorTok{=} \StringTok{\textquotesingle{}PG\textquotesingle{}}
+\KeywordTok{ORDER} \KeywordTok{BY}\NormalTok{ rental\_rate }\KeywordTok{DESC}\NormalTok{, title}
+\KeywordTok{LIMIT} \DecValTok{10}\NormalTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Requêtes avancées pour
+explorer}\label{requuxeates-avancuxe9es-pour-explorer}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{{-}{-} Locations par client (top 10)}
+\KeywordTok{SELECT}\NormalTok{ c.customer\_id,}
+\NormalTok{       c.first\_name }\OperatorTok{||} \StringTok{\textquotesingle{} \textquotesingle{}} \OperatorTok{||}\NormalTok{ c.last\_name }\KeywordTok{AS}\NormalTok{ customer,}
+       \FunctionTok{COUNT}\NormalTok{(}\OperatorTok{*}\NormalTok{) }\KeywordTok{AS}\NormalTok{ rentals}
+\KeywordTok{FROM}\NormalTok{ rental r}
+\KeywordTok{JOIN}\NormalTok{ customer c }\KeywordTok{USING}\NormalTok{ (customer\_id)}
+\KeywordTok{GROUP} \KeywordTok{BY}\NormalTok{ c.customer\_id, customer}
+\KeywordTok{ORDER} \KeywordTok{BY}\NormalTok{ rentals }\KeywordTok{DESC}
+\KeywordTok{LIMIT} \DecValTok{10}\NormalTok{;}
+
+\CommentTok{{-}{-} Revenus par catégorie}
+\KeywordTok{SELECT}\NormalTok{ ca.name }\KeywordTok{AS} \KeywordTok{category}\NormalTok{,}
+       \FunctionTok{SUM}\NormalTok{(p.amount) }\KeywordTok{AS}\NormalTok{ total\_revenue}
+\KeywordTok{FROM}\NormalTok{ payment p}
+\KeywordTok{JOIN}\NormalTok{ rental r }\KeywordTok{USING}\NormalTok{ (rental\_id)}
+\KeywordTok{JOIN}\NormalTok{ inventory i }\KeywordTok{USING}\NormalTok{ (inventory\_id)}
+\KeywordTok{JOIN}\NormalTok{ film f }\KeywordTok{USING}\NormalTok{ (film\_id)}
+\KeywordTok{JOIN}\NormalTok{ film\_category fc }\KeywordTok{USING}\NormalTok{ (film\_id)}
+\KeywordTok{JOIN} \KeywordTok{category}\NormalTok{ ca }\KeywordTok{USING}\NormalTok{ (category\_id)}
+\KeywordTok{GROUP} \KeywordTok{BY}\NormalTok{ ca.name}
+\KeywordTok{ORDER} \KeywordTok{BY}\NormalTok{ total\_revenue }\KeywordTok{DESC}\NormalTok{;}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Dépannage (Référence
+Rapide)}\label{duxe9pannage-ruxe9fuxe9rence-rapide}
+
+\begin{verbatim}
+"psql n'est pas reconnu ..."
+  - Utilisez Démarrer → SQL Shell (psql) (pas besoin de PATH), ou ajoutez
+    C:\Program Files\PostgreSQL\<version>\bin au PATH ; rouvrez le terminal.
+
+"password authentication failed for user 'postgres'"
+  - Retapez soigneusement (sensible à la casse). Si vous pouvez vous connecter 
+    via pgAdmin, changez le mot de passe là-bas. Complètement bloqué sur une 
+    nouvelle installation ? La réinstallation peut être la plus rapide.
+
+"could not connect to server" / timeouts
+  - Assurez-vous que le service PostgreSQL fonctionne (Services). Vérifiez 
+    host localhost et port 5432.
+
+"Port already in use"
+  - Une autre application utilise 5432. Arrêtez-la, ou installez PostgreSQL 
+    sur un port différent (ex. : 5433) et utilisez ce port dans les clients.
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Bonnes Pratiques de
+Sécurité}\label{bonnes-pratiques-de-suxe9curituxe9}
+
+\subsection{Créer un user non-superuser pour la
+pratique}\label{cruxe9er-un-user-non-superuser-pour-la-pratique}
+
+Au lieu d'utiliser toujours \texttt{postgres}, créez un user normal :
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{CREATE} \KeywordTok{ROLE}\NormalTok{ student }\KeywordTok{WITH}\NormalTok{ LOGIN }\KeywordTok{PASSWORD} \StringTok{\textquotesingle{}mot\_de\_passe\_securise\textquotesingle{}}\NormalTok{;}
+\KeywordTok{GRANT} \KeywordTok{ALL} \KeywordTok{PRIVILEGES} \KeywordTok{ON} \KeywordTok{DATABASE}\NormalTok{ pagila }\KeywordTok{TO}\NormalTok{ student;}
+
+\CommentTok{{-}{-} Connectez{-}vous ensuite avec ce user}
+\NormalTok{\textbackslash{}c pagila student}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{Pourquoi ?} Le principe du moindre privilège : utilisez
+\texttt{postgres} uniquement pour l'administration, pas pour les
+requêtes quotidiennes.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Erreurs Courantes des
+Étudiants}\label{erreurs-courantes-des-uxe9tudiants}
+
+\begin{itemize}
+\tightlist
+\item
+  ❌ \textbf{Oublier les points-virgules} dans les instructions SQL
+\item
+  ❌ \textbf{Utiliser des backslashes Windows}
+  (\texttt{\textbackslash{}}) dans les chemins de fichiers dans
+  \texttt{psql} (utilisez \texttt{/})
+\item
+  ❌ \textbf{Rester connecté à la mauvaise database} (utilisez
+  \texttt{\textbackslash{}c} pour changer)
+\item
+  ❌ \textbf{Exécuter des commandes DDL sans réfléchir} (DROP, DELETE
+  sans WHERE)
+\item
+  ❌ \textbf{Mélanger SQL et meta-commands} (les meta-commands n'ont pas
+  besoin de \texttt{;})
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Et Maintenant ? Prochaines
+Étapes}\label{et-maintenant-prochaines-uxe9tapes}
+
+\subsection{Concepts importants à apprendre
+ensuite}\label{concepts-importants-uxe0-apprendre-ensuite}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Indexes} --- accélérer les requêtes
+\item
+  \textbf{Transactions} --- garantir la cohérence des données
+\item
+  \textbf{Constraints} --- clés primaires, clés étrangères, checks
+\item
+  \textbf{Views} --- requêtes enregistrées
+\item
+  \textbf{Functions et Procedures} --- logique réutilisable
+\end{itemize}
+
+\subsection{Ressources recommandées}\label{ressources-recommanduxe9es}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Documentation officielle PostgreSQL :}
+  \url{https://www.postgresql.org/docs/}
+\item
+  \textbf{PostgreSQL Exercises (pratique interactive) :}
+  \url{https://pgexercises.com/}
+\item
+  \textbf{Tutoriel PostgreSQL :}
+  \url{https://www.postgresqltutorial.com/}
+\item
+  \textbf{Pagila GitHub (plus d'exemples) :}
+  \url{https://github.com/devrimgunduz/pagila}
+\end{itemize}
+
+\subsection{Exercices pratiques avec
+Pagila}\label{exercices-pratiques-avec-pagila}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Trouvez tous les films avec l'acteur ``PENELOPE GUINESS''
+\item
+  Calculez la durée moyenne de location par catégorie de film
+\item
+  Identifiez les clients qui n'ont jamais loué de film
+\item
+  Créez une view montrant les films en stock dans chaque magasin
+\item
+  Écrivez une requête pour trouver les films les plus rentables
+\end{enumerate}
+
+\subsection{Avant de demander de l'aide ---
+Checklist}\label{avant-de-demander-de-laide-checklist}
+
+\begin{itemize}
+\tightlist
+\item
+  ✅ Le service PostgreSQL fonctionne-t-il ?
+\item
+  ✅ Avez-vous essayé de vous connecter avec \texttt{psql} ?
+\item
+  ✅ Êtes-vous connecté à la bonne database ?
+\item
+  ✅ Avez-vous vérifié l'orthographe (tables, colonnes, mots de passe) ?
+\item
+  ✅ Avez-vous consulté les messages d'erreur complets ?
+\item
+  ✅ Avez-vous cherché l'erreur dans la documentation ou en ligne ?
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Sauvegarde et Restauration
+(Bases)}\label{sauvegarde-et-restauration-bases}
+
+\subsection{Sauvegarder une database}\label{sauvegarder-une-database}
+
+\textbf{CMD :}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{set} \VariableTok{PGBIN}\NormalTok{=C:\textbackslash{}Program Files\textbackslash{}PostgreSQL\textbackslash{}17\textbackslash{}bin}
+\StringTok{"}\PreprocessorTok{\%}\VariableTok{PGBIN}\PreprocessorTok{\%}\StringTok{\textbackslash{}pg\_dump.exe"}\NormalTok{ {-}U postgres }\AttributeTok{{-}d}\NormalTok{ pagila }\AttributeTok{{-}f}\NormalTok{ C:\textbackslash{}backup\_pagila.sql}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{PowerShell :}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\VariableTok{$PGBIN} \OperatorTok{=} \StringTok{"C:\textbackslash{}Program Files\textbackslash{}PostgreSQL\textbackslash{}17\textbackslash{}bin"}
+\OperatorTok{\&} \StringTok{"}\VariableTok{$PGBIN}\StringTok{\textbackslash{}pg\_dump.exe"} \OperatorTok{{-}}\NormalTok{U postgres }\OperatorTok{{-}}\NormalTok{d pagila }\OperatorTok{{-}}\NormalTok{f C}\OperatorTok{:}\NormalTok{\textbackslash{}backup\_pagila}\OperatorTok{.}\FunctionTok{sql}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Restaurer une database}\label{restaurer-une-database}
+
+\textbf{CMD :}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\StringTok{"}\PreprocessorTok{\%}\VariableTok{PGBIN}\PreprocessorTok{\%}\StringTok{\textbackslash{}psql.exe"}\NormalTok{ {-}U postgres }\AttributeTok{{-}d}\NormalTok{ pagila }\AttributeTok{{-}f}\NormalTok{ C:\textbackslash{}backup\_pagila.sql}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{PowerShell :}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OperatorTok{\&} \StringTok{"}\VariableTok{$PGBIN}\StringTok{\textbackslash{}psql.exe"} \OperatorTok{{-}}\NormalTok{U postgres }\OperatorTok{{-}}\NormalTok{d pagila }\OperatorTok{{-}}\NormalTok{f C}\OperatorTok{:}\NormalTok{\textbackslash{}backup\_pagila}\OperatorTok{.}\FunctionTok{sql}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{Conseil :} Sauvegardez régulièrement vos databases de pratique
+avant d'expérimenter des commandes destructrices !
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Vous Êtes Prêt !}\label{vous-uxeates-pruxeat}
+
+Pratiquez un peu chaque jour --- avec \texttt{psql} ou votre GUI préféré
+--- et vous vous sentirez rapidement à l'aise. Explorez les schemas et
+les clés, essayez \texttt{EXPLAIN\ ANALYZE}, et gardez des notes des
+commandes que vous exécutez. Bon apprentissage et bonnes requêtes ! 🎉
+
+
+
+
+\end{document}

@@ -1,0 +1,1178 @@
+---
+title: "Database Course"
+subtitle: "PostgreSQL Cursors: Process data row by row, step by step"
+institute: "<br>Polydisciplinary Faculty of Taroudant <br><br>2025-2026<br><br>" 
+author: "Lotfi NAJDI"
+format: 
+  clean-revealjs:
+    transition: slide
+    incremental: false
+    slide-number: true
+---
+
+
+## What is a Cursor? {.center}
+
+:::{.fragment}
+A **cursor** is like a **pointer** that lets you go through database results **one row at a time**
+:::
+
+:::{.fragment}
+### Visual Representation
+
+```
+WITHOUT CURSOR:               WITH CURSOR:
+┌─────────────────┐          ┌─────────────────┐
+│ Row 1           │          │ 👆 Pointer      │
+│ Row 2           │          │ Row 1 ← Process │
+│ Row 3           │          │ Row 2           │
+│ ...             │          │ Row 3           │
+│ Row 10,000      │          │ ...             │
+└─────────────────┘          └─────────────────┘
+All loaded at once! 💥      One at a time ✅
+Memory overflow!             Memory efficient!
+```
+:::
+
+:::{.fragment}
+### Real-Life Analogy 📚
+- **Without a cursor**: Read ALL names at once (overwhelming!)
+- **With a cursor**: Read one name, process it, then move to the next
+:::
+
+
+---
+
+
+## Three Situations Where Cursors Help
+
+
+:::{.fragment}
+**Complex Rules** 
+- "If customer spent >$1000, upgrade them AND send email AND log it"
+- Different action for each row
+:::
+
+:::{.fragment}
+**Need to Stop/Skip** 
+- Process until you find something specific
+- Stop early if condition is met
+:::
+
+---
+
+## When NOT to Use Cursors ⚠️
+
+:::{.center}
+**Cursors are slow! Only use when necessary.**
+:::
+
+:::{.fragment}
+❌ **Counting records**
+```sql
+-- DON'T use cursor for this:
+SELECT COUNT(*) FROM orders;
+```
+:::
+
+:::{.fragment}
+❌ **Updating all rows the same way**
+```sql
+-- DON'T use cursor for this:
+UPDATE products SET price = price * 1.1;
+```
+:::
+
+:::{.fragment}
+✅ **DO use cursors when logic varies per row**
+:::
+
+
+---
+
+## Cursors vs SELECT INTO: When to Use Which? {.center}
+
+:::{.fragment}
+**Both retrieve data, but serve different purposes** 🤔
+:::
+
+---
+
+## SELECT INTO: For Single Rows
+
+:::{.fragment}
+**Use when:** You expect EXACTLY one row (or want to handle exceptions)
+
+```sql
+DO $$
+DECLARE
+    customer_name TEXT;
+    customer_email TEXT;
+BEGIN
+    -- Get ONE customer
+    SELECT first_name, email 
+    INTO STRICT customer_name, customer_email
+    FROM customer 
+    WHERE customer_id = 123;
+    
+    RAISE NOTICE 'Customer: % (%)', customer_name, customer_email;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE NOTICE 'Customer not found!';
+    WHEN TOO_MANY_ROWS THEN
+        RAISE NOTICE 'Multiple customers found!';
+END $$;
+```
+:::
+
+:::{.fragment}
+**Perfect for:**
+- ✅ Getting a single customer by ID
+- ✅ Retrieving configuration values
+- ✅ Aggregate results (COUNT, SUM, AVG)
+- ✅ Simple, one-time data retrieval
+:::
+
+---
+
+## Cursors: For Multiple Rows
+
+:::{.fragment}
+**Use when:** You need to process MANY rows one at a time
+
+```sql
+DO $$
+DECLARE
+    cust RECORD;
+    processed INTEGER := 0;
+BEGIN
+    -- Process MULTIPLE customers
+    FOR cust IN 
+        SELECT customer_id, first_name, email
+        FROM customer
+        WHERE active = 1
+    LOOP
+        -- Different logic for each customer
+        IF cust.email LIKE '%@gmail.com' THEN
+            RAISE NOTICE 'Gmail user: %', cust.first_name;
+        ELSE
+            RAISE NOTICE 'Other email: %', cust.first_name;
+        END IF;
+        
+        processed := processed + 1;
+    END LOOP;
+    
+    RAISE NOTICE 'Processed % customers', processed;
+END $$;
+```
+:::
+
+---
+
+## Side-by-Side: The Key Difference
+
+:::: {.columns}
+::: {.column width="50%"}
+**SELECT INTO** 📋
+
+```sql
+DO $$
+DECLARE
+    total_amount DECIMAL;
+BEGIN
+    -- Get ONE aggregate value
+    SELECT SUM(amount) 
+    INTO total_amount
+    FROM payment
+    WHERE customer_id = 5;
+    
+    RAISE NOTICE 'Total: $%', 
+        total_amount;
+END $$;
+```
+
+**Characteristics:**
+- One row only
+- Fast and efficient
+- Simple retrieval
+- Aggregate friendly
+- Use STRICT for safety
+:::
+
+::: {.column width="50%"}
+**CURSOR** 🔄
+
+```sql
+DO $$
+DECLARE
+    pay RECORD;
+    total DECIMAL := 0;
+BEGIN
+    -- Process EACH payment
+    FOR pay IN 
+        SELECT amount, payment_date
+        FROM payment
+        WHERE customer_id = 5
+    LOOP
+        total := total + pay.amount;
+        RAISE NOTICE 'Payment: $% on %', 
+            pay.amount, pay.payment_date;
+    END LOOP;
+    
+    RAISE NOTICE 'Total: $%', total;
+END $$;
+```
+
+**Characteristics:**
+- Multiple rows
+- Row-by-row processing
+- Complex logic per row
+- Memory efficient
+- Can iterate and decide
+:::
+::::
+
+---
+
+## Cursor Basics: The 4 Steps
+
+:::{.center}
+Every cursor follows this pattern:
+:::
+
+:::{.fragment}
+**1. DECLARE** - Create the cursor
+```sql
+DECLARE my_cursor CURSOR FOR SELECT * FROM customers;
+```
+:::
+
+:::{.fragment}
+**2. OPEN** - Start using it
+```sql
+OPEN my_cursor;
+```
+:::
+
+:::{.fragment}
+**3. FETCH** - Get one row at a time
+```sql
+FETCH my_cursor INTO my_record;
+```
+:::
+
+:::{.fragment}
+**4. CLOSE** - Finish and clean up
+```sql
+CLOSE my_cursor;
+```
+:::
+
+
+---
+
+
+
+## the Complete Pattern with LOOP  
+
+
+```sql
+DO $$
+DECLARE
+    -- Step 1: Declare a cursor
+    my_cursor CURSOR FOR 
+        SELECT customer_id, first_name, last_name 
+        FROM customer;
+    
+    -- Variable to hold each row
+    customer_record RECORD;
+BEGIN
+    -- Step 2: Open the cursor
+    OPEN my_cursor;
+    
+    -- Step 3: Loop through rows
+    LOOP
+        -- Get one row
+        FETCH my_cursor INTO customer_record;
+        
+        -- Exit when no more rows
+        EXIT WHEN NOT FOUND;
+        
+        -- Do something with the row
+        RAISE NOTICE 'Customer: % % (ID: %)', 
+            customer_record.first_name,
+            customer_record.last_name,
+            customer_record.customer_id;
+    END LOOP;
+    
+    -- Step 4: Close the cursor
+    CLOSE my_cursor;
+END $$;
+```
+
+:::{.fragment}
+**Most of the time, use the simpler FOR loop version!** This is for when you need fine control.
+:::
+
+---
+
+## Understanding the Loop
+
+### Let's break down the LOOP section:
+
+```sql
+LOOP
+    FETCH my_cursor INTO customer_record;  -- Get next row
+    EXIT WHEN NOT FOUND;                   -- Stop if no more rows
+    
+    -- Your processing code here
+    RAISE NOTICE 'Processing: %', customer_record.first_name;
+END LOOP;
+```
+
+:::{.fragment}
+**What happens:**
+1. FETCH grabs the next row
+2. Puts data into `customer_record`
+3. If no rows left, `NOT FOUND` is true → EXIT
+4. Otherwise, process the row
+5. Loop repeats
+:::
+
+:::{.fragment}
+**⚠️ Critical**: Always include `EXIT WHEN NOT FOUND` or you'll have an infinite loop! 
+:::
+
+---
+
+## Simplified Version: FOR Loop
+
+```sql
+DO $$
+DECLARE
+    -- Declare cursor
+    my_cursor CURSOR FOR 
+        SELECT customer_id, first_name, last_name 
+        FROM customer;
+BEGIN
+    -- FOR loop handles everything automatically!
+    FOR customer_record IN my_cursor LOOP
+        
+        RAISE NOTICE 'Customer: % % (ID: %)', 
+            customer_record.first_name,
+            customer_record.last_name,
+            customer_record.customer_id;
+            
+    END LOOP;
+    -- Cursor auto-closes!
+END $$;
+```
+
+:::{.fragment}
+**Benefits:**
+- ✅ No need for OPEN/CLOSE
+- ✅ No need for EXIT WHEN NOT FOUND
+- ✅ Much cleaner code! ✨
+:::
+
+---
+
+## Even Simpler: Skip the Cursor Declaration
+
+```sql
+DO $$
+BEGIN
+    -- No cursor declaration needed!
+    FOR customer_record IN 
+        SELECT customer_id, first_name, last_name 
+        FROM customer 
+        LIMIT 10
+    LOOP
+        RAISE NOTICE 'Customer: % % (ID: %)', 
+            customer_record.first_name,
+            customer_record.last_name,
+            customer_record.customer_id;
+    END LOOP;
+END $$;
+```
+
+:::{.fragment}
+**When to use each approach:**
+- 🟢 Direct query in FOR: Simple, one-time use (80% of cases)
+- 🟡 Named cursor: Reusable, need parameters, more complex scenarios
+- 🔴 Manual OPEN/FETCH/CLOSE: Advanced control, scrolling, position tracking
+:::
+
+---
+
+## Practical Example 1: Sending Welcome Emails
+
+### Process new customers one by one
+
+```sql
+DO $$
+DECLARE
+    new_customers CURSOR FOR 
+        SELECT customer_id, first_name, last_name, email 
+        FROM customer 
+        WHERE active = 1
+        LIMIT 5;  -- Start small for testing!
+    
+    customer RECORD;
+    emails_sent INTEGER := 0;
+BEGIN
+    FOR customer IN new_customers LOOP
+        
+        -- Simulate sending email (in real life, call email function)
+        RAISE NOTICE 'Sending welcome email to: % % (%)', 
+            customer.first_name,
+            customer.last_name,
+            customer.email;
+        
+        -- Could add: Mark as sent, log activity, etc.
+        
+        emails_sent := emails_sent + 1;
+        
+    END LOOP;
+    
+    RAISE NOTICE '✅ Sent % welcome emails', emails_sent;
+END $$;
+```
+
+
+
+---
+
+## Practical Example 2: Conditional Processing
+
+
+### Check payments and categorize them
+
+```sql
+DO $$
+DECLARE
+    payment_cursor CURSOR FOR 
+        SELECT payment_id, customer_id, amount, payment_date
+        FROM payment 
+        LIMIT 100;  -- Test with small dataset first!
+    
+    payment_data RECORD;
+    high_value INTEGER := 0;
+    standard INTEGER := 0;
+BEGIN
+    FOR payment_data IN payment_cursor LOOP
+        
+        -- Different logic based on amount
+        IF payment_data.amount > 10.00 THEN
+            RAISE NOTICE '💰 High value: $% from customer %', 
+                payment_data.amount,
+                payment_data.customer_id;
+            high_value := high_value + 1;
+            
+        ELSE
+            standard := standard + 1;
+        END IF;
+        
+    END LOOP;
+    
+    RAISE NOTICE '📊 Results: % high-value, % standard payments', 
+        high_value, standard;
+END $$;
+```
+
+
+---
+
+## Adding Error Handling
+
+
+```sql
+DO $$
+DECLARE
+    customer_cursor CURSOR FOR 
+        SELECT customer_id, email FROM customer LIMIT 10;
+    customer RECORD;
+    success_count INTEGER := 0;
+    error_count INTEGER := 0;
+BEGIN
+    FOR customer IN customer_cursor LOOP
+        BEGIN
+            -- Try to process this customer
+            -- Simulate: Check if email is valid
+            IF customer.email IS NULL THEN
+                RAISE EXCEPTION 'Invalid email for customer %', customer.customer_id;
+            END IF;
+            
+            RAISE NOTICE '✅ Processed customer %', customer.customer_id;
+            success_count := success_count + 1;
+            
+        EXCEPTION
+            WHEN OTHERS THEN
+                -- If this row fails, log it and continue
+                error_count := error_count + 1;
+                RAISE NOTICE '❌ Error with customer %: %',
+                    customer.customer_id, SQLERRM;
+        END;
+    END LOOP;
+    
+    RAISE NOTICE '📊 Final: % succeeded, % failed',
+        success_count, error_count;
+END $$;
+```
+
+:::{.fragment}
+**Why this matters**: In real systems, bad data shouldn't crash your entire batch process!
+:::
+
+---
+
+## Showing Progress
+
+
+### Let users know what's happening
+
+```sql
+DO $$
+DECLARE
+    film_cursor CURSOR FOR 
+        SELECT film_id, title, rental_rate FROM film;
+    film RECORD;
+    count INTEGER := 0;
+    total_revenue DECIMAL := 0;
+BEGIN
+    FOR film IN film_cursor LOOP
+        
+        -- Process the film
+        total_revenue := total_revenue + film.rental_rate;
+        count := count + 1;
+        
+        -- Show progress every 100 items
+        IF count % 100 = 0 THEN
+            RAISE NOTICE '⏳ Processed % films so far... ($% revenue)', 
+                count, total_revenue;
+        END IF;
+        
+    END LOOP;
+    
+    RAISE NOTICE '✅ Complete! Processed % films, $% total revenue', 
+        count, total_revenue;
+END $$;
+```
+
+
+---
+
+
+## Parameterized Cursor Syntax
+
+:::{.fragment}
+**Basic structure:**
+```sql
+DECLARE
+    cursor_name CURSOR(parameter_name TYPE, ...) FOR
+        SELECT ... WHERE column = parameter_name;
+```
+:::
+
+:::{.fragment}
+**Key points:**
+- Parameters go in parentheses after CURSOR
+- Use parameter names in the SELECT query
+- Pass values when opening: `OPEN cursor_name(value1, value2);`
+- Can have multiple parameters
+:::
+
+---
+
+## Example: Single Parameter
+
+### Filter customers by minimum purchase amount
+
+```sql
+DO $$
+DECLARE
+    -- Cursor with one parameter
+    valuable_customers CURSOR(min_purchase DECIMAL) FOR 
+        SELECT customer_id, first_name, last_name
+        FROM customer c
+        JOIN payment p ON c.customer_id = p.customer_id
+        GROUP BY c.customer_id, c.first_name, c.last_name
+        HAVING SUM(p.amount) >= min_purchase
+        ORDER BY SUM(p.amount) DESC;
+    
+    cust RECORD;
+BEGIN
+    RAISE NOTICE '--- Customers with $100+ total purchases ---';
+    
+    -- Open with parameter value
+    FOR cust IN valuable_customers(100.00) LOOP
+        RAISE NOTICE 'Customer: % % (ID: %)', 
+            cust.first_name, cust.last_name, cust.customer_id;
+    END LOOP;
+END $$;
+```
+
+---
+
+## Example: Multiple Parameters
+
+### Filter films by rating AND minimum length
+
+```sql
+DO $$
+DECLARE
+    -- Cursor with TWO parameters
+    filtered_films CURSOR(p_rating TEXT, min_length INTEGER) FOR 
+        SELECT film_id, title, length, rating, rental_rate
+        FROM film
+        WHERE rating = p_rating 
+          AND length >= min_length
+        ORDER BY rental_rate DESC;
+    
+    film RECORD;
+BEGIN
+    RAISE NOTICE '--- PG-13 films over 90 minutes ---';
+    
+    -- Open with both parameter values
+    OPEN filtered_films('PG-13', 90);
+    
+    LOOP
+        FETCH filtered_films INTO film;
+        EXIT WHEN NOT FOUND;
+        
+        RAISE NOTICE 'Film: "%" - %min - $%', 
+            film.title, film.length, film.rental_rate;
+    END LOOP;
+    
+    CLOSE filtered_films;
+END $$;
+```
+
+---
+
+## Reusing Parameterized Cursors
+
+### Same cursor, different parameters!
+
+```sql
+DO $$
+DECLARE
+    city_customers CURSOR(p_city TEXT) FOR 
+        SELECT customer_id, first_name, last_name, email
+        FROM customer c
+        JOIN address a ON c.address_id = a.address_id
+        JOIN city ci ON a.city_id = ci.city_id
+        WHERE ci.city = p_city;
+    
+    cust RECORD;
+    total_count INTEGER := 0;
+BEGIN
+    -- Use for London
+    RAISE NOTICE '=== LONDON CUSTOMERS ===';
+    FOR cust IN city_customers('London') LOOP
+        RAISE NOTICE '% % - %', cust.first_name, cust.last_name, cust.email;
+        total_count := total_count + 1;
+    END LOOP;
+    
+    -- Reuse for Paris
+    RAISE NOTICE '';
+    RAISE NOTICE '=== PARIS CUSTOMERS ===';
+    FOR cust IN city_customers('Paris') LOOP
+        RAISE NOTICE '% % - %', cust.first_name, cust.last_name, cust.email;
+        total_count := total_count + 1;
+    END LOOP;
+    
+    RAISE NOTICE '';
+    RAISE NOTICE 'Total processed: %', total_count;
+END $$;
+```
+
+**One cursor definition, infinite uses! 🚀**
+
+---
+
+## Practical Example 3: Customer Loyalty Tiers
+
+
+### Upgrade customers based on spending
+
+```sql
+DO $$
+DECLARE
+    customer_cursor CURSOR FOR 
+        SELECT c.customer_id, c.first_name, c.last_name,
+               SUM(p.amount) as total_spent
+        FROM customer c
+        JOIN payment p ON c.customer_id = p.customer_id
+        GROUP BY c.customer_id, c.first_name, c.last_name
+        ORDER BY total_spent DESC
+        LIMIT 20;  -- Top 20 spenders
+    
+    customer RECORD;
+    tier TEXT;
+    upgraded_count INTEGER := 0;
+BEGIN
+    FOR customer IN customer_cursor LOOP
+        
+        -- Determine tier based on spending
+        IF customer.total_spent >= 150 THEN
+            tier := '🥇 GOLD';
+        ELSIF customer.total_spent >= 100 THEN
+            tier := '🥈 SILVER';
+        ELSE
+            tier := '🥉 BRONZE';
+        END IF;
+        
+        upgraded_count := upgraded_count + 1;
+        
+        RAISE NOTICE 'Customer % % set to % tier ($% spent)', 
+            customer.first_name, customer.last_name, tier, customer.total_spent;
+    END LOOP;
+    
+    RAISE NOTICE '✅ Categorized % customers', upgraded_count;
+END $$;
+```
+
+---
+
+## Common Mistakes to Avoid 🚫
+
+:::{.fragment}
+**1. Using cursors when you don't need them** ❌
+```sql
+-- BAD: Using cursor to count
+FOR rec IN SELECT * FROM products LOOP
+    counter := counter + 1;
+END LOOP;
+
+-- GOOD: Use SQL aggregate ✅
+SELECT COUNT(*) INTO counter FROM products;
+```
+:::
+
+:::{.fragment}
+**2. Forgetting EXIT WHEN NOT FOUND** ❌
+```sql
+LOOP
+    FETCH cursor INTO record;
+    EXIT WHEN NOT FOUND;  -- DON'T FORGET THIS!
+    -- process record
+END LOOP;
+```
+:::
+
+:::{.fragment}
+**3. No error handling in production code** ❌
+- One bad row crashes entire process
+- Always wrap cursor logic in BEGIN...EXCEPTION blocks
+:::
+
+:::{.fragment}
+**4. Testing with full dataset first** ❌
+- Always use `LIMIT` during development
+- Test with 10-100 rows, then scale up
+:::
+
+---
+
+
+## 🐛 Debugging Your Cursors
+
+:::{.fragment}
+**When things don't work, follow these steps:**
+:::
+
+:::{.fragment}
+**1. Start small** - Always test with `LIMIT 5` first
+```sql
+SELECT * FROM big_table LIMIT 5  -- Not 5 million!
+```
+:::
+
+:::{.fragment}
+**2. Add debug output** - Print everything
+```sql
+RAISE NOTICE 'Current row: %, Value: %', rec.id, rec.value;
+```
+:::
+
+:::{.fragment}
+**3. Check each step** - Comment out sections
+```sql
+-- Complex logic here
+-- Try each part separately
+```
+:::
+
+:::{.fragment}
+**4. Use EXPLAIN** - See what SQL is doing
+```sql
+EXPLAIN ANALYZE SELECT * FROM your_query;
+```
+:::
+
+---
+
+
+## 🏗️ Build-Your-Own Cursor Template
+
+:::{.fragment}
+**Fill in the blanks - This is your blueprint!**
+
+```sql
+DO $$
+DECLARE
+    -- 1. Name your record variable
+    _____________ RECORD;
+    
+    -- 2. Add counters if needed
+    counter INTEGER := 0;
+BEGIN
+    -- 3. Write your query
+    FOR _____________ IN 
+        SELECT _____________ 
+        FROM _____________
+        WHERE _____________
+    LOOP
+        -- 4. Your logic here
+        RAISE NOTICE 'Processing: %', _____________;
+        counter := counter + 1;
+    END LOOP;
+    
+    -- 5. Show results
+    RAISE NOTICE 'Total processed: %', counter;
+END $$;
+```
+:::
+
+:::{.fragment}
+**Your turn:** Fill it in for the `film` table! 🎬
+:::
+
+---
+
+## Practice Exercise 1 🎮
+
+
+:::{.fragment}
+**Your Mission:**
+Find all films with rental_rate > $4.00 and count how many there are
+
+**Starter Code:**
+```sql
+DO $$
+DECLARE
+    -- YOUR VARIABLE DECLARATIONS HERE
+BEGIN
+    -- YOUR CURSOR LOOP HERE
+    
+    -- PRINT FINAL COUNT
+END $$;
+```
+:::
+
+:::{.fragment}
+**Hints** (try without these first!):
+- Use `FOR film IN SELECT ...` pattern
+- Count with a variable: `count := count + 1`
+- Filter with `WHERE rental_rate > 4.00`
+- Use `RAISE NOTICE` to show results
+:::
+
+:::{.fragment}
+**💡 Bonus Challenge**: Also calculate total potential revenue (SUM of rental_rate)
+:::
+
+---
+
+## Practice Exercise 1: Solution
+
+```sql
+DO $$
+DECLARE
+    film RECORD;
+    count INTEGER := 0;
+    total_revenue DECIMAL := 0;
+BEGIN
+    -- Loop through expensive films
+    FOR film IN 
+        SELECT film_id, title, rental_rate 
+        FROM film 
+        WHERE rental_rate > 4.00
+    LOOP
+        count := count + 1;
+        total_revenue := total_revenue + film.rental_rate;
+        
+        RAISE NOTICE 'Film: "%" - $%', 
+            film.title, 
+            film.rental_rate;
+    END LOOP;
+    
+    RAISE NOTICE '';
+    RAISE NOTICE '📊 Summary: % films found, $% potential revenue', 
+        count, total_revenue;
+END $$;
+```
+
+:::{.fragment}
+**Key Learning Points:**
+- Simple FOR loop is clean and readable
+- Accumulator pattern for counting and summing
+- Professional output formatting with blank line separator
+:::
+
+---
+
+## Practice Exercise 2 🎮
+
+**Difficulty**: 🟡 Intermediate | **Time**: 10 minutes
+
+:::{.fragment}
+**More challenging:**
+1. Find customers from 'London' (join customer → address → city)
+2. Count how many have made payments over $5.00
+3. Count how many have NOT made such payments
+4. Handle any errors gracefully
+:::
+
+:::{.fragment}
+**Starter Code:**
+```sql
+DO $$
+DECLARE
+    high_payer_count INTEGER := 0;
+    low_payer_count INTEGER := 0;
+BEGIN
+    -- YOUR CURSOR LOOP HERE
+    -- Hint: Use JOIN and MAX/SUM to find payment amounts
+    
+END $$;
+```
+:::
+
+:::{.fragment}
+**💡 Challenge**: Add error handling with `BEGIN...EXCEPTION`
+:::
+
+---
+
+## Practice Exercise 2: Solution
+
+```sql
+DO $$
+DECLARE
+    customer_rec RECORD;
+    high_payer_count INTEGER := 0;
+    low_payer_count INTEGER := 0;
+    error_count INTEGER := 0;
+BEGIN
+    FOR customer_rec IN 
+        SELECT c.customer_id, c.first_name, c.last_name,
+               COALESCE(MAX(p.amount), 0) as max_payment
+        FROM customer c
+        JOIN address a ON c.address_id = a.address_id
+        JOIN city ci ON a.city_id = ci.city_id
+        LEFT JOIN payment p ON c.customer_id = p.customer_id
+        WHERE ci.city = 'London'
+        GROUP BY c.customer_id, c.first_name, c.last_name
+    LOOP
+        BEGIN
+            IF customer_rec.max_payment > 5.00 THEN
+                high_payer_count := high_payer_count + 1;
+                RAISE NOTICE '💰 % %: High payer ($%)', 
+                    customer_rec.first_name, customer_rec.last_name, 
+                    customer_rec.max_payment;
+            ELSE
+                low_payer_count := low_payer_count + 1;
+            END IF;
+            
+        EXCEPTION
+            WHEN OTHERS THEN
+                error_count := error_count + 1;
+                RAISE NOTICE '❌ Error with customer %', customer_rec.customer_id;
+        END;
+    END LOOP;
+    
+    RAISE NOTICE '📊 High payers: %, Low payers: %, Errors: %', 
+        high_payer_count, low_payer_count, error_count;
+END $$;
+```
+
+---
+
+## Key Takeaways 🎯
+
+:::{.fragment}
+✅ **Cursors let you process rows one at a time**
+:::
+
+:::{.fragment}
+✅ **Use FOR loops for simpler code**
+:::
+
+:::{.fragment}
+✅ **Always handle errors so one bad row doesn't stop everything**
+:::
+
+:::{.fragment}
+✅ **Show progress for long operations**
+:::
+
+:::{.fragment}
+✅ **Only use cursors when necessary - SQL is usually faster!**
+:::
+
+:::{.fragment}
+⚡ **Remember: With great power comes great responsibility!**
+:::
+
+---
+
+# �📋 Cheat Sheet - Keep This Handy!
+
+## The Simplest Pattern (Use This 80% of the Time!) 🟢
+```sql
+DO $$
+BEGIN
+    FOR record IN SELECT * FROM table WHERE condition LOOP
+        -- do something with record
+        RAISE NOTICE '%', record.column_name;
+    END LOOP;
+END $$;
+```
+
+---
+
+## With Counter and Error Handling 🟡
+```sql
+DO $$
+DECLARE counter INT := 0;
+BEGIN
+    FOR record IN SELECT * FROM table LOOP
+        BEGIN
+            counter := counter + 1;
+            -- your code
+        EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'Error: %', SQLERRM;
+        END;
+    END LOOP;
+    RAISE NOTICE 'Processed: %', counter;
+END $$;
+```
+
+---
+
+## Named Cursor with Parameters 🔴
+```sql
+DO $$
+DECLARE
+    my_cursor CURSOR(param1 TYPE) FOR 
+        SELECT * FROM table WHERE column = param1;
+BEGIN
+    FOR record IN my_cursor(value) LOOP
+        -- process record
+    END LOOP;
+END $$;
+```
+
+---
+
+## Progress Tracking Pattern 🟡
+```sql
+DO $$
+DECLARE count INT := 0;
+BEGIN
+    FOR rec IN query LOOP
+        count := count + 1;
+        IF count % 100 = 0 THEN
+            RAISE NOTICE 'Progress: %', count;
+        END IF;
+    END LOOP;
+END $$;
+```
+
+:::{.fragment}
+**📸 Take a screenshot of this slide!** You'll use these patterns constantly!
+:::
+
+---
+
+## Memory Aid: Remember Cursor Steps
+
+:::{.center}
+**The 4 Steps When Using Explicit Cursors:**
+:::
+
+:::{.fragment}
+**D**eclare it  
+**O**pen it  
+**F**etch from it  
+**C**lose it  
+:::
+
+
+
+:::{.fragment}
+**Meaning**: Don't force cursors where simple SQL would work!
+
+- ✅ Need different logic per row? Use cursors.
+- ❌ Simple COUNT/SUM/UPDATE? Use SQL directly.
+:::
+
+---
+
+## Real-World Job Scenarios 💼
+
+:::{.fragment}
+**When Would I Actually Use This?**
+:::
+
+:::{.fragment}
+📧 **E-commerce**: Process refunds with different rules per customer  
+*Example: VIP customers get instant refund, others need approval*
+:::
+
+:::{.fragment}
+📊 **Marketing**: Send personalized emails based on purchase history  
+*Example: Different email templates based on customer tier and products bought*
+:::
+
+:::{.fragment}
+🔄 **Data Migration**: Transform old data to new format row-by-row  
+*Example: Converting legacy customer records with complex business rules*
+:::
+
+:::{.fragment}
+📈 **Reporting**: Generate custom reports with complex calculations  
+*Example: Monthly commission calculations with tiered bonuses*
+:::
+
+:::{.fragment}
+🛡️ **Data Quality**: Validate and clean data with conditional fixes  
+*Example: Fix addresses based on multiple validation rules per record*
+:::
+
+---
+
+
+
+## Questions? 🤔
+
+:::{.center}
+**Let's practice together and learn by doing!**
+
+*The best way to learn cursors is to use them.*
+:::
+
+:::{.fragment}
+**Remember the Golden Rules:**
+
+⚡ If SQL can do it, use SQL (not cursors)  
+🔧 Start simple, add complexity gradually  
+🐛 Always test with LIMIT 10 first  
+📊 Add error handling for production  
+:::
+
+:::{.fragment}
+**You've got this! **
+:::

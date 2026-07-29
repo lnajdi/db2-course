@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Point-in-Time Recovery (PITR) - Interactive Tutorial</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #root { width: 100vw; min-height: 100vh; }
+        .back-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 1000;
+            padding: 10px 20px; background: rgba(0, 0, 0, 0.7); color: white;
+            border: none; border-radius: 20px; cursor: pointer; font-size: 14px;
+            text-decoration: none; transition: all 0.3s ease;
+        }
+        .back-btn:hover { background: rgba(0, 0, 0, 0.9); transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← Back to Menu</a>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const slides = [
+            { id: 'intro', title: 'Point-in-Time Recovery', subtitle: 'Travel back to any moment in your database', type: 'title' },
+            { id: 'scenario', title: 'The Disaster', subtitle: "A developer's worst nightmare", content: { time: '3:42 PM', command: 'DELETE FROM users;', note: '(forgot the WHERE clause)', result: '50,000 users deleted instantly' }, type: 'scenario' },
+            { id: 'backup-problem', title: 'Traditional Backups', subtitle: "Why they're not enough", content: { timeline: [{ time: 'Mon 2AM', event: 'Backup', type: 'backup' }, { time: 'Tue 2AM', event: 'Backup', type: 'backup' }, { time: 'Wed 2AM', event: 'Backup', type: 'backup' }, { time: 'Wed 3:42PM', event: '💥 DELETE', type: 'disaster' }], problem: 'Last backup was 13 hours ago. All changes since then are LOST.' }, type: 'backup-problem' },
+            { id: 'solution', title: 'The Solution: PITR', subtitle: 'Point-in-Time Recovery', content: { definition: 'Restore your database to ANY specific moment in time', precision: 'Down to the exact second', example: 'Recover to 3:41:59 PM — one second before disaster' }, type: 'solution' },
+            { id: 'components', title: 'PITR Components', subtitle: 'What makes it possible', content: { parts: [{ icon: '📦', name: 'Base Backup', desc: 'Full database snapshot' }, { icon: '📝', name: 'WAL Archive', desc: 'Continuous transaction logs' }, { icon: '🎯', name: 'Target Time', desc: 'When to stop replay' }] }, type: 'components' },
+            { id: 'base-backup', title: 'Base Backup', subtitle: 'The starting point', content: { what: 'A complete copy of your database at a specific moment', when: 'Taken periodically (daily, weekly)', includes: ['All tables', 'All indexes', 'All data files', 'Checkpoint position'] }, type: 'base-backup' },
+            { id: 'wal-archive', title: 'WAL Archiving', subtitle: 'Recording every change', content: { flow: [{ step: 1, action: 'Transaction executes' }, { step: 2, action: 'Written to WAL' }, { step: 3, action: 'WAL segment fills up' }, { step: 4, action: 'Archived to safe storage' }], key: 'Every change is preserved forever' }, type: 'wal-archive' },
+            { id: 'timeline', title: 'The Recovery Timeline', subtitle: 'How all pieces fit together', content: { segments: [{ label: 'Base Backup', time: 'Mon 2AM', type: 'backup' }, { label: 'WAL 001', time: '', type: 'wal' }, { label: 'WAL 002', time: '', type: 'wal' }, { label: 'WAL 003', time: '', type: 'wal' }, { label: 'Target', time: '3:41 PM', type: 'target' }, { label: '💥', time: '3:42 PM', type: 'disaster' }] }, type: 'timeline' },
+            { id: 'recovery-steps', title: 'Recovery Process', subtitle: 'Step by step', content: { steps: ['Stop the database', 'Restore base backup', 'Configure recovery target time', 'Replay WAL until target', 'Database is recovered!'] }, type: 'recovery-steps' },
+            { id: 'target-options', title: 'Recovery Targets', subtitle: 'Different ways to specify "when"', content: { options: [{ type: 'Time', example: "2024-03-15 15:41:59", desc: 'Exact timestamp' }, { type: 'Transaction ID', example: 'XID 12345678', desc: 'Specific transaction' }, { type: 'Named Point', example: 'before_migration', desc: 'Custom restore point' }, { type: 'LSN', example: '0/16B3748', desc: 'Log sequence number' }] }, type: 'target-options' },
+            { id: 'use-cases', title: 'When to Use PITR', subtitle: 'Real-world scenarios', content: { cases: [{ icon: '🗑️', title: 'Accidental DELETE', desc: 'Forgot WHERE clause' }, { icon: '💾', title: 'Bad Deployment', desc: 'Migration corrupted data' }, { icon: '🔒', title: 'Ransomware', desc: 'Recover pre-attack state' }, { icon: '🐛', title: 'Bug Discovery', desc: 'Data corrupted over time' }] }, type: 'use-cases' },
+            { id: 'comparison', title: 'PITR vs Regular Backup', subtitle: 'Side by side', content: { regular: { title: 'Regular Backup', points: ['Fixed restore points', 'Hours/days of data loss', 'Simple to manage', 'Less storage needed'] }, pitr: { title: 'PITR', points: ['Any point in time', 'Seconds of data loss', 'More complex setup', 'More storage for WAL'] } }, type: 'comparison' },
+            { id: 'rpo', title: 'Recovery Point Objective', subtitle: 'How much data can you afford to lose?', content: { levels: [{ rpo: '24 hours', method: 'Daily backups', cost: '$' }, { rpo: '1 hour', method: 'Hourly backups', cost: '$$' }, { rpo: 'Seconds', method: 'PITR with WAL', cost: '$$$' }, { rpo: 'Zero', method: 'Sync replication', cost: '$$$$' }] }, type: 'rpo' },
+            { id: 'requirements', title: 'PITR Requirements', subtitle: 'What you need', content: { items: [{ icon: '✓', text: 'WAL archiving enabled' }, { icon: '✓', text: 'Regular base backups' }, { icon: '✓', text: 'Secure archive storage' }, { icon: '✓', text: 'Monitoring & alerts' }, { icon: '✓', text: 'Tested recovery process' }] }, type: 'requirements' },
+            { id: 'real-world', title: 'Database Support', subtitle: 'PITR is everywhere', content: { databases: [{ name: 'PostgreSQL', cmd: 'pg_basebackup + archive_command' }, { name: 'MySQL', cmd: 'Binary log + mysqlbinlog' }, { name: 'SQL Server', cmd: 'Full + Transaction log backups' }, { name: 'Oracle', cmd: 'RMAN + Archive logs' }] }, type: 'real-world' },
+            { id: 'best-practices', title: 'Best Practices', subtitle: 'Do it right', content: { practices: ['Test recovery regularly', 'Monitor WAL archiving lag', 'Store archives off-site', 'Document recovery steps', 'Know your RPO/RTO goals', 'Automate base backups'] }, type: 'best-practices' },
+            { id: 'summary', title: 'Summary', subtitle: 'Key takeaways', content: { points: ['PITR = Base Backup + WAL Archive', 'Recover to any second in time', 'Protects against human error', 'Requires continuous WAL archiving', 'Test your recovery process!'] }, type: 'summary' },
+            { id: 'demo', title: 'Interactive Demo', subtitle: 'See PITR in action', type: 'demo' }
+        ];
+
+        function TitleSlide({ slide }) {
+            return (
+                <div style={{ textAlign: 'center', padding: '60px 40px' }}>
+                    <div style={{ fontSize: '4rem', marginBottom: '20px' }}>⏪</div>
+                    <h1 style={{ fontSize: '3.2rem', fontWeight: 800, color: '#1a1a2e', marginBottom: '16px' }}>{slide.title}</h1>
+                    <p style={{ fontSize: '1.4rem', color: '#6b7280' }}>{slide.subtitle}</p>
+                    <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                        {['📦', '+', '📝', '=', '🎯'].map((icon, i) => (<span key={i} style={{ fontSize: icon === '+' || icon === '=' ? '1.5rem' : '2.5rem', color: icon === '+' || icon === '=' ? '#9ca3af' : 'inherit' }}>{icon}</span>))}
+                    </div>
+                </div>
+            );
+        }
+
+        function ScenarioSlide({ slide }) {
+            const [step, setStep] = useState(0);
+            useEffect(() => { const timer = setInterval(() => setStep(s => s < 4 ? s + 1 : s), 800); return () => clearInterval(timer); }, []);
+            return (
+                <div style={{ padding: '40px', textAlign: 'center' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px' }}>{slide.subtitle}</p>
+                    <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+                        <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '8px', marginBottom: '20px', opacity: step >= 1 ? 1 : 0.3, transition: 'all 0.4s' }}>
+                            <span style={{ color: '#6b7280' }}>Time: </span><strong style={{ color: '#1a1a2e' }}>{slide.content.time}</strong>
+                        </div>
+                        <div style={{ padding: '20px', background: '#1a1a2e', borderRadius: '12px', marginBottom: '12px', fontFamily: 'monospace', opacity: step >= 2 ? 1 : 0.3, transition: 'all 0.4s' }}>
+                            <span style={{ color: '#ef4444' }}>{slide.content.command}</span>
+                        </div>
+                        <div style={{ color: '#6b7280', marginBottom: '20px', opacity: step >= 2 ? 1 : 0, transition: 'all 0.4s' }}>{slide.content.note}</div>
+                        <div style={{ padding: '20px', background: '#fef2f2', border: '2px solid #ef4444', borderRadius: '12px', opacity: step >= 3 ? 1 : 0.3, transition: 'all 0.4s' }}>
+                            <span style={{ fontSize: '2rem' }}>💥</span>
+                            <p style={{ color: '#dc2626', fontWeight: 600, marginTop: '10px' }}>{slide.content.result}</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function BackupProblemSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginBottom: '30px' }}>
+                        {slide.content.timeline.map((t, i) => (
+                            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <div style={{ padding: '16px 20px', background: t.type === 'disaster' ? '#fef2f2' : '#f0fdf4', border: `2px solid ${t.type === 'disaster' ? '#ef4444' : '#22c55e'}`, borderRadius: '12px' }}>
+                                    <span style={{ fontSize: '1.5rem' }}>{t.type === 'disaster' ? '💥' : '💾'}</span>
+                                </div>
+                                <span style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '8px' }}>{t.time}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div style={{ background: '#fef2f2', border: '2px solid #fca5a5', borderRadius: '12px', padding: '20px 30px', maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
+                        <p style={{ color: '#991b1b', fontWeight: 500 }}>⚠️ {slide.content.problem}</p>
+                    </div>
+                </div>
+            );
+        }
+
+        function SolutionSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px', textAlign: 'center' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '50px' }}>{slide.subtitle}</p>
+                    <div style={{ background: 'linear-gradient(135deg, #dbeafe, #ede9fe)', borderRadius: '20px', padding: '40px', maxWidth: '600px', margin: '0 auto' }}>
+                        <p style={{ fontSize: '1.3rem', color: '#1e3a5f', fontWeight: 500, marginBottom: '20px' }}>{slide.content.definition}</p>
+                        <p style={{ color: '#6b7280', marginBottom: '24px' }}>{slide.content.precision}</p>
+                        <div style={{ background: '#1a1a2e', color: '#22c55e', padding: '16px 24px', borderRadius: '12px', fontFamily: 'monospace' }}>{slide.content.example}</div>
+                    </div>
+                </div>
+            );
+        }
+
+        function ComponentsSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' }}>
+                        {slide.content.parts.map((part, i) => (
+                            <div key={i} style={{ padding: '30px', background: '#f9fafb', borderRadius: '16px', border: '1px solid #e5e7eb', textAlign: 'center', minWidth: '180px' }}>
+                                <span style={{ fontSize: '3rem' }}>{part.icon}</span>
+                                <h3 style={{ fontSize: '1.1rem', color: '#1a1a2e', marginTop: '16px', marginBottom: '8px' }}>{part.name}</h3>
+                                <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>{part.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function BaseBackupSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+                        <div style={{ padding: '20px', background: '#eff6ff', borderRadius: '12px', marginBottom: '20px' }}>
+                            <strong style={{ color: '#1e40af' }}>What: </strong><span style={{ color: '#1e3a5f' }}>{slide.content.what}</span>
+                        </div>
+                        <div style={{ padding: '20px', background: '#f0fdf4', borderRadius: '12px', marginBottom: '20px' }}>
+                            <strong style={{ color: '#166534' }}>When: </strong><span style={{ color: '#166534' }}>{slide.content.when}</span>
+                        </div>
+                        <div style={{ padding: '20px', background: '#f9fafb', borderRadius: '12px' }}>
+                            <strong style={{ color: '#374151', display: 'block', marginBottom: '12px' }}>Includes:</strong>
+                            {slide.content.includes.map((item, i) => (
+                                <div key={i} style={{ padding: '8px 12px', background: '#fff', borderRadius: '6px', marginBottom: '6px', color: '#4b5563' }}>✓ {item}</div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function WalArchiveSlide({ slide }) {
+            const [active, setActive] = useState(0);
+            useEffect(() => { const timer = setInterval(() => setActive(a => (a + 1) % 5), 1000); return () => clearInterval(timer); }, []);
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '30px', flexWrap: 'wrap' }}>
+                        {slide.content.flow.map((f, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <div style={{ padding: '20px', background: i < active ? '#f0fdf4' : '#f9fafb', border: i < active ? '2px solid #22c55e' : '2px solid #e5e7eb', borderRadius: '12px', minWidth: '150px', textAlign: 'center', transition: 'all 0.3s' }}>
+                                    <span style={{ display: 'block', fontSize: '0.8rem', color: '#6b7280', marginBottom: '8px' }}>Step {f.step}</span>
+                                    <span style={{ color: '#374151', fontWeight: 500 }}>{f.action}</span>
+                                </div>
+                                {i < slide.content.flow.length - 1 && <span style={{ fontSize: '1.5rem', color: '#d1d5db' }}>→</span>}
+                            </div>
+                        ))}
+                    </div>
+                    <div style={{ background: '#eff6ff', border: '2px solid #3b82f6', borderRadius: '12px', padding: '16px 24px', maxWidth: '400px', margin: '0 auto', textAlign: 'center' }}>
+                        <strong style={{ color: '#1e40af' }}>{slide.content.key}</strong>
+                    </div>
+                </div>
+            );
+        }
+
+        function TimelineSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        {slide.content.segments.map((s, i) => (
+                            <div key={i} style={{ padding: '16px 12px', background: s.type === 'backup' ? '#dbeafe' : s.type === 'wal' ? '#e5e7eb' : s.type === 'target' ? '#dcfce7' : '#fee2e2', borderRadius: '8px', textAlign: 'center', minWidth: '80px', border: s.type === 'target' ? '3px solid #22c55e' : s.type === 'disaster' ? '3px solid #ef4444' : '1px solid transparent' }}>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: s.type === 'disaster' ? '#dc2626' : '#374151' }}>{s.label}</div>
+                                {s.time && <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '4px' }}>{s.time}</div>}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function RecoveryStepsSlide({ slide }) {
+            const [step, setStep] = useState(0);
+            useEffect(() => { const timer = setInterval(() => setStep(s => s < slide.content.steps.length ? s + 1 : s), 800); return () => clearInterval(timer); }, []);
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px', margin: '0 auto' }}>
+                        {slide.content.steps.map((s, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', background: i < step ? '#f0fdf4' : '#f9fafb', border: i < step ? '2px solid #22c55e' : '2px solid #e5e7eb', borderRadius: '12px', opacity: i < step ? 1 : 0.4, transition: 'all 0.3s' }}>
+                                <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: i < step ? '#22c55e' : '#e5e7eb', color: i < step ? '#fff' : '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{i + 1}</span>
+                                <span style={{ color: '#374151', fontWeight: 500 }}>{s}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function TargetOptionsSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', maxWidth: '600px', margin: '0 auto' }}>
+                        {slide.content.options.map((opt, i) => (
+                            <div key={i} style={{ padding: '20px', background: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                                <h4 style={{ color: '#1a1a2e', marginBottom: '8px' }}>{opt.type}</h4>
+                                <code style={{ fontSize: '0.85rem', color: '#6b7280', background: '#e5e7eb', padding: '4px 8px', borderRadius: '4px' }}>{opt.example}</code>
+                                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginTop: '8px' }}>{opt.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function UseCasesSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', maxWidth: '600px', margin: '0 auto' }}>
+                        {slide.content.cases.map((c, i) => (
+                            <div key={i} style={{ padding: '24px', background: '#f9fafb', borderRadius: '16px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                                <span style={{ fontSize: '2.5rem' }}>{c.icon}</span>
+                                <h4 style={{ color: '#1a1a2e', marginTop: '12px', marginBottom: '8px' }}>{c.title}</h4>
+                                <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>{c.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function ComparisonSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', maxWidth: '700px', margin: '0 auto' }}>
+                        <div style={{ background: '#f9fafb', borderRadius: '16px', padding: '24px', border: '1px solid #e5e7eb' }}>
+                            <h3 style={{ color: '#374151', marginBottom: '16px', textAlign: 'center' }}>{slide.content.regular.title}</h3>
+                            {slide.content.regular.points.map((p, i) => (<div key={i} style={{ padding: '10px 14px', background: '#e5e7eb', borderRadius: '8px', marginBottom: '8px', color: '#4b5563' }}>{p}</div>))}
+                        </div>
+                        <div style={{ background: '#f0fdf4', borderRadius: '16px', padding: '24px', border: '2px solid #22c55e' }}>
+                            <h3 style={{ color: '#166534', marginBottom: '16px', textAlign: 'center' }}>{slide.content.pitr.title}</h3>
+                            {slide.content.pitr.points.map((p, i) => (<div key={i} style={{ padding: '10px 14px', background: '#dcfce7', borderRadius: '8px', marginBottom: '8px', color: '#166534' }}>{p}</div>))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function RpoSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '500px', margin: '0 auto' }}>
+                        {slide.content.levels.map((l, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', background: i === 2 ? '#f0fdf4' : '#f9fafb', borderRadius: '12px', border: i === 2 ? '2px solid #22c55e' : '1px solid #e5e7eb' }}>
+                                <span style={{ fontWeight: 700, minWidth: '80px', color: i === 2 ? '#166534' : '#374151' }}>{l.rpo}</span>
+                                <span style={{ flex: 1, color: '#6b7280' }}>{l.method}</span>
+                                <span style={{ color: '#f59e0b', fontWeight: 600 }}>{l.cost}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function RequirementsSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '400px', margin: '0 auto' }}>
+                        {slide.content.items.map((item, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #22c55e' }}>
+                                <span style={{ color: '#22c55e', fontSize: '1.2rem', fontWeight: 700 }}>{item.icon}</span>
+                                <span style={{ color: '#166534', fontWeight: 500 }}>{item.text}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function RealWorldSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', maxWidth: '600px', margin: '0 auto' }}>
+                        {slide.content.databases.map((db, i) => (
+                            <div key={i} style={{ padding: '20px', background: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                                <h4 style={{ color: '#1a1a2e', marginBottom: '8px' }}>{db.name}</h4>
+                                <code style={{ fontSize: '0.75rem', color: '#6b7280', background: '#e5e7eb', padding: '4px 8px', borderRadius: '4px' }}>{db.cmd}</code>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function BestPracticesSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', maxWidth: '600px', margin: '0 auto' }}>
+                        {slide.content.practices.map((p, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+                                <span style={{ color: '#3b82f6', fontWeight: 700 }}>•</span>
+                                <span style={{ color: '#374151' }}>{p}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function SummarySlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '500px', margin: '0 auto' }}>
+                        {slide.content.points.map((point, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px 24px', background: 'linear-gradient(135deg, #eff6ff, #faf5ff)', borderRadius: '12px', border: '1px solid #c7d2fe' }}>
+                                <span style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>{i + 1}</span>
+                                <span style={{ color: '#1e3a5f', fontWeight: 600, fontSize: '1.05rem' }}>{point}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function DemoSlide() {
+            const [baseBackup, setBaseBackup] = useState(null);
+            const [walLogs, setWalLogs] = useState([]);
+            const [database, setDatabase] = useState([]);
+            const [disaster, setDisaster] = useState(false);
+            const [recovering, setRecovering] = useState(false);
+            const [targetTime, setTargetTime] = useState(null);
+
+            const createBaseBackup = () => {
+                const time = new Date().toLocaleTimeString();
+                setBaseBackup({ time, data: [...database] });
+            };
+
+            const addData = () => {
+                const time = new Date().toLocaleTimeString();
+                const newEntry = { id: database.length + 1, name: `User ${database.length + 1}`, time };
+                setDatabase([...database, newEntry]);
+                setWalLogs([...walLogs, { action: 'INSERT', data: newEntry, time }]);
+            };
+
+            const triggerDisaster = () => {
+                const time = new Date().toLocaleTimeString();
+                setTargetTime(walLogs.length > 0 ? walLogs[walLogs.length - 1].time : null);
+                setWalLogs([...walLogs, { action: 'DELETE ALL', data: null, time }]);
+                setDatabase([]);
+                setDisaster(true);
+            };
+
+            const recover = () => {
+                setRecovering(true);
+                setTimeout(() => {
+                    if (baseBackup) {
+                        const logsToReplay = walLogs.filter(log => log.action !== 'DELETE ALL');
+                        setDatabase(logsToReplay.map(l => l.data).filter(Boolean));
+                    }
+                    setDisaster(false);
+                    setRecovering(false);
+                }, 2000);
+            };
+
+            const reset = () => {
+                setBaseBackup(null);
+                setWalLogs([]);
+                setDatabase([]);
+                setDisaster(false);
+                setRecovering(false);
+                setTargetTime(null);
+            };
+
+            return (
+                <div style={{ padding: '30px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>Interactive PITR Demo</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '20px', textAlign: 'center' }}>
+                        Status: <span style={{ color: disaster ? '#dc2626' : recovering ? '#f59e0b' : '#22c55e', fontWeight: 600 }}>
+                            {disaster ? 'DISASTER!' : recovering ? 'RECOVERING...' : 'NORMAL'}
+                        </span>
+                    </p>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                        <div style={{ background: '#dbeafe', borderRadius: '12px', padding: '16px', minHeight: '150px' }}>
+                            <h4 style={{ color: '#1e40af', marginBottom: '12px' }}>📦 Base Backup</h4>
+                            {baseBackup ? (
+                                <div style={{ fontSize: '0.85rem', color: '#1e3a5f' }}>
+                                    <div>Time: {baseBackup.time}</div>
+                                    <div>Rows: {baseBackup.data.length}</div>
+                                </div>
+                            ) : (
+                                <div style={{ color: '#6b7280', fontSize: '0.85rem' }}>No backup yet</div>
+                            )}
+                        </div>
+                        
+                        <div style={{ background: '#f9fafb', borderRadius: '12px', padding: '16px', minHeight: '150px' }}>
+                            <h4 style={{ color: '#374151', marginBottom: '12px' }}>📝 WAL Logs</h4>
+                            <div style={{ maxHeight: '100px', overflowY: 'auto' }}>
+                                {walLogs.map((log, i) => (
+                                    <div key={i} style={{ fontSize: '0.75rem', padding: '4px 8px', background: log.action === 'DELETE ALL' ? '#fee2e2' : '#dcfce7', borderRadius: '4px', marginBottom: '4px', color: log.action === 'DELETE ALL' ? '#991b1b' : '#166534' }}>
+                                        {log.time}: {log.action}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <div style={{ background: disaster ? '#fef2f2' : '#f0fdf4', borderRadius: '12px', padding: '16px', minHeight: '150px', border: `2px solid ${disaster ? '#ef4444' : '#22c55e'}` }}>
+                            <h4 style={{ color: disaster ? '#991b1b' : '#166534', marginBottom: '12px' }}>🗄️ Database</h4>
+                            <div style={{ maxHeight: '100px', overflowY: 'auto' }}>
+                                {database.length === 0 ? (
+                                    <div style={{ color: '#6b7280', fontSize: '0.85rem' }}>{disaster ? 'Data deleted!' : 'Empty'}</div>
+                                ) : (
+                                    database.map((row, i) => (
+                                        <div key={i} style={{ fontSize: '0.75rem', padding: '4px 8px', background: '#dcfce7', borderRadius: '4px', marginBottom: '4px', color: '#166534' }}>
+                                            {row.name}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <button onClick={createBaseBackup} disabled={disaster || recovering} style={{ padding: '10px 20px', background: !disaster && !recovering ? '#3b82f6' : '#9ca3af', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: !disaster && !recovering ? 'pointer' : 'not-allowed' }}>📦 Base Backup</button>
+                        <button onClick={addData} disabled={disaster || recovering} style={{ padding: '10px 20px', background: !disaster && !recovering ? '#22c55e' : '#9ca3af', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: !disaster && !recovering ? 'pointer' : 'not-allowed' }}>+ Add Data</button>
+                        <button onClick={triggerDisaster} disabled={disaster || recovering || database.length === 0} style={{ padding: '10px 20px', background: !disaster && !recovering && database.length > 0 ? '#ef4444' : '#9ca3af', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: !disaster && !recovering && database.length > 0 ? 'pointer' : 'not-allowed' }}>💥 DELETE ALL</button>
+                        <button onClick={recover} disabled={!disaster || !baseBackup} style={{ padding: '10px 20px', background: disaster && baseBackup ? '#8b5cf6' : '#9ca3af', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: disaster && baseBackup ? 'pointer' : 'not-allowed' }}>⏪ PITR Recover</button>
+                        <button onClick={reset} style={{ padding: '10px 20px', background: '#6b7280', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}>↺ Reset</button>
+                    </div>
+                </div>
+            );
+        }
+
+        function renderSlide(slide) {
+            switch (slide.type) {
+                case 'title': return <TitleSlide slide={slide} />;
+                case 'scenario': return <ScenarioSlide slide={slide} />;
+                case 'backup-problem': return <BackupProblemSlide slide={slide} />;
+                case 'solution': return <SolutionSlide slide={slide} />;
+                case 'components': return <ComponentsSlide slide={slide} />;
+                case 'base-backup': return <BaseBackupSlide slide={slide} />;
+                case 'wal-archive': return <WalArchiveSlide slide={slide} />;
+                case 'timeline': return <TimelineSlide slide={slide} />;
+                case 'recovery-steps': return <RecoveryStepsSlide slide={slide} />;
+                case 'target-options': return <TargetOptionsSlide slide={slide} />;
+                case 'use-cases': return <UseCasesSlide slide={slide} />;
+                case 'comparison': return <ComparisonSlide slide={slide} />;
+                case 'rpo': return <RpoSlide slide={slide} />;
+                case 'requirements': return <RequirementsSlide slide={slide} />;
+                case 'real-world': return <RealWorldSlide slide={slide} />;
+                case 'best-practices': return <BestPracticesSlide slide={slide} />;
+                case 'summary': return <SummarySlide slide={slide} />;
+                case 'demo': return <DemoSlide />;
+                default: return null;
+            }
+        }
+
+        function PITRSlideshow() {
+            const [current, setCurrent] = useState(0);
+            const next = () => setCurrent(c => Math.min(c + 1, slides.length - 1));
+            const prev = () => setCurrent(c => Math.max(c - 1, 0));
+            useEffect(() => { const handleKey = (e) => { if (e.key === 'ArrowRight' || e.key === ' ') next(); if (e.key === 'ArrowLeft') prev(); }; window.addEventListener('keydown', handleKey); return () => window.removeEventListener('keydown', handleKey); }, []);
+            return (
+                <div style={{ minHeight: '100vh', background: '#ffffff', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                        <div style={{ width: '100%', maxWidth: '900px' }} key={current}>{renderSlide(slides[current])}</div>
+                    </div>
+                    <div style={{ padding: '20px 40px', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
+                        <button onClick={prev} disabled={current === 0} style={{ padding: '12px 24px', background: current === 0 ? '#f3f4f6' : '#1a1a2e', color: current === 0 ? '#9ca3af' : '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: current === 0 ? 'not-allowed' : 'pointer' }}>← Previous</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {slides.map((_, i) => (<button key={i} onClick={() => setCurrent(i)} style={{ width: i === current ? '20px' : '8px', height: '8px', borderRadius: '4px', background: i === current ? '#3b82f6' : '#d1d5db', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }} />))}
+                        </div>
+                        <button onClick={next} disabled={current === slides.length - 1} style={{ padding: '12px 24px', background: current === slides.length - 1 ? '#f3f4f6' : '#3b82f6', color: current === slides.length - 1 ? '#9ca3af' : '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: current === slides.length - 1 ? 'not-allowed' : 'pointer' }}>Next →</button>
+                    </div>
+                    <div style={{ position: 'fixed', bottom: '80px', right: '40px', padding: '8px 16px', background: '#1a1a2e', color: '#fff', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>{current + 1} / {slides.length}</div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<PITRSlideshow />);
+    </script>
+</body>
+</html>

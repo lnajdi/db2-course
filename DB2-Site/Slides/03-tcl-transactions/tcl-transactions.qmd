@@ -1,0 +1,609 @@
+---
+title: "Database Course"
+subtitle: "Transactions & TCL"
+institute: "<br>Polydisciplinary Faculty of Taroudant <br><br>2025-2026<br><br>" 
+author: "Lotfi NAJDI"
+format: 
+  clean-revealjs:
+    transition: slide
+    incremental: false
+---
+
+## What is a Transaction? {.center}
+
+:::{.fragment}
+A transaction is a **sequence of operations** performed as a single logical unit of work.
+:::
+
+:::{.fragment}
+It's like a **"contract"** with your database 📝
+:::
+
+:::{.fragment}
+*Either ALL operations succeed, or ALL operations are rolled back*
+:::
+
+---
+
+## A Simple Analogy 🏦
+
+:::{.center}
+Think of a transaction as a **bank transfer** between accounts.
+:::
+
+:::{.fragment}
+- Step 1: Subtract money from Account A
+- Step 2: Add money to Account B
+- If Step 2 fails → Step 1 must be undone
+- Money can't just disappear!
+:::
+
+:::{.fragment}
+**Both steps succeed together, or both fail together**
+:::
+
+---
+
+## The ACID Properties 🧪
+
+:::{.center}
+Every transaction must follow **ACID** principles:
+:::
+
+:::{.fragment}
+**A**tomicity - All or nothing
+:::
+
+:::{.fragment}
+**C**onsistency - Data integrity is maintained
+:::
+
+:::{.fragment}
+**I**solation - Transactions don't interfere with each other
+:::
+
+:::{.fragment}
+**D**urability - Changes are permanent once committed
+:::
+
+
+::: notes
+to ensure transactions are reliable and maintain the integrity of the database even in the face of errors, crashes, or concurrent access , the rdbms must implement these properties effectively.
+:::
+
+---
+
+## Transaction Control Language (TCL)
+
+### The Four Essential Commands
+
+:::{.fragment}
+- **BEGIN** - Start a transaction
+:::
+
+:::{.fragment}
+- **COMMIT** - Save all changes permanently
+:::
+
+:::{.fragment}
+- **ROLLBACK** - Undo all changes
+:::
+
+:::{.fragment}
+- **SAVEPOINT** - Create a checkpoint within a transaction
+:::
+
+---
+
+## Basic Transaction Syntax
+
+### Starting and committing a transaction
+```sql
+BEGIN;
+-- Your SQL operations here
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+COMMIT;
+```
+
+:::{.fragment}
+### Rolling back a transaction
+```sql
+BEGIN;
+-- Your SQL operations here
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+-- Oops, something went wrong!
+ROLLBACK;
+```
+:::
+
+---
+
+## Real-World Example: Bank Transfer
+
+### Safe money transfer between accounts
+```sql
+BEGIN;
+
+-- Check if source account has sufficient funds
+SELECT balance FROM accounts WHERE id = 1;
+
+-- Perform the transfer
+UPDATE accounts 
+SET balance = balance - 100 
+WHERE id = 1 AND balance >= 100;
+
+-- Check if the update affected exactly 1 row
+-- If not, we'll rollback
+
+UPDATE accounts 
+SET balance = balance + 100 
+WHERE id = 2;
+
+COMMIT;
+```
+
+---
+
+## Handling Errors with Transactions {visibility="hidden"}
+
+### Using conditional logic
+```sql
+BEGIN;
+
+DO $$
+DECLARE
+    source_balance DECIMAL;
+BEGIN
+    -- Check source account balance
+    SELECT balance INTO source_balance 
+    FROM accounts WHERE id = 1;
+    
+    IF source_balance < 100 THEN
+        RAISE EXCEPTION 'Insufficient funds';
+    END IF;
+    
+    -- Perform transfer
+    UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+    UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+    
+    COMMIT;
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        RAISE;
+END $$;
+```
+
+---
+
+
+
+## what are Savepoints?
+
+- Named points within a transaction
+- Allow partial rollbacks
+- Useful for complex transactions
+
+
+## Savepoints: Partial Rollbacks
+
+```sql
+BEGIN;
+
+-- First operation
+INSERT INTO orders (customer_id, total) VALUES (123, 500);
+SAVEPOINT after_order;
+
+-- Second operation (might fail)
+UPDATE inventory SET quantity = quantity - 1 WHERE product_id = 456;
+SAVEPOINT after_inventory;
+
+-- Third operation
+INSERT INTO shipments (order_id, address) VALUES (1001, '123 Main St');
+
+-- If shipment fails, rollback to after inventory update
+-- ROLLBACK TO after_inventory;
+
+```
+
+##  Savepoints: Partial Rollbacks
+
+If you roll back to after_inventory
+```sql
+ROLLBACK TO after_inventory;
+```
+
+- Data kept: the orders insert and the inventory update remain.
+
+- Data undone: only the shipments insert is undone.
+
+- Savepoints: any savepoints created after after_inventory are discarded (there are none in your snippet). The after_inventory savepoint itself is still usable; after_order (earlier) is also still usable. 
+- In Postgres this is explicit: ROLLBACK TO SAVEPOINT destroys all savepoints created after the named one, but the named savepoint remains valid. 
+
+##   Savepoints: Partial Rollbacks
+If you roll back to after_order
+```sql
+ROLLBACK TO after_order;
+```
+
+- Data kept: only the orders insert remains.
+
+- Data undone: the inventory update and the shipments insert are undone.
+
+- Savepoints: after_inventory (which was created after after_order) is discarded; after_order remains usable. 
+
+
+
+## Clean-up and commit tips
+
+- After you’re done, COMMIT; will persist whatever remains; 
+ROLLBACK; (without a savepoint name) cancels the entire transaction and drops all savepoints. 
+
+- If you no longer need a savepoint (e.g., after_order), you can drop it without affecting data using RELEASE SAVEPOINT after_order;
+
+
+
+
+## Savepoints: Partial Rollbacks {visibility="hidden"}
+![Savepoint Diagram](images/transaction-savepoints.png) 
+
+
+
+## Read Consistency 
+By default, each transaction sees a consistent snapshot of the database as of the start of the transaction. This means:
+
+-   Changes made by other transactions after the current transaction started are not visible.
+-   This ensures that reads within a transaction are stable and repeatable, preventing issues like non-repeatable reads and phantom reads.
+
+
+
+
+## Transaction Isolation Levels {visibility="hidden"} 
+
+### Controlling how transactions interact
+
+:::{.fragment}
+**READ UNCOMMITTED** - Can see uncommitted changes (dirty reads)
+:::
+
+:::{.fragment}
+**READ COMMITTED** - Default in PostgreSQL, sees only committed data
+:::
+
+:::{.fragment}
+**REPEATABLE READ** - Same data throughout transaction
+:::
+
+:::{.fragment}
+**SERIALIZABLE** - Highest isolation, transactions appear sequential
+:::
+
+---
+
+## Setting Isolation Levels {visibility="hidden"}
+
+### Changing isolation for current transaction
+```sql
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+
+SELECT * FROM products WHERE category = 'electronics';
+-- This data won't change during this transaction
+
+-- Other operations...
+
+COMMIT;
+```
+
+### Setting default isolation level
+```sql
+SET default_transaction_isolation = 'repeatable read';
+```
+
+---
+
+## Concurrent Transaction Problems {visibility="hidden"}
+
+### Issues that isolation levels prevent
+
+:::{.fragment}
+**Dirty Read** - Reading uncommitted changes from another transaction
+:::
+
+:::{.fragment}
+**Non-repeatable Read** - Same query returns different results within transaction
+:::
+
+:::{.fragment}
+**Phantom Read** - New rows appear/disappear between reads
+:::
+
+:::{.fragment}
+**Lost Update** - One transaction overwrites another's changes
+:::
+
+---
+
+## Auto-commit vs Explicit Transactions
+
+### Auto-commit (default behavior)
+```sql
+-- Each statement is automatically committed
+UPDATE customers SET email = 'new@email.com' WHERE id = 1;
+-- Already committed!
+```
+
+### Explicit transactions
+```sql
+-- You control when to commit
+BEGIN;
+UPDATE customers SET email = 'new@email.com' WHERE id = 1;
+UPDATE customers SET phone = '555-1234' WHERE id = 1;
+-- Both updates happen together or not at all
+COMMIT;
+```
+
+---
+
+## Transaction Best Practices {visibility="hidden"}
+
+:::{.fragment}
+✅ **Keep transactions short** - Reduces lock contention by minimizing the time locks are held
+:::
+
+:::{.fragment}
+✅ **Handle errors properly** - Always have a rollback strategy
+:::
+
+:::{.fragment}
+✅ **Use appropriate isolation levels** - Balance consistency vs performance
+:::
+
+:::{.fragment}
+✅ **Avoid long-running transactions** - They block other operations
+:::
+
+:::{.fragment}
+✅ **Test transaction logic** - Especially error scenarios
+:::
+
+---
+
+## Common Transaction Patterns {visibility="hidden"}
+
+### Pattern 1: Insert with validation
+```sql
+BEGIN;
+    -- Check if email already exists
+    IF EXISTS (SELECT 1 FROM users WHERE email = 'new@user.com') THEN
+        ROLLBACK;
+        RAISE EXCEPTION 'Email already exists';
+    END IF;
+    
+    INSERT INTO users (email, name) VALUES ('new@user.com', 'John Doe');
+COMMIT;
+```
+
+### Pattern 2: Batch operations
+```sql
+BEGIN;
+    INSERT INTO orders (customer_id, total) VALUES (123, 500);
+    INSERT INTO order_items (order_id, product_id, quantity) 
+    VALUES (currval('orders_id_seq'), 456, 2);
+    UPDATE inventory SET quantity = quantity - 2 WHERE product_id = 456;
+COMMIT;
+```
+
+---
+
+
+## Transaction Logs and Recovery {visibility="hidden"}
+
+### Understanding WAL (Write-Ahead Logging)
+:::{.fragment}
+- All changes are first written to a log
+- Log is written before data files are modified
+- Enables crash recovery and replication
+:::
+
+### Checking transaction log status {visibility="hidden"}
+```sql
+-- View current WAL position
+SELECT pg_current_wal_lsn();
+
+-- View WAL statistics
+SELECT * FROM pg_stat_wal;
+```
+---
+
+
+## Implicit commit behavior {visibility="hidden"}
+### Statements that cause implicit commits
+:::{.fragment}
+- DDL statements (e.g., CREATE, ALTER, DROP)
+- Certain utility commands (e.g., VACUUM, CLUSTER)
+- SET commands that change transaction characteristics
+:::
+
+### Example of implicit commit
+```sql
+BEGIN;
+    UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+    
+    -- This DDL statement causes an implicit commit
+    CREATE TABLE temp_table (id SERIAL PRIMARY KEY, data TEXT);
+    
+    -- The previous UPDATE is already committed!
+COMMIT; -- This commit is redundant now
+```
+---
+
+## Implicit rollback behavior  {visibility="hidden"}
+### When implicit rollbacks occur
+:::{.fragment}
+- Errors during transaction execution
+- Violations of constraints (e.g., unique, foreign key)
+- Deadlocks detected by the database
+:::
+
+
+
+## Deadlock Prevention {visibility="hidden"}
+
+### What causes deadlocks?
+:::{.fragment}
+- Transaction A locks Resource 1, needs Resource 2
+- Transaction B locks Resource 2, needs Resource 1
+- Both wait forever!
+:::
+
+### Prevention strategies 
+:::{.fragment}
+```sql
+-- Always access tables in the same order
+BEGIN;
+    UPDATE accounts SET balance = balance - 100 WHERE id = 1; -- Always smaller ID first
+    UPDATE accounts SET balance = balance + 100 WHERE id = 2; -- Then larger ID
+COMMIT;
+```
+:::
+
+---
+
+## Monitoring Transactions {visibility="hidden"}
+
+### Viewing active transactions
+```sql
+-- See what transactions are currently running
+SELECT 
+    pid, -- Process ID
+    state,
+    query_start,
+    query
+FROM pg_stat_activity 
+WHERE state = 'active';
+```
+### Expected output
+| pid  | state  | query_start          | query                                 |
+|------|--------|----------------------|---------------------------------------|
+| 1234 | active | 2024-01-01 12:00:00  | UPDATE accounts SET balance = ...     |
+| 5678 | active | 2024-01-01 12:05:00  | SELECT * FROM orders WHERE ...        |
+
+
+
+### Finding long-running transactions   {visibility="hidden"}
+```sql
+SELECT 
+    pid,
+    now() - xact_start AS transaction_duration,
+    query
+FROM pg_stat_activity 
+WHERE xact_start IS NOT NULL
+ORDER BY transaction_duration DESC;
+```
+
+---
+
+## Real-World Scenario: E-commerce Order {visibility="hidden"}
+
+### Complete order processing transaction
+```sql
+BEGIN;
+    -- Create the order
+    INSERT INTO orders (customer_id, order_date, status, total)
+    VALUES (123, NOW(), 'pending', 299.99);
+    
+    -- Get the new order ID
+    SET @order_id = LASTVAL();
+    
+    -- Add order items
+    INSERT INTO order_items (order_id, product_id, quantity, price)
+    VALUES (@order_id, 456, 2, 149.99);
+    
+    -- Update inventory
+    UPDATE products 
+    SET stock_quantity = stock_quantity - 2
+    WHERE product_id = 456 AND stock_quantity >= 2;
+    
+    -- Check if inventory update was successful
+    IF ROW_COUNT() = 0 THEN
+        ROLLBACK;
+        RAISE EXCEPTION 'Insufficient stock';
+    END IF;
+    
+    -- Update order status
+    UPDATE orders SET status = 'confirmed' WHERE order_id = @order_id;
+    
+COMMIT;
+```
+
+---
+
+## Performance Considerations {visibility="hidden"}
+
+:::{.fragment}
+⚡ **Shorter transactions = better performance**
+:::
+
+:::{.fragment}
+⚡ **Lower isolation levels = less locking**
+:::
+
+:::{.fragment}
+⚡ **Batch operations when possible**
+:::
+
+:::{.fragment}
+⚡ **Avoid unnecessary SELECTs in transactions**
+:::
+
+:::{.fragment}
+⚡ **Use connection pooling for high-concurrency apps**
+:::
+
+---
+
+## Common Mistakes to Avoid {visibility="hidden"}
+
+:::{.fragment}
+🚫 **Forgetting to COMMIT** - Changes are lost
+:::
+
+:::{.fragment}
+🚫 **Long-running transactions** - Blocks other users
+:::
+
+:::{.fragment}
+🚫 **No error handling** - Data inconsistency
+:::
+
+:::{.fragment}
+🚫 **Wrong isolation level** - Performance or consistency issues
+:::
+
+:::{.fragment}
+🚫 **Nested transactions without savepoints** - Unexpected behavior
+:::
+
+---
+
+## Summary {visibility="hidden"}
+
+:::{.center}
+**Transactions ensure data integrity and consistency**
+:::
+
+:::{.fragment}
+- Use BEGIN/COMMIT for multi-step operations
+- Always handle errors with proper rollback logic
+- Choose appropriate isolation levels
+- Keep transactions short and focused
+- Monitor for deadlocks and long-running transactions
+:::
+
+:::{.fragment}
+**Remember: ACID properties are your safety net!** 🛡️
+:::
+
+---
+

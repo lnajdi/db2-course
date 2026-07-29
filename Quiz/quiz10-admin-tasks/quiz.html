@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL Admin Tasks Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #1a1a2e;
+            padding-bottom: 20px;
+        }
+
+        .quiz-title {
+            color: #2d3748;
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .quiz-subtitle {
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .progress-container {
+            margin-bottom: 30px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .question-counter {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        .score-display {
+            font-weight: 600;
+            color: #1a1a2e;
+            font-size: 1.1em;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1a1a2e, #16213e, #0f3460);
+            transition: width 0.3s ease;
+        }
+
+        .question-container {
+            margin-bottom: 30px;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            color: #2d3748;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border-left: 5px solid #1a1a2e;
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .options-container {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-button {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px 20px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+            color: #4a5568;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-button:hover {
+            border-color: #1a1a2e;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(26, 26, 46, 0.15);
+        }
+
+        .option-button.selected {
+            border-color: #1a1a2e;
+            background: #f8fafc;
+        }
+
+        .option-button.correct {
+            border-color: #38a169;
+            background: #f0fff4;
+            color: #22543d;
+        }
+
+        .option-button.incorrect {
+            border-color: #e53e3e;
+            background: #fff5f5;
+            color: #742a2a;
+        }
+
+        .option-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-letter {
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-right: 12px;
+        }
+
+        .controls-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(26, 26, 46, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .hint-container {
+            background: #fffbeb;
+            border: 1px solid #f6cc3e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #744210;
+            display: none;
+        }
+
+        .hint-container.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #22543d;
+            display: none;
+        }
+
+        .explanation.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .explanation h4 {
+            color: #22543d;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .explanation p {
+            line-height: 1.6;
+        }
+
+        .results-container {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .final-score {
+            font-size: 3em;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 20px;
+        }
+
+        .results-message {
+            font-size: 1.3em;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .performance-breakdown {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .performance-item:last-child {
+            border-bottom: none;
+        }
+
+        .restart-btn {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .quiz-container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .quiz-title {
+                font-size: 1.8em;
+            }
+
+            .question-text {
+                font-size: 1.2em;
+                padding: 15px;
+            }
+
+            .option-button {
+                padding: 15px;
+                font-size: 1em;
+            }
+
+            .controls-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .difficulty-easy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .difficulty-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .difficulty-hard {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 class="quiz-title">Advanced DB Admin Tasks</h1>
+            <p class="quiz-subtitle">Master backup, monitoring, and maintenance operations</p>
+        </div>
+
+        <div id="quiz-content">
+            <div class="progress-container">
+                <div class="progress-info">
+                    <span class="question-counter" id="question-counter">Question 1 of 20</span>
+                    <span class="score-display" id="score-display">Score: 0/20</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <div class="question-container">
+                <div class="question-text" id="question-text">Loading question...</div>
+                <div class="options-container" id="options-container"></div>
+                <div class="hint-container" id="hint-container"></div>
+                <div class="explanation" id="explanation"></div>
+            </div>
+
+            <div class="controls-container">
+                <button class="btn btn-secondary" id="hint-btn" onclick="showHint()">
+                    💡 Show Hint
+                </button>
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>
+                    Next Question →
+                </button>
+            </div>
+        </div>
+
+        <div class="results-container" id="results-container">
+            <div class="final-score" id="final-score">0/20</div>
+            <div class="results-message" id="results-message"></div>
+            <div class="performance-breakdown">
+                <div class="performance-item">
+                    <span>Correct Answers:</span>
+                    <span id="correct-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Incorrect Answers:</span>
+                    <span id="incorrect-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Accuracy:</span>
+                    <span id="accuracy-percent">0%</span>
+                </div>
+            </div>
+            <button class="btn btn-primary restart-btn" onclick="restartQuiz()">
+                🔄 Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What is the primary advantage of using pg_dump with the custom format (-Fc) over plain SQL format?",
+                options: [
+                    "It creates smaller backup files",
+                    "It allows selective restoration and parallel processing",
+                    "It's faster to create",
+                    "It's more compatible across PostgreSQL versions"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the flexibility and features that custom format provides for restoration.",
+                explanation: "Custom format (-Fc) allows selective restoration of specific tables, schemas, or objects, supports parallel restoration for faster recovery, and provides better compression. It's the most versatile backup format for production environments.",
+                difficulty: "easy"
+            },
+            {
+                question: "Which PostgreSQL system view provides real-time information about active database connections and running queries?",
+                options: [
+                    "pg_connections",
+                    "pg_stat_activity",
+                    "pg_sessions",
+                    "pg_active_queries"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the statistics-related system views for monitoring database activity.",
+                explanation: "pg_stat_activity is the primary system view for monitoring current database activity, showing information about active connections, running queries, connection states, and session details.",
+                difficulty: "easy"
+            },
+            {
+                question: "What does the VACUUM operation accomplish in PostgreSQL?",
+                options: [
+                    "Creates backup copies of tables",
+                    "Updates table statistics for query planning",
+                    "Reclaims storage from deleted rows and updates visibility maps",
+                    "Rebuilds table indexes"
+                ],
+                correctAnswer: 2,
+                hint: "Think about PostgreSQL's MVCC system and what happens to deleted/updated rows.",
+                explanation: "VACUUM reclaims storage space from dead tuples (deleted or updated rows), updates the free space map and visibility map, and helps prevent transaction ID wraparound issues.",
+                difficulty: "easy"
+            },
+            {
+                question: "What backup strategy provides the ability to perform point-in-time recovery (PITR) in PostgreSQL?",
+                options: [
+                    "Regular pg_dump backups only",
+                    "Continuous archiving with WAL archiving",
+                    "Schema-only backups with data exports",
+                    "Snapshot-based backups"
+                ],
+                correctAnswer: 1,
+                hint: "Think about what's needed to restore a database to any specific point in time.",
+                explanation: "Continuous archiving with WAL (Write-Ahead Logging) archiving enables point-in-time recovery by combining base backups with archived WAL files, allowing recovery to any specific moment.",
+                difficulty: "medium"
+            },
+            {
+                question: "Which extension is essential for analyzing slow query performance in PostgreSQL?",
+                options: [
+                    "pg_stat_statements",
+                    "pg_query_analyzer",
+                    "pg_slow_log",
+                    "pg_performance"
+                ],
+                correctAnswer: 0,
+                hint: "Think about the standard PostgreSQL extension that tracks query execution statistics.",
+                explanation: "pg_stat_statements extension tracks execution statistics for all SQL statements, providing data on execution times, call frequency, and resource usage - essential for performance analysis.",
+                difficulty: "medium"
+            },
+            {
+                question: "What does a high percentage of dead tuples in a table typically indicate?",
+                options: [
+                    "The table has too many indexes",
+                    "The table needs more frequent VACUUM operations",
+                    "The table structure needs optimization",
+                    "The table has corrupted data"
+                ],
+                correctAnswer: 1,
+                hint: "Think about what dead tuples are and how they're cleaned up.",
+                explanation: "High dead tuple percentage indicates that many rows have been updated or deleted but not yet cleaned up by VACUUM, suggesting the need for more frequent vacuuming or tuning autovacuum settings.",
+                difficulty: "medium"
+            },
+            {
+                question: "In a comprehensive backup strategy, what should be the recommended approach for a production database requiring minimal data loss and fast recovery?",
+                options: [
+                    "Daily pg_dump backups only",
+                    "Base backup + continuous WAL archiving + regular testing",
+                    "Weekly full backups with daily schema backups",
+                    "Hourly compressed backups to local storage"
+                ],
+                correctAnswer: 1,
+                hint: "Consider the requirements for minimal data loss (RPO) and fast recovery (RTO).",
+                explanation: "Base backup combined with continuous WAL archiving provides point-in-time recovery with minimal data loss, while regular testing ensures backups are valid and recovery procedures work correctly.",
+                difficulty: "hard"
+            },
+            {
+                question: "What information can you obtain from the pg_stat_user_indexes view?",
+                options: [
+                    "Index creation scripts and definitions",
+                    "Index usage statistics and scan counts",
+                    "Index size and storage details",
+                    "Index constraint and uniqueness information"
+                ],
+                correctAnswer: 1,
+                hint: "Think about monitoring and statistics rather than structure information.",
+                explanation: "pg_stat_user_indexes provides usage statistics including index scans, tuples read/fetched, helping identify unused or ineffective indexes for performance optimization.",
+                difficulty: "medium"
+            },
+            {
+                question: "The ANALYZE operation in PostgreSQL updates table statistics used by the query planner.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider what information the query planner needs to make optimal execution plans.",
+                explanation: "True. ANALYZE collects statistics about the data distribution in tables and indexes, which the query planner uses to choose optimal execution plans for queries.",
+                difficulty: "easy"
+            },
+            {
+                question: "Which command allows you to rebuild an index without blocking concurrent read and write operations?",
+                options: [
+                    "REINDEX INDEX index_name",
+                    "REINDEX INDEX CONCURRENTLY index_name",
+                    "REBUILD INDEX index_name",
+                    "ALTER INDEX index_name REBUILD"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the option that minimizes downtime in production environments.",
+                explanation: "REINDEX INDEX CONCURRENTLY rebuilds the index without blocking concurrent DML operations, though it takes longer and uses more resources than regular REINDEX.",
+                difficulty: "medium"
+            },
+            {
+                question: "When implementing automated maintenance, what approach provides the most comprehensive maintenance strategy?",
+                options: [
+                    "Run VACUUM FULL on all tables weekly",
+                    "Conditional maintenance based on dead tuple ratios and usage patterns",
+                    "Daily ANALYZE on all tables regardless of activity",
+                    "Scheduled index rebuilding every night"
+                ],
+                correctAnswer: 1,
+                hint: "Think about efficiency and targeting maintenance where it's actually needed.",
+                explanation: "Conditional maintenance based on metrics like dead tuple ratios, table activity, and usage patterns ensures maintenance resources are used efficiently and only where needed.",
+                difficulty: "hard"
+            },
+            {
+                question: "What is a key indicator that a table might benefit from partitioning?",
+                options: [
+                    "High number of indexes",
+                    "Large table size with time-based query patterns",
+                    "Frequent concurrent access",
+                    "Complex join operations"
+                ],
+                correctAnswer: 1,
+                hint: "Think about scenarios where dividing a table into smaller, manageable pieces would improve performance.",
+                explanation: "Large tables with predictable access patterns (especially time-based) benefit from partitioning, which improves query performance, maintenance operations, and allows partition pruning.",
+                difficulty: "medium"
+            },
+            {
+                question: "In a monitoring system, what would indicate a serious performance problem requiring immediate attention?",
+                options: [
+                    "Index scan ratio below 90%",
+                    "Long-running queries exceeding 5 minutes",
+                    "Database size growing by 10% monthly",
+                    "Connection count reaching 50% of max_connections"
+                ],
+                correctAnswer: 1,
+                hint: "Consider which metric indicates an immediate operational problem rather than a trend.",
+                explanation: "Long-running queries exceeding reasonable thresholds (like 5 minutes) often indicate blocking, poorly optimized queries, or resource contention requiring immediate investigation.",
+                difficulty: "hard"
+            },
+            {
+                question: "What does enabling log_statement = 'all' accomplish in PostgreSQL?",
+                options: [
+                    "Logs only error statements",
+                    "Logs all SQL statements executed against the database",
+                    "Logs only DDL statements",
+                    "Logs connection and disconnection events"
+                ],
+                correctAnswer: 1,
+                hint: "Think about what 'all' means in the context of statement logging.",
+                explanation: "log_statement = 'all' logs every SQL statement executed against the database, useful for auditing and debugging but can generate large log volumes in production.",
+                difficulty: "medium"
+            },
+            {
+                question: "PostgreSQL's autovacuum process automatically handles most routine maintenance tasks.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider PostgreSQL's built-in automation for maintenance tasks.",
+                explanation: "True. Autovacuum automatically runs VACUUM and ANALYZE operations based on activity thresholds, handling routine maintenance for most workloads without manual intervention.",
+                difficulty: "easy"
+            },
+            {
+                question: "When planning database capacity, which combination of metrics provides the most comprehensive view of growth trends?",
+                options: [
+                    "Table row counts and query frequency",
+                    "Database size, transaction volume, and connection patterns over time",
+                    "Index sizes and scan ratios",
+                    "CPU usage and memory consumption"
+                ],
+                correctAnswer: 1,
+                hint: "Think about metrics that show both storage and workload growth patterns.",
+                explanation: "Database size shows storage growth, transaction volume indicates workload trends, and connection patterns reveal concurrency requirements - together providing comprehensive capacity planning data.",
+                difficulty: "hard"
+            },
+            {
+                question: "What is the primary risk of dropping an unused index without thorough analysis?",
+                options: [
+                    "Database corruption",
+                    "Losing referential integrity",
+                    "Performance degradation for infrequent but critical queries",
+                    "Increased storage requirements"
+                ],
+                correctAnswer: 2,
+                hint: "Think about query patterns that might not show up in regular monitoring.",
+                explanation: "Unused indexes might still be critical for infrequent queries (like monthly reports or emergency procedures) that don't appear in regular monitoring but could experience severe performance degradation.",
+                difficulty: "medium"
+            },
+            {
+                question: "In a production environment, what is the most appropriate approach for testing backup and recovery procedures?",
+                options: [
+                    "Test only when problems occur",
+                    "Regular testing on separate systems with production-like data",
+                    "Annual full system recovery tests",
+                    "Test backups by restoring to the same production system"
+                ],
+                correctAnswer: 1,
+                hint: "Think about balancing thorough testing with production safety.",
+                explanation: "Regular testing on separate systems with production-like data ensures backup validity and recovery procedures work correctly without risking production systems or data.",
+                difficulty: "hard"
+            },
+            {
+                question: "What does the checkpoint_completion_target parameter control in PostgreSQL?",
+                options: [
+                    "The frequency of automatic backups",
+                    "The time spread for checkpoint I/O operations",
+                    "The maximum size of WAL files",
+                    "The timeout for query execution"
+                ],
+                correctAnswer: 1,
+                hint: "Think about spreading I/O operations to reduce performance spikes.",
+                explanation: "checkpoint_completion_target controls how PostgreSQL spreads checkpoint I/O over time, reducing performance spikes by avoiding concentrated disk activity.",
+                difficulty: "medium"
+            },
+            {
+                question: "When implementing a comprehensive database monitoring solution, what is the most critical success factor?",
+                options: [
+                    "Using the most advanced monitoring tools available",
+                    "Establishing baselines and setting appropriate alert thresholds",
+                    "Monitoring every possible metric continuously",
+                    "Real-time visualization of all database activity"
+                ],
+                correctAnswer: 1,
+                hint: "Think about what makes monitoring actionable and prevents false alerts.",
+                explanation: "Establishing performance baselines and setting appropriate alert thresholds prevents false positives, ensures alerts indicate real problems, and enables effective response to actual issues rather than noise.",
+                difficulty: "hard"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+        let quizCompleted = false;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            const question = quizData[currentQuestion];
+            const questionCounter = document.getElementById('question-counter');
+            const scoreDisplay = document.getElementById('score-display');
+            const progressFill = document.getElementById('progress-fill');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const hintContainer = document.getElementById('hint-container');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Update progress
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+            progressFill.style.width = `${((currentQuestion + 1) / quizData.length) * 100}%`;
+
+            // Load question
+            const difficultyClass = `difficulty-${question.difficulty}`;
+            const difficultyBadge = `<span class="difficulty-badge ${difficultyClass}">${question.difficulty.toUpperCase()}</span>`;
+            questionText.innerHTML = question.question + difficultyBadge;
+
+            // Load options
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}.</span>${option}`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+
+            // Reset controls
+            selectedAnswer = null;
+            hintContainer.classList.remove('show');
+            explanation.classList.remove('show');
+            nextBtn.disabled = true;
+            hintBtn.style.display = 'block';
+
+            if (currentQuestion === quizData.length - 1) {
+                nextBtn.textContent = 'Show Results';
+            }
+        }
+
+        function selectAnswer(answerIndex) {
+            if (selectedAnswer !== null) return;
+
+            selectedAnswer = answerIndex;
+            const question = quizData[currentQuestion];
+            const options = document.querySelectorAll('.option-button');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Disable all options
+            options.forEach(option => option.classList.add('disabled'));
+
+            // Show correct/incorrect styling
+            options[question.correctAnswer].classList.add('correct');
+            if (answerIndex !== question.correctAnswer) {
+                options[answerIndex].classList.add('incorrect');
+            } else {
+                score++;
+                document.getElementById('score-display').textContent = `Score: ${score}/${quizData.length}`;
+            }
+
+            // Show explanation
+            explanation.innerHTML = `
+                <h4>🔧 Explanation</h4>
+                <p><strong>Correct Answer:</strong> ${question.explanation}</p>
+            `;
+            explanation.classList.add('show');
+
+            // Enable next button and hide hint button
+            nextBtn.disabled = false;
+            hintBtn.style.display = 'none';
+        }
+
+        function showHint() {
+            const question = quizData[currentQuestion];
+            const hintContainer = document.getElementById('hint-container');
+            hintContainer.innerHTML = `<strong>💡 Hint:</strong> ${question.hint}`;
+            hintContainer.classList.add('show');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+            const finalScore = document.getElementById('final-score');
+            const resultsMessage = document.getElementById('results-message');
+            const correctCount = document.getElementById('correct-count');
+            const incorrectCount = document.getElementById('incorrect-count');
+            const accuracyPercent = document.getElementById('accuracy-percent');
+
+            quizContent.style.display = 'none';
+            resultsContainer.classList.add('show');
+
+            const accuracy = Math.round((score / quizData.length) * 100);
+            
+            finalScore.textContent = `${score}/${quizData.length}`;
+            correctCount.textContent = score;
+            incorrectCount.textContent = quizData.length - score;
+            accuracyPercent.textContent = `${accuracy}%`;
+
+            let message = '';
+            if (accuracy >= 90) {
+                message = '🏆 Outstanding! You are ready to handle complex database administration tasks in production environments!';
+            } else if (accuracy >= 80) {
+                message = '⭐ Excellent! You have solid understanding of advanced database administration concepts.';
+            } else if (accuracy >= 70) {
+                message = '📈 Good work! Review backup strategies, monitoring techniques, and maintenance automation.';
+            } else if (accuracy >= 60) {
+                message = '📚 Keep studying! Focus on backup procedures, performance monitoring, and maintenance operations.';
+            } else {
+                message = '🔄 Review the fundamentals! Study backup strategies, monitoring systems, and operational procedures.';
+            }
+
+            resultsMessage.textContent = message;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            selectedAnswer = null;
+            quizCompleted = false;
+
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+
+            resultsContainer.classList.remove('show');
+            quizContent.style.display = 'block';
+
+            loadQuestion();
+        }
+
+        // Initialize quiz
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>

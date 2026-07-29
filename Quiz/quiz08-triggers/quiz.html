@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL Triggers Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .quiz-title {
+            color: #2d3748;
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .quiz-subtitle {
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .progress-container {
+            margin-bottom: 30px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .question-counter {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        .score-display {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+            transition: width 0.3s ease;
+        }
+
+        .question-container {
+            margin-bottom: 30px;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            color: #2d3748;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border-left: 5px solid #667eea;
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .options-container {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-button {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px 20px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+            color: #4a5568;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-button:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .option-button.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .option-button.correct {
+            border-color: #38a169;
+            background: #f0fff4;
+            color: #22543d;
+        }
+
+        .option-button.incorrect {
+            border-color: #e53e3e;
+            background: #fff5f5;
+            color: #742a2a;
+        }
+
+        .option-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-letter {
+            font-weight: 700;
+            color: #667eea;
+            margin-right: 12px;
+        }
+
+        .controls-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .hint-container {
+            background: #fffbeb;
+            border: 1px solid #f6cc3e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #744210;
+            display: none;
+        }
+
+        .hint-container.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #22543d;
+            display: none;
+        }
+
+        .explanation.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .explanation h4 {
+            color: #22543d;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .explanation p {
+            line-height: 1.6;
+        }
+
+        .results-container {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .final-score {
+            font-size: 3em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .results-message {
+            font-size: 1.3em;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .performance-breakdown {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .performance-item:last-child {
+            border-bottom: none;
+        }
+
+        .restart-btn {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .quiz-container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .quiz-title {
+                font-size: 1.8em;
+            }
+
+            .question-text {
+                font-size: 1.2em;
+                padding: 15px;
+            }
+
+            .option-button {
+                padding: 15px;
+                font-size: 1em;
+            }
+
+            .controls-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .difficulty-easy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .difficulty-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .difficulty-hard {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 class="quiz-title">PostgreSQL Triggers</h1>
+            <p class="quiz-subtitle">Master database automation and event-driven programming</p>
+        </div>
+
+        <div id="quiz-content">
+            <div class="progress-container">
+                <div class="progress-info">
+                    <span class="question-counter" id="question-counter">Question 1 of 20</span>
+                    <span class="score-display" id="score-display">Score: 0/20</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <div class="question-container">
+                <div class="question-text" id="question-text">Loading question...</div>
+                <div class="options-container" id="options-container"></div>
+                <div class="hint-container" id="hint-container"></div>
+                <div class="explanation" id="explanation"></div>
+            </div>
+
+            <div class="controls-container">
+                <button class="btn btn-secondary" id="hint-btn" onclick="showHint()">
+                    💡 Show Hint
+                </button>
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>
+                    Next Question →
+                </button>
+            </div>
+        </div>
+
+        <div class="results-container" id="results-container">
+            <div class="final-score" id="final-score">0/20</div>
+            <div class="results-message" id="results-message"></div>
+            <div class="performance-breakdown">
+                <div class="performance-item">
+                    <span>Correct Answers:</span>
+                    <span id="correct-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Incorrect Answers:</span>
+                    <span id="incorrect-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Accuracy:</span>
+                    <span id="accuracy-percent">0%</span>
+                </div>
+            </div>
+            <button class="btn btn-primary restart-btn" onclick="restartQuiz()">
+                🔄 Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What is the primary characteristic that defines a database trigger?",
+                options: [
+                    "A stored procedure that must be called manually",
+                    "A special function that automatically executes in response to database events",
+                    "A table constraint that prevents invalid data",
+                    "A view that automatically updates when tables change"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the \"automatic\" nature of triggers compared to regular functions.",
+                explanation: "A trigger is a special type of stored procedure that automatically fires (executes) when specific database events occur, such as INSERT, UPDATE, or DELETE operations.",
+                difficulty: "easy"
+            },
+            {
+                question: "What are the valid timing options when creating a trigger?",
+                options: [
+                    "BEFORE, DURING, AFTER",
+                    "BEFORE, AFTER, INSTEAD OF",
+                    "START, MIDDLE, END",
+                    "PRE, POST, REPLACE"
+                ],
+                correctAnswer: 1,
+                hint: "Think about when a trigger can execute relative to the triggering event.",
+                explanation: "PostgreSQL supports BEFORE triggers (execute before the event), AFTER triggers (execute after the event), and INSTEAD OF triggers (replace the event, typically used with views).",
+                difficulty: "easy"
+            },
+            {
+                question: "Trigger functions must have a return type of TRIGGER.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider the special return type required for trigger functions.",
+                explanation: "True. All trigger functions must be declared with RETURNS TRIGGER, and they typically return NEW, OLD, or NULL depending on the trigger type and operation.",
+                difficulty: "easy"
+            },
+            {
+                question: "In a trigger function, what do the OLD and NEW special variables contain?",
+                options: [
+                    "Previous and current database state",
+                    "Row data before and after the triggering operation",
+                    "The oldest and newest records in the table",
+                    "Error state and success state information"
+                ],
+                correctAnswer: 1,
+                hint: "Think about what data is available during row modifications.",
+                explanation: "OLD contains the row data before the operation (available in UPDATE and DELETE), while NEW contains the row data after the operation (available in INSERT and UPDATE).",
+                difficulty: "medium"
+            },
+            {
+                question: "Which database operations can cause a trigger to fire?",
+                options: [
+                    "SELECT, INSERT, UPDATE",
+                    "INSERT, UPDATE, DELETE, TRUNCATE",
+                    "CREATE, ALTER, DROP",
+                    "All SQL statements"
+                ],
+                correctAnswer: 1,
+                hint: "Think about operations that modify data in tables.",
+                explanation: "Triggers can fire on INSERT (new rows), UPDATE (modified rows), DELETE (removed rows), and TRUNCATE (table emptying) operations. SELECT doesn't modify data so doesn't trigger.",
+                difficulty: "medium"
+            },
+            {
+                question: "What is the difference between row-level and statement-level triggers?",
+                options: [
+                    "Row-level triggers are faster than statement-level triggers",
+                    "Row-level triggers execute once per affected row, statement-level once per SQL statement",
+                    "Statement-level triggers can only be used with SELECT statements",
+                    "Row-level triggers cannot access OLD and NEW variables"
+                ],
+                correctAnswer: 1,
+                hint: "Think about how many times the trigger function runs.",
+                explanation: "Row-level triggers (FOR EACH ROW) execute once for each row affected by the triggering statement, while statement-level triggers (FOR EACH STATEMENT) execute once for the entire SQL statement regardless of how many rows are affected.",
+                difficulty: "medium"
+            },
+            {
+                question: "What occurs when a BEFORE trigger returns NULL instead of NEW or OLD?",
+                options: [
+                    "The trigger execution continues normally",
+                    "An error is raised immediately",
+                    "The triggering operation is skipped for that row",
+                    "The operation is converted to an UPDATE"
+                ],
+                correctAnswer: 2,
+                hint: "Think about how BEFORE triggers can control whether operations proceed.",
+                explanation: "When a BEFORE trigger returns NULL, it signals PostgreSQL to skip the triggering operation for that row. This is a way to conditionally prevent INSERT, UPDATE, or DELETE operations.",
+                difficulty: "hard"
+            },
+            {
+                question: "How can a trigger function determine which operation (INSERT, UPDATE, DELETE) caused it to fire?",
+                options: [
+                    "TG_EVENT",
+                    "TG_OP",
+                    "TG_ACTION",
+                    "TG_TYPE"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the special variables available in trigger functions that provide context.",
+                explanation: "TG_OP contains the operation name ('INSERT', 'UPDATE', 'DELETE', or 'TRUNCATE') that triggered the function, allowing one function to handle multiple trigger events.",
+                difficulty: "medium"
+            },
+            {
+                question: "AFTER triggers can modify the NEW record to change what gets stored.",
+                options: ["True", "False"],
+                correctAnswer: 1,
+                hint: "Think about when AFTER triggers execute relative to the data modification.",
+                explanation: "False. AFTER triggers execute after the triggering operation has already completed and the data has been stored. Only BEFORE triggers can modify NEW to change what gets stored.",
+                difficulty: "easy"
+            },
+            {
+                question: "What is the best practice for implementing audit logging with triggers?",
+                options: [
+                    "Store all changes in the same table with additional columns",
+                    "Create separate audit tables to track changes without affecting performance",
+                    "Use only BEFORE triggers for audit logging",
+                    "Log changes directly to files instead of database tables"
+                ],
+                correctAnswer: 1,
+                hint: "Consider the impact on the original table and query performance.",
+                explanation: "Separate audit tables prevent performance impact on the original table, allow for different retention policies, and provide a clear separation between operational data and audit information.",
+                difficulty: "medium"
+            },
+            {
+                question: "When implementing data validation, which trigger timing should you typically use?",
+                options: [
+                    "AFTER triggers, because you need to see the final data",
+                    "BEFORE triggers, because you can prevent invalid data from being stored",
+                    "INSTEAD OF triggers, because they replace the operation",
+                    "Any timing works equally well for validation"
+                ],
+                correctAnswer: 1,
+                hint: "Think about when you want to catch and prevent invalid data.",
+                explanation: "BEFORE triggers are ideal for validation because they can examine and modify the NEW data before it's stored, and can raise exceptions to prevent invalid data from being committed.",
+                difficulty: "medium"
+            },
+            {
+                question: "How should you properly handle and report errors in trigger functions?",
+                options: [
+                    "Use TRY-CATCH blocks like in other programming languages",
+                    "Use RAISE EXCEPTION to throw errors that will rollback the transaction",
+                    "Return FALSE to indicate an error occurred",
+                    "Log errors to a file and continue processing"
+                ],
+                correctAnswer: 1,
+                hint: "Think about PostgreSQL's error handling mechanism and transaction safety.",
+                explanation: "RAISE EXCEPTION is the proper way to handle errors in triggers. It stops the triggering operation and rolls back the transaction, ensuring data consistency.",
+                difficulty: "hard"
+            },
+            {
+                question: "Trigger functions can call other PostgreSQL functions and execute dynamic SQL.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider the capabilities available within PL/pgSQL trigger functions.",
+                explanation: "True. Trigger functions are regular PL/pgSQL functions that can call other functions, execute dynamic SQL with EXECUTE, and perform any operations available to stored procedures.",
+                difficulty: "easy"
+            },
+            {
+                question: "In this trigger function, what occurs when this BEFORE trigger encounters an inactive customer?<br><div class='code-block'>CREATE OR REPLACE FUNCTION check_customer_status()<br>RETURNS TRIGGER AS $$<br>BEGIN<br>    IF NOT (SELECT active FROM customer WHERE customer_id = NEW.customer_id) THEN<br>        RAISE EXCEPTION 'Cannot process inactive customer';<br>    END IF;<br>    RETURN NEW;<br>END;<br>$$ LANGUAGE plpgsql;</div>",
+                options: [
+                    "The trigger returns NULL and skips the operation",
+                    "An exception is raised and the transaction is rolled back",
+                    "The customer is automatically activated",
+                    "A warning is logged but the operation continues"
+                ],
+                correctAnswer: 1,
+                hint: "Look at the RAISE EXCEPTION statement and consider its effect on the transaction.",
+                explanation: "The RAISE EXCEPTION statement throws an error that stops the triggering operation and rolls back the entire transaction, preventing any changes from being committed.",
+                difficulty: "medium"
+            },
+            {
+                question: "What is the primary performance concern when implementing database triggers?",
+                options: [
+                    "Triggers consume too much disk space",
+                    "Triggers execute for every affected row and add overhead to DML operations",
+                    "Triggers cannot use database indexes",
+                    "Triggers require too much memory allocation"
+                ],
+                correctAnswer: 1,
+                hint: "Think about when triggers fire and their impact on normal database operations.",
+                explanation: "Triggers add processing overhead because they execute automatically on every triggering operation. Row-level triggers especially can significantly impact performance when processing many rows.",
+                difficulty: "hard"
+            },
+            {
+                question: "How should you structure complex business logic in trigger functions?",
+                options: [
+                    "Put all logic directly in the trigger function",
+                    "Call separate functions from the trigger to keep the trigger simple",
+                    "Use multiple triggers instead of complex logic",
+                    "Avoid complex logic in triggers entirely"
+                ],
+                correctAnswer: 1,
+                hint: "Think about maintainability and debugging of trigger code.",
+                explanation: "Keeping trigger functions simple and calling separate functions for complex logic makes the code more maintainable, testable, and easier to debug while still providing the automation benefits of triggers.",
+                difficulty: "medium"
+            },
+            {
+                question: "When you drop a table, all associated triggers are automatically removed.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider what happens to table-dependent objects when the table is removed.",
+                explanation: "True. Triggers are dependent on their associated tables, so dropping a table automatically removes all triggers defined on that table.",
+                difficulty: "easy"
+            },
+            {
+                question: "What type of functionality does this trigger pattern typically implement?<br><div class='code-block'>CREATE TRIGGER audit_trigger<br>    AFTER INSERT OR UPDATE OR DELETE ON customer<br>    FOR EACH ROW EXECUTE FUNCTION log_customer_changes();</div>",
+                options: [
+                    "Data validation before changes are made",
+                    "Automatic calculation of derived values",
+                    "Audit trail logging of all customer changes",
+                    "Prevention of unauthorized operations"
+                ],
+                correctAnswer: 2,
+                hint: "Notice the AFTER timing and the comprehensive event coverage.",
+                explanation: "This is a classic audit trigger pattern that captures all changes (INSERT, UPDATE, DELETE) to the customer table after they occur, typically for logging and compliance purposes.",
+                difficulty: "medium"
+            },
+            {
+                question: "In which situation would triggers be the most appropriate solution?",
+                options: [
+                    "Generating monthly reports from existing data",
+                    "Automatically calculating and updating related values when data changes",
+                    "Performing one-time data migration between systems",
+                    "Implementing user interface validation logic"
+                ],
+                correctAnswer: 1,
+                hint: "Think about scenarios requiring automatic, immediate response to data changes.",
+                explanation: "Triggers excel at automatically maintaining derived data and enforcing business rules that must be consistently applied whenever data changes, regardless of how the change occurs.",
+                difficulty: "hard"
+            },
+            {
+                question: "What is the recommended approach for organizing and naming database triggers?",
+                options: [
+                    "Use generic names like trigger1, trigger2, etc.",
+                    "Use descriptive names that indicate the table, timing, and purpose",
+                    "Name all triggers the same to simplify management",
+                    "Use random names to prevent unauthorized access"
+                ],
+                correctAnswer: 1,
+                hint: "Think about maintenance and documentation of trigger systems.",
+                explanation: "Descriptive naming like \"customer_audit_after_trigger\" or \"inventory_validation_before_trigger\" makes triggers easier to understand, maintain, and debug in complex database systems.",
+                difficulty: "medium"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+        let quizCompleted = false;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            const question = quizData[currentQuestion];
+            const questionCounter = document.getElementById('question-counter');
+            const scoreDisplay = document.getElementById('score-display');
+            const progressFill = document.getElementById('progress-fill');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const hintContainer = document.getElementById('hint-container');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Update progress
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+            progressFill.style.width = `${((currentQuestion + 1) / quizData.length) * 100}%`;
+
+            // Load question
+            const difficultyClass = `difficulty-${question.difficulty}`;
+            const difficultyBadge = `<span class="difficulty-badge ${difficultyClass}">${question.difficulty.toUpperCase()}</span>`;
+            questionText.innerHTML = question.question + difficultyBadge;
+
+            // Load options
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}.</span>${option}`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+
+            // Reset controls
+            selectedAnswer = null;
+            hintContainer.classList.remove('show');
+            explanation.classList.remove('show');
+            nextBtn.disabled = true;
+            hintBtn.style.display = 'block';
+
+            if (currentQuestion === quizData.length - 1) {
+                nextBtn.textContent = 'Show Results';
+            }
+        }
+
+        function selectAnswer(answerIndex) {
+            if (selectedAnswer !== null) return;
+
+            selectedAnswer = answerIndex;
+            const question = quizData[currentQuestion];
+            const options = document.querySelectorAll('.option-button');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Disable all options
+            options.forEach(option => option.classList.add('disabled'));
+
+            // Show correct/incorrect styling
+            options[question.correctAnswer].classList.add('correct');
+            if (answerIndex !== question.correctAnswer) {
+                options[answerIndex].classList.add('incorrect');
+            } else {
+                score++;
+                document.getElementById('score-display').textContent = `Score: ${score}/${quizData.length}`;
+            }
+
+            // Show explanation
+            explanation.innerHTML = `
+                <h4>⚡ Explanation</h4>
+                <p><strong>Correct Answer:</strong> ${question.explanation}</p>
+            `;
+            explanation.classList.add('show');
+
+            // Enable next button and hide hint button
+            nextBtn.disabled = false;
+            hintBtn.style.display = 'none';
+        }
+
+        function showHint() {
+            const question = quizData[currentQuestion];
+            const hintContainer = document.getElementById('hint-container');
+            hintContainer.innerHTML = `<strong>💡 Hint:</strong> ${question.hint}`;
+            hintContainer.classList.add('show');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+            const finalScore = document.getElementById('final-score');
+            const resultsMessage = document.getElementById('results-message');
+            const correctCount = document.getElementById('correct-count');
+            const incorrectCount = document.getElementById('incorrect-count');
+            const accuracyPercent = document.getElementById('accuracy-percent');
+
+            quizContent.style.display = 'none';
+            resultsContainer.classList.add('show');
+
+            const accuracy = Math.round((score / quizData.length) * 100);
+            
+            finalScore.textContent = `${score}/${quizData.length}`;
+            correctCount.textContent = score;
+            incorrectCount.textContent = quizData.length - score;
+            accuracyPercent.textContent = `${accuracy}%`;
+
+            let message = '';
+            if (accuracy >= 90) {
+                message = '⚡ Outstanding! You have mastered triggers and can implement sophisticated database automation!';
+            } else if (accuracy >= 80) {
+                message = '🔥 Excellent! You understand trigger concepts and can create effective database automation.';
+            } else if (accuracy >= 70) {
+                message = '📈 Good work! You grasp trigger fundamentals but should review advanced patterns and performance.';
+            } else if (accuracy >= 60) {
+                message = '🔄 You\'re making progress! Focus on trigger timing, return values, and error handling.';
+            } else {
+                message = '📚 Review trigger basics! Study automatic execution, trigger types, and special variables.';
+            }
+
+            resultsMessage.textContent = message;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            selectedAnswer = null;
+            quizCompleted = false;
+
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+
+            resultsContainer.classList.remove('show');
+            quizContent.style.display = 'block';
+
+            loadQuestion();
+        }
+
+        // Initialize quiz
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+---
+title: "PostgreSQL Views - Live Demo with Pagila Database"
+subtitle: "Hands-on demonstration of Views and Materialized Views"
+author: "Database Course - Live Demo Session"
+format: 
+  html:
+    theme: default
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-overflow: wrap
+    highlight-style: github
+    code-block-bg: true
+    code-block-border-left: "#31BAE9"
+    number-sections: true
+---
+
+# Introduction to Views - Real Definitions and Concepts
+
+## What is a View? 🎯
+
+> **Definition**: A view is a **virtual table** based on the result of a SELECT statement. It contains rows and columns just like a real table, but the data is dynamically generated from one or more underlying tables.
+
+### Key Characteristics:
+- **Virtual**: No physical storage of data
+- **Dynamic**: Always reflects current state of underlying tables  
+- **Reusable**: Can be queried like a regular table
+- **Secure**: Provides controlled access to data
+
+## Why Use Views? 
+
+### 1. **Simplification** 🧩
+Hide complex joins and aggregations behind simple names
+
+### 2. **Security** 🔒
+Control what data users can see
+
+### 3. **Consistency** 🔄
+Provide stable interfaces for applications
+
+### 4. **Abstraction** 📋
+Create logical data models independent of physical schema
+
+---
+
+# Setting Up Our Demo Environment
+
+First, let's connect to our Pagila database and explore the schema:
+
+```{sql}
+-- Connect to Pagila database
+-- \c pagila
+
+-- Explore the main tables we'll work with
+SELECT table_name, column_name, data_type 
+FROM information_schema.columns 
+WHERE table_schema = 'public' 
+AND table_name IN ('film', 'actor', 'customer', 'rental', 'category', 'film_actor', 'film_category')
+ORDER BY table_name, ordinal_position;
+```
+
+---
+
+# Part 1: Basic Views - Simplifying Complex Queries
+
+## Demo 1: Simple Column Selection View
+
+Let's start with a basic view that shows only essential customer information:
+
+```{sql}
+-- Problem: The customer table has many columns, but we often only need basic info
+SELECT * FROM customer LIMIT 3;
+```
+
+```{sql}
+-- Solution: Create a simplified customer view
+CREATE VIEW customer_basic AS
+SELECT 
+    customer_id,
+    first_name,
+    last_name,
+    email,
+    active
+FROM customer;
+
+-- Test our view
+SELECT * FROM customer_basic LIMIT 5;
+```
+
+## Demo 2: Complex Join Simplified
+
+### The Problem - Complex Query
+This query joins multiple tables to get film information with category and actors:
+
+```{sql}
+-- Complex query that we don't want to write repeatedly
+SELECT 
+    f.title,
+    f.release_year,
+    f.rating,
+    f.rental_rate,
+    c.name as category,
+    string_agg(a.first_name || ' ' || a.last_name, ', ') as actors
+FROM film f
+JOIN film_category fc ON f.film_id = fc.film_id
+JOIN category c ON fc.category_id = c.category_id
+JOIN film_actor fa ON f.film_id = fa.film_id
+JOIN actor a ON fa.actor_id = a.actor_id
+GROUP BY f.film_id, f.title, f.release_year, f.rating, f.rental_rate, c.name
+ORDER BY f.title
+LIMIT 5;
+```
+
+### The Solution - Create a View
+
+```{sql}
+-- Create a view to simplify this complex query
+CREATE OR REPLACE VIEW film_details AS
+SELECT 
+    f.film_id,
+    f.title,
+    f.description,
+    f.release_year,
+    f.rating,
+    f.rental_rate,
+    f.length,
+    c.name as category,
+    string_agg(a.first_name || ' ' || a.last_name, ', ' ORDER BY a.last_name) as actors
+FROM film f
+JOIN film_category fc ON f.film_id = fc.film_id
+JOIN category c ON fc.category_id = c.category_id
+JOIN film_actor fa ON f.film_id = fa.film_id
+JOIN actor a ON fa.actor_id = a.actor_id
+GROUP BY f.film_id, f.title, f.description, f.release_year, f.rating, f.rental_rate, f.length, c.name
+ORDER BY f.title;
+
+-- Now querying is simple!
+SELECT title, category, actors 
+FROM film_details 
+WHERE category = 'Action' 
+LIMIT 3;
+```
+
+---
+
+# Part 2: Views for Security and Data Access Control
+
+## Demo 3: Security-Focused Views
+
+Create views that hide sensitive customer information:
+
+```{sql}
+-- View for customer service representatives (no financial data)
+CREATE VIEW customer_service_view AS
+SELECT 
+    customer_id,
+    first_name,
+    last_name,
+    email,
+    address,
+    city,
+    country,
+    phone
+FROM customer c
+JOIN address a ON c.address_id = a.address_id
+JOIN city ci ON a.city_id = ci.city_id
+JOIN country co ON ci.country_id = co.country_id;
+
+-- View for managers (includes activity status)
+CREATE VIEW customer_manager_view AS
+SELECT 
+    customer_id,
+    first_name,
+    last_name,
+    email,
+    active,
+    create_date,
+    last_update
+FROM customer;
+
+-- Test the views
+SELECT * FROM customer_service_view LIMIT 3;
+SELECT * FROM customer_manager_view LIMIT 3;
+```
+
+---
+
+# Part 3: Filtering and Business Logic Views
+
+## Demo 4: Business Rule Views
+
+```{sql}
+-- Active customers only
+CREATE VIEW active_customers AS
+SELECT 
+    customer_id,
+    first_name,
+    last_name,
+    email
+FROM customer 
+WHERE active = 1;
+
+-- Recent rentals (last 30 days)
+CREATE VIEW recent_rentals AS
+SELECT 
+    r.rental_id,
+    r.rental_date,
+    r.return_date,
+    c.first_name || ' ' || c.last_name as customer_name,
+    f.title as film_title,
+    f.rental_rate
+FROM rental r
+JOIN customer c ON r.customer_id = c.customer_id
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN film f ON i.film_id = f.film_id
+WHERE r.rental_date >= CURRENT_DATE - INTERVAL '30 days';
+
+-- Test the business rule views
+SELECT COUNT(*) as active_customer_count FROM active_customers;
+SELECT COUNT(*) as recent_rental_count FROM recent_rentals;
+```
+
+---
+
+# Part 4: Aggregate and Analytical Views
+
+## Demo 5: Summary and Reporting Views
+
+```{sql}
+-- Customer rental summary
+CREATE VIEW customer_rental_summary AS
+SELECT 
+    c.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
+    COUNT(r.rental_id) as total_rentals,
+    COALESCE(SUM(p.amount), 0) as total_spent,
+    MAX(r.rental_date) as last_rental_date
+FROM customer c
+LEFT JOIN rental r ON c.customer_id = r.customer_id
+LEFT JOIN payment p ON r.rental_id = p.rental_id
+GROUP BY c.customer_id, c.first_name, c.last_name;
+
+-- Film popularity view
+CREATE VIEW film_popularity AS
+SELECT 
+    f.film_id,
+    f.title,
+    f.rating,
+    f.rental_rate,
+    COUNT(r.rental_id) as rental_count,
+    COALESCE(SUM(p.amount), 0) as total_revenue
+FROM film f
+LEFT JOIN inventory i ON f.film_id = i.film_id
+LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+LEFT JOIN payment p ON r.rental_id = p.rental_id
+GROUP BY f.film_id, f.title, f.rating, f.rental_rate
+ORDER BY rental_count DESC;
+
+-- Test our analytical views
+SELECT * FROM customer_rental_summary ORDER BY total_spent DESC LIMIT 5;
+SELECT * FROM film_popularity LIMIT 5;
+```
+
+---
+
+# Part 5: View Management and Manipulation
+
+## Demo 6: Modifying and Managing Views
+
+```{sql}
+-- Check existing views
+SELECT viewname, definition 
+FROM pg_views 
+WHERE schemaname = 'public'
+ORDER BY viewname;
+```
+
+```{sql}
+-- Update a view using CREATE OR REPLACE
+CREATE OR REPLACE VIEW customer_basic AS
+SELECT 
+    customer_id,
+    first_name,
+    last_name,
+    email,
+    active,
+    create_date  -- Added new column
+FROM customer;
+
+-- Verify the change
+\d customer_basic
+```
+
+```{sql}
+-- Drop a view when no longer needed
+DROP VIEW IF EXISTS customer_service_view;
+
+-- Verify it's gone
+SELECT COUNT(*) FROM pg_views WHERE viewname = 'customer_service_view';
+```
+
+---
+
+# Part 6: Materialized Views - When Performance Matters
+
+## Understanding Materialized Views
+
+> **Materialized View**: A view that physically stores its data on disk. The results are computed and cached for faster access.
+
+### Trade-offs:
+- ✅ **Fast queries** - Data is pre-computed
+- ❌ **Storage overhead** - Takes disk space  
+- ❌ **Data freshness** - Must be manually refreshed
+
+## Demo 7: Creating Materialized Views
+
+```{sql}
+-- Create a materialized view for expensive reporting queries
+CREATE MATERIALIZED VIEW monthly_rental_stats AS
+SELECT 
+    DATE_TRUNC('month', rental_date) as rental_month,
+    COUNT(*) as total_rentals,
+    COUNT(DISTINCT customer_id) as unique_customers,
+    AVG(EXTRACT(days FROM (return_date - rental_date))) as avg_rental_days
+FROM rental 
+WHERE rental_date IS NOT NULL
+GROUP BY DATE_TRUNC('month', rental_date)
+ORDER BY rental_month;
+
+-- Query the materialized view (very fast!)
+SELECT * FROM monthly_rental_stats;
+```
+
+```{sql}
+-- Check materialized view info
+SELECT matviewname, ispopulated 
+FROM pg_matviews 
+WHERE schemaname = 'public';
+```
+
+## Demo 8: Refreshing Materialized Views
+
+```{sql}
+-- The data doesn't update automatically!
+-- We need to refresh it manually
+
+REFRESH MATERIALIZED VIEW monthly_rental_stats;
+
+-- Verify the refresh timestamp
+SELECT 
+    schemaname,
+    matviewname,
+    matviewowner,
+    ispopulated
+FROM pg_matviews 
+WHERE matviewname = 'monthly_rental_stats';
+```
+
+---
+
+# Part 7: Advanced Views - Updatable Views
+
+## Demo 9: Updatable Views
+
+```{sql}
+-- Create a simple updatable view
+CREATE VIEW customer_contact_info AS
+SELECT 
+    customer_id,
+    first_name,
+    last_name,
+    email,
+    active
+FROM customer;
+
+-- This view is updatable because:
+-- 1. Single table
+-- 2. No aggregations
+-- 3. No DISTINCT, GROUP BY, or complex expressions
+```
+
+```{sql}
+-- Test updating through the view
+UPDATE customer_contact_info 
+SET email = 'newemail@example.com' 
+WHERE customer_id = 1;
+
+-- Verify the change
+SELECT email FROM customer WHERE customer_id = 1;
+
+-- Roll back the change
+UPDATE customer_contact_info 
+SET email = 'mary.smith@sakilacustomer.org' 
+WHERE customer_id = 1;
+```
+
+## Demo 10: Views with CHECK OPTION
+
+```{sql}
+-- Create a view with CHECK OPTION for data integrity
+CREATE VIEW active_customers_only AS
+SELECT 
+    customer_id,
+    first_name,
+    last_name,
+    email,
+    active
+FROM customer 
+WHERE active = 1
+WITH CHECK OPTION;
+
+-- This will work (inserting active customer)
+-- INSERT INTO active_customers_only (first_name, last_name, email, active) 
+-- VALUES ('John', 'Doe', 'john@example.com', 1);
+
+-- This will FAIL (trying to insert inactive customer)
+-- INSERT INTO active_customers_only (first_name, last_name, email, active) 
+-- VALUES ('Jane', 'Doe', 'jane@example.com', 0);
+```
+
+---
+
+# Part 8: View Types and Best Practices
+
+## Types of Views Summary
+
+| View Type | Storage | Performance | Data Freshness | Use Case |
+|-----------|---------|-------------|----------------|----------|
+| **Regular View** | Virtual | Slower | Real-time | Simple queries, security |
+| **Materialized View** | Physical | Faster | Manual refresh | Complex analytics, reporting |
+| **Updatable View** | Virtual | Slower | Real-time | Data entry forms |
+
+## Best Practices
+
+### ✅ DO:
+- Use meaningful view names
+- Document complex views with comments
+- Use `CREATE OR REPLACE` for modifications
+- Consider indexing materialized views
+- Use CHECK OPTION for data integrity
+
+### ❌ DON'T:
+- Create views on views (avoid deep nesting)
+- Use SELECT * in view definitions
+- Forget to refresh materialized views
+- Create materialized views for rarely-used queries
+
+---
+
+# Part 9: Practical Exercises
+
+## Exercise 1: Create Your Own Views
+
+Try creating these views yourself:
+
+```{sql}
+-- 1. Create a view showing all Horror films with their details
+-- Your solution here:
+
+
+-- 2. Create a materialized view for daily rental statistics
+-- Your solution here:
+
+
+-- 3. Create an updatable view for staff information (excluding sensitive data like password)
+-- Your solution here:
+
+```
+
+## Exercise 2: View Performance Comparison
+
+```{sql}
+-- Compare performance between regular view and materialized view
+-- Run these queries and observe the execution time
+
+-- Regular view query
+EXPLAIN ANALYZE
+SELECT * FROM film_popularity WHERE rental_count > 10;
+
+-- Create equivalent materialized view
+CREATE MATERIALIZED VIEW mv_film_popularity AS
+SELECT 
+    f.film_id,
+    f.title,
+    f.rating,
+    f.rental_rate,
+    COUNT(r.rental_id) as rental_count,
+    COALESCE(SUM(p.amount), 0) as total_revenue
+FROM film f
+LEFT JOIN inventory i ON f.film_id = i.film_id
+LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+LEFT JOIN payment p ON r.rental_id = p.rental_id
+GROUP BY f.film_id, f.title, f.rating, f.rental_rate;
+
+-- Materialized view query
+EXPLAIN ANALYZE
+SELECT * FROM mv_film_popularity WHERE rental_count > 10;
+```
+
+---
+
+# Part 10: Cleanup and Summary
+
+```{sql}
+-- Clean up our demo views
+DROP VIEW IF EXISTS customer_basic CASCADE;
+DROP VIEW IF EXISTS film_details CASCADE;
+DROP VIEW IF EXISTS customer_manager_view CASCADE;
+DROP VIEW IF EXISTS active_customers CASCADE;
+DROP VIEW IF EXISTS recent_rentals CASCADE;
+DROP VIEW IF EXISTS customer_rental_summary CASCADE;
+DROP VIEW IF EXISTS film_popularity CASCADE;
+DROP VIEW IF EXISTS customer_contact_info CASCADE;
+DROP VIEW IF EXISTS active_customers_only CASCADE;
+
+-- Clean up materialized views
+DROP MATERIALIZED VIEW IF EXISTS monthly_rental_stats CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS mv_film_popularity CASCADE;
+```
+
+## Summary - Key Takeaways 🎯
+
+1. **Views** = Virtual tables for simplification and security
+2. **Materialized Views** = Physical storage for performance  
+3. **Updatable Views** = Allow INSERT/UPDATE/DELETE operations
+4. **CHECK OPTION** = Enforces view conditions on modifications
+5. **Best Practice** = Choose the right type for your use case
+
+## Questions for Discussion 💭
+
+1. When would you choose a materialized view over a regular view?
+2. What are the security implications of creating views?
+3. How do you handle schema changes when using views?
+4. What strategies would you use for refreshing materialized views in production?
+
+---
+
+*End of Live Demo Session*

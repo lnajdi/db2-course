@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL Intro to PL/pgSQL Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .quiz-title {
+            color: #2d3748;
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .quiz-subtitle {
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .progress-container {
+            margin-bottom: 30px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .question-counter {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        .score-display {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            transition: width 0.3s ease;
+        }
+
+        .question-container {
+            margin-bottom: 30px;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            color: #2d3748;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border-left: 5px solid #667eea;
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .options-container {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-button {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px 20px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+            color: #4a5568;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-button:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .option-button.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .option-button.correct {
+            border-color: #38a169;
+            background: #f0fff4;
+            color: #22543d;
+        }
+
+        .option-button.incorrect {
+            border-color: #e53e3e;
+            background: #fff5f5;
+            color: #742a2a;
+        }
+
+        .option-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-letter {
+            font-weight: 700;
+            color: #667eea;
+            margin-right: 12px;
+        }
+
+        .controls-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .hint-container {
+            background: #fffbeb;
+            border: 1px solid #f6cc3e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #744210;
+            display: none;
+        }
+
+        .hint-container.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #22543d;
+            display: none;
+        }
+
+        .explanation.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .explanation h4 {
+            color: #22543d;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .explanation p {
+            line-height: 1.6;
+        }
+
+        .results-container {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .final-score {
+            font-size: 3em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .results-message {
+            font-size: 1.3em;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .performance-breakdown {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .performance-item:last-child {
+            border-bottom: none;
+        }
+
+        .restart-btn {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .quiz-container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .quiz-title {
+                font-size: 1.8em;
+            }
+
+            .question-text {
+                font-size: 1.2em;
+                padding: 15px;
+            }
+
+            .option-button {
+                padding: 15px;
+                font-size: 1em;
+            }
+
+            .controls-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .difficulty-easy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .difficulty-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .difficulty-hard {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 class="quiz-title">PostgreSQL Intro to PL/pgSQL</h1>
+            <p class="quiz-subtitle">Test your knowledge of PostgreSQL's procedural programming language</p>
+        </div>
+
+        <div id="quiz-content">
+            <div class="progress-container">
+                <div class="progress-info">
+                    <span class="question-counter" id="question-counter">Question 1 of 20</span>
+                    <span class="score-display" id="score-display">Score: 0/20</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <div class="question-container">
+                <div class="question-text" id="question-text">Loading question...</div>
+                <div class="options-container" id="options-container"></div>
+                <div class="hint-container" id="hint-container"></div>
+                <div class="explanation" id="explanation"></div>
+            </div>
+
+            <div class="controls-container">
+                <button class="btn btn-secondary" id="hint-btn" onclick="showHint()">
+                    💡 Show Hint
+                </button>
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>
+                    Next Question →
+                </button>
+            </div>
+        </div>
+
+        <div class="results-container" id="results-container">
+            <div class="final-score" id="final-score">0/20</div>
+            <div class="results-message" id="results-message"></div>
+            <div class="performance-breakdown">
+                <div class="performance-item">
+                    <span>Correct Answers:</span>
+                    <span id="correct-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Incorrect Answers:</span>
+                    <span id="incorrect-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Accuracy:</span>
+                    <span id="accuracy-percent">0%</span>
+                </div>
+            </div>
+            <button class="btn btn-primary restart-btn" onclick="restartQuiz()">
+                🔄 Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What does PL/pgSQL stand for?",
+                options: [
+                    "Procedural Language/PostgreSQL",
+                    "Programming Logic/PostgreSQL",
+                    "Persistent Language/PostgreSQL",
+                    "Public Library/PostgreSQL"
+                ],
+                correctAnswer: 0,
+                hint: "Think about what the 'PL' and 'pgSQL' parts represent in PostgreSQL's procedural language.",
+                explanation: "PL/pgSQL stands for Procedural Language/PostgreSQL, which is PostgreSQL's native procedural programming language that extends SQL with programming constructs.",
+                difficulty: "easy"
+            },
+            {
+                question: "Which keyword is used to start an anonymous PL/pgSQL block?",
+                options: [
+                    "BEGIN",
+                    "DO",
+                    "EXECUTE",
+                    "CALL"
+                ],
+                correctAnswer: 1,
+                hint: "Think about how you execute a block of PL/pgSQL code without creating a named function.",
+                explanation: "The DO keyword is used to execute an anonymous PL/pgSQL block. The syntax is DO $$ ... END $$;",
+                difficulty: "easy"
+            },
+            {
+                question: "Variables in PL/pgSQL must be declared in the DECLARE section before the BEGIN block.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider the structure of a PL/pgSQL block and where variable declarations go.",
+                explanation: "True. All variables must be declared in the DECLARE section, which comes before the BEGIN block in PL/pgSQL.",
+                difficulty: "easy"
+            },
+            {
+                question: "What is the correct syntax to declare a variable that matches a database column's type?",
+                options: [
+                    "DECLARE var_name LIKE table.column;",
+                    "DECLARE var_name table.column%TYPE;",
+                    "DECLARE var_name AS table.column;",
+                    "DECLARE var_name TYPE OF table.column;"
+                ],
+                correctAnswer: 1,
+                hint: "PL/pgSQL uses a specific syntax with % to reference column types.",
+                explanation: "The %TYPE syntax allows you to declare a variable with the same data type as a specific database column, ensuring type consistency.",
+                difficulty: "medium"
+            },
+            {
+                question: "Which command is used to display messages from within a PL/pgSQL block?",
+                options: [
+                    "PRINT",
+                    "ECHO",
+                    "RAISE NOTICE",
+                    "OUTPUT"
+                ],
+                correctAnswer: 2,
+                hint: "Think about PostgreSQL's specific command for raising informational messages.",
+                explanation: "RAISE NOTICE is used to display informational messages from within PL/pgSQL code, similar to print statements in other languages.",
+                difficulty: "medium"
+            },
+            {
+                question: "You can assign multiple values from a SELECT statement to multiple variables using SELECT INTO.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider how you might retrieve multiple column values into separate variables.",
+                explanation: "True. You can use SELECT col1, col2, col3 INTO var1, var2, var3 FROM table to assign multiple values to multiple variables in one statement.",
+                difficulty: "medium"
+            },
+            {
+                question: "What happens if a SELECT INTO statement returns no rows?",
+                options: [
+                    "An exception is raised automatically",
+                    "The variables are set to NULL",
+                    "The program terminates with an error",
+                    "The variables retain their previous values"
+                ],
+                correctAnswer: 1,
+                hint: "Think about PL/pgSQL's default behavior when no data is found.",
+                explanation: "When SELECT INTO returns no rows, all target variables are set to NULL. No exception is raised automatically unless explicitly checked.",
+                difficulty: "hard"
+            },
+            {
+                question: "In this PL/pgSQL code, what will be the final value of counter?<br><div class='code-block'>DECLARE <br>    counter INTEGER := 0;<br>BEGIN<br>    FOR i IN 1..5 LOOP<br>        counter := counter + i;<br>        IF i = 3 THEN<br>            EXIT;<br>        END IF;<br>    END LOOP;<br>END;</div>",
+                options: [
+                    "6 (1+2+3)",
+                    "15 (1+2+3+4+5)",
+                    "5 (just the last i value)",
+                    "3 (the i value when EXIT occurred)"
+                ],
+                correctAnswer: 0,
+                hint: "Trace through the loop execution and note when EXIT is called.",
+                explanation: "The loop runs for i=1 (counter=1), i=2 (counter=3), i=3 (counter=6), then EXIT is called. Final counter value is 6.",
+                difficulty: "hard"
+            },
+            {
+                question: "Which loop construct allows you to iterate over the results of a SELECT statement?",
+                options: [
+                    "WHILE loop",
+                    "FOR ... IN REVERSE loop",
+                    "FOR ... IN (SELECT ...) loop",
+                    "REPEAT loop"
+                ],
+                correctAnswer: 2,
+                hint: "Think about how you can iterate over query results in PL/pgSQL.",
+                explanation: "FOR record IN (SELECT ...) LOOP allows you to iterate over the results of a SELECT statement, with each row accessible as a record.",
+                difficulty: "medium"
+            },
+            {
+                question: "PL/pgSQL supports both IF/ELSE and CASE statements for conditional logic.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Think about the different ways to implement conditional logic in PL/pgSQL.",
+                explanation: "True. PL/pgSQL supports both IF/ELSIF/ELSE statements and CASE/WHEN statements for implementing conditional logic.",
+                difficulty: "easy"
+            },
+            {
+                question: "What is the difference between RECORD and ROWTYPE variables in PL/pgSQL?",
+                options: [
+                    "RECORD is for single values, ROWTYPE is for multiple values",
+                    "RECORD has dynamic structure, ROWTYPE has fixed structure based on a table",
+                    "RECORD is faster, ROWTYPE uses more memory",
+                    "There is no difference, they are synonyms"
+                ],
+                correctAnswer: 1,
+                hint: "Think about static vs dynamic typing in PL/pgSQL variable declarations.",
+                explanation: "RECORD variables have a dynamic structure determined at runtime, while %ROWTYPE variables have a fixed structure matching a specific table's columns.",
+                difficulty: "hard"
+            },
+            {
+                question: "How do you handle the case where a SELECT INTO statement might return multiple rows?",
+                options: [
+                    "Use SELECT INTO with LIMIT 1",
+                    "Use exception handling to catch TOO_MANY_ROWS",
+                    "Use a FOR loop instead of SELECT INTO",
+                    "All of the above are valid approaches"
+                ],
+                correctAnswer: 3,
+                hint: "Consider different strategies for handling multiple-row scenarios.",
+                explanation: "All approaches are valid: LIMIT 1 restricts results, exception handling catches the error, and FOR loops naturally handle multiple rows.",
+                difficulty: "medium"
+            },
+            {
+                question: "Which section of a PL/pgSQL block contains the main program logic?",
+                options: [
+                    "DECLARE section",
+                    "BEGIN section",
+                    "EXCEPTION section",
+                    "END section"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the structure of a PL/pgSQL block and where executable statements go.",
+                explanation: "The BEGIN section contains the main program logic and executable statements in a PL/pgSQL block.",
+                difficulty: "easy"
+            },
+            {
+                question: "In PL/pgSQL, you can modify the structure of a RECORD variable by assigning it results from different SELECT statements with different column sets.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Think about the dynamic nature of RECORD variables.",
+                explanation: "True. RECORD variables are dynamically typed and their structure changes based on the SELECT statement results assigned to them.",
+                difficulty: "hard"
+            },
+            {
+                question: "What is the correct way to concatenate strings in PL/pgSQL?",
+                options: [
+                    "Using the + operator",
+                    "Using the CONCAT() function",
+                    "Using the || operator",
+                    "Both B and C are correct"
+                ],
+                correctAnswer: 3,
+                hint: "PL/pgSQL supports standard SQL string operations plus additional functions.",
+                explanation: "Both the || operator (standard SQL) and the CONCAT() function work for string concatenation in PL/pgSQL.",
+                difficulty: "medium"
+            },
+            {
+                question: "PL/pgSQL variables are case-sensitive, so 'CustomerID' and 'customerid' are different variables.",
+                options: ["True", "False"],
+                correctAnswer: 1,
+                hint: "Consider PostgreSQL's general approach to identifier case sensitivity.",
+                explanation: "False. PL/pgSQL follows PostgreSQL's case-insensitive naming rules unless identifiers are quoted. Unquoted identifiers are folded to lowercase.",
+                difficulty: "medium"
+            },
+            {
+                question: "When should you use a WHILE loop instead of a FOR loop in PL/pgSQL?",
+                options: [
+                    "When you need better performance",
+                    "When the number of iterations is not known in advance",
+                    "When working with query results",
+                    "WHILE loops should be avoided in favor of FOR loops"
+                ],
+                correctAnswer: 1,
+                hint: "Think about when you might not know how many times you need to loop.",
+                explanation: "WHILE loops are best when the number of iterations depends on a condition that might change during execution, rather than a predetermined range or result set.",
+                difficulty: "hard"
+            },
+            {
+                question: "What does the %FOUND attribute tell you after a SELECT INTO statement?",
+                options: [
+                    "Whether the operation completed successfully",
+                    "Whether at least one row was returned",
+                    "The number of rows that were found",
+                    "Whether an exception occurred"
+                ],
+                correctAnswer: 1,
+                hint: "Think about checking if your SELECT INTO actually found data.",
+                explanation: "%FOUND is a boolean attribute that returns TRUE if the last SQL statement found at least one row, and FALSE if no rows were found.",
+                difficulty: "medium"
+            },
+            {
+                question: "You can nest PL/pgSQL blocks inside other PL/pgSQL blocks.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Think about the flexibility of PL/pgSQL's block structure.",
+                explanation: "True. PL/pgSQL supports nested blocks, allowing you to create inner blocks with their own DECLARE sections and exception handling.",
+                difficulty: "easy"
+            },
+            {
+                question: "What is the main advantage of using PL/pgSQL functions over executing multiple separate SQL statements from a client application?",
+                options: [
+                    "PL/pgSQL functions are always faster",
+                    "Reduced network round trips and better transaction control",
+                    "PL/pgSQL uses less memory than client applications",
+                    "PL/pgSQL functions are easier to debug"
+                ],
+                correctAnswer: 1,
+                hint: "Think about client-server communication and where the logic executes.",
+                explanation: "The main advantage is reduced network round trips (all logic executes on the server) and better transaction control, as all operations happen within the same database session.",
+                difficulty: "hard"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+        let quizCompleted = false;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            const question = quizData[currentQuestion];
+            const questionCounter = document.getElementById('question-counter');
+            const scoreDisplay = document.getElementById('score-display');
+            const progressFill = document.getElementById('progress-fill');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const hintContainer = document.getElementById('hint-container');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Update progress
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+            progressFill.style.width = `${((currentQuestion + 1) / quizData.length) * 100}%`;
+
+            // Load question
+            const difficultyClass = `difficulty-${question.difficulty}`;
+            const difficultyBadge = `<span class="difficulty-badge ${difficultyClass}">${question.difficulty.toUpperCase()}</span>`;
+            questionText.innerHTML = question.question + difficultyBadge;
+
+            // Load options
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}.</span>${option}`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+
+            // Reset controls
+            selectedAnswer = null;
+            hintContainer.classList.remove('show');
+            explanation.classList.remove('show');
+            nextBtn.disabled = true;
+            hintBtn.style.display = 'block';
+
+            if (currentQuestion === quizData.length - 1) {
+                nextBtn.textContent = 'Show Results';
+            }
+        }
+
+        function selectAnswer(answerIndex) {
+            if (selectedAnswer !== null) return;
+
+            selectedAnswer = answerIndex;
+            const question = quizData[currentQuestion];
+            const options = document.querySelectorAll('.option-button');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Disable all options
+            options.forEach(option => option.classList.add('disabled'));
+
+            // Show correct/incorrect styling
+            options[question.correctAnswer].classList.add('correct');
+            if (answerIndex !== question.correctAnswer) {
+                options[answerIndex].classList.add('incorrect');
+            } else {
+                score++;
+                document.getElementById('score-display').textContent = `Score: ${score}/${quizData.length}`;
+            }
+
+            // Show explanation
+            explanation.innerHTML = `
+                <h4>🧠 Explanation</h4>
+                <p><strong>Correct Answer:</strong> ${question.explanation}</p>
+            `;
+            explanation.classList.add('show');
+
+            // Enable next button and hide hint button
+            nextBtn.disabled = false;
+            hintBtn.style.display = 'none';
+        }
+
+        function showHint() {
+            const question = quizData[currentQuestion];
+            const hintContainer = document.getElementById('hint-container');
+            hintContainer.innerHTML = `<strong>💡 Hint:</strong> ${question.hint}`;
+            hintContainer.classList.add('show');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+            const finalScore = document.getElementById('final-score');
+            const resultsMessage = document.getElementById('results-message');
+            const correctCount = document.getElementById('correct-count');
+            const incorrectCount = document.getElementById('incorrect-count');
+            const accuracyPercent = document.getElementById('accuracy-percent');
+
+            quizContent.style.display = 'none';
+            resultsContainer.classList.add('show');
+
+            const accuracy = Math.round((score / quizData.length) * 100);
+            
+            finalScore.textContent = `${score}/${quizData.length}`;
+            correctCount.textContent = score;
+            incorrectCount.textContent = quizData.length - score;
+            accuracyPercent.textContent = `${accuracy}%`;
+
+            let message = '';
+            if (accuracy >= 90) {
+                message = '🎖️ Outstanding! You have mastered PL/pgSQL fundamentals and can write effective procedural code!';
+            } else if (accuracy >= 80) {
+                message = '⭐ Excellent! You understand core PL/pgSQL concepts very well.';
+            } else if (accuracy >= 70) {
+                message = '📈 Good work! You grasp basic PL/pgSQL but should review loops and advanced topics.';
+            } else if (accuracy >= 60) {
+                message = '📚 You\'re making progress! Focus on variables, control structures, and SELECT INTO.';
+            } else {
+                message = '🔄 Keep studying! PL/pgSQL is a powerful tool worth mastering.';
+            }
+
+            resultsMessage.textContent = message;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            selectedAnswer = null;
+            quizCompleted = false;
+
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+
+            resultsContainer.classList.remove('show');
+            quizContent.style.display = 'block';
+
+            loadQuestion();
+        }
+
+        // Initialize quiz
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>

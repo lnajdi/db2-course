@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL EXPLAIN Command Quiz</title>
+    <style>
+        :root {
+            --primary-bg: #f0f4f8;
+            --secondary-bg: #ffffff;
+            --text-color: #333;
+            --primary-accent: #007bff;
+            --primary-accent-hover: #0056b3;
+            --correct-color: #28a745;
+            --incorrect-color: #dc3545;
+            --hint-color: #ffc107;
+            --border-color: #dee2e6;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            background-color: var(--secondary-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            width: 100%;
+            max-width: 800px;
+            overflow: hidden;
+        }
+
+        .quiz-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .quiz-header h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        
+        #progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+
+        #progress-bar-container {
+            width: 100%;
+            background-color: var(--border-color);
+            border-radius: 5px;
+            height: 10px;
+            margin-top: 5px;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: var(--primary-accent);
+            border-radius: 5px;
+            transition: width 0.3s ease-in-out;
+        }
+
+        .quiz-body {
+            padding: 25px;
+        }
+
+        #question-text {
+            font-size: 1.2em;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            text-align: left;
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background-color: #f8f9fa;
+            border-color: var(--primary-accent);
+        }
+        
+        .option-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        .option-btn.correct {
+            background-color: var(--correct-color);
+            color: white;
+            border-color: var(--correct-color);
+        }
+
+        .option-btn.incorrect {
+            background-color: var(--incorrect-color);
+            color: white;
+            border-color: var(--incorrect-color);
+        }
+
+        #hint-container {
+            margin-top: 20px;
+        }
+
+        #hint-btn {
+            background-color: var(--hint-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #hint-text {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 5px;
+            font-style: italic;
+        }
+
+        #feedback-container {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            line-height: 1.6;
+        }
+
+        #feedback-container strong {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        #nav-container {
+            padding: 25px;
+            text-align: right;
+            border-top: 1px solid var(--border-color);
+        }
+
+        #next-btn {
+            background-color: var(--primary-accent);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        #next-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        #next-btn:hover:not(:disabled) {
+            background-color: var(--primary-accent-hover);
+        }
+
+        /* Results Screen */
+        #results-screen {
+            text-align: center;
+        }
+
+        #results-screen h2 {
+            font-size: 2em;
+            color: var(--primary-accent);
+        }
+        
+        #score-text {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        
+        .hidden {
+            display: none;
+        }
+
+        /* Drag and Drop Styling */
+        .drag-drop-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .drag-column, .drop-column {
+            width: 48%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        .draggable {
+            background-color: #e9ecef;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            cursor: grab;
+            border: 1px solid #ced4da;
+        }
+        .draggable.dragging {
+            opacity: 0.5;
+        }
+        .drop-target {
+            background-color: #f8f9fa;
+            padding: 20px 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 2px dashed var(--border-color);
+            text-align: center;
+            min-height: 40px;
+        }
+        .drop-target.hovered {
+            background-color: #e2e6ea;
+        }
+
+        /* Study Resources */
+        .study-resources {
+            text-align: left;
+            margin-top: 30px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1em;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn.active {
+            font-weight: bold;
+            color: var(--primary-accent);
+            border-bottom-color: var(--primary-accent);
+        }
+        
+        .tab-content {
+            line-height: 1.6;
+        }
+
+        .tab-content h3 { color: var(--primary-accent); }
+        .tab-content p { margin-bottom: 1em; }
+
+        /* Flashcards */
+        .flashcard-container {
+            perspective: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .flashcard {
+            width: 100%;
+            max-width: 500px;
+            height: 250px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+        .flashcard.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 2px 6px var(--shadow-color);
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .card-front {
+            background-color: var(--secondary-bg);
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .card-back {
+            background-color: #e9ecef;
+            transform: rotateY(180deg);
+            font-size: 1.1em;
+        }
+        .flashcard-nav {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .flashcard-nav button {
+            background-color: var(--primary-accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        <div id="quiz-screen">
+            <div class="quiz-header">
+                <h1>PostgreSQL EXPLAIN Quiz</h1>
+                <div id="progress-info">
+                    <span id="question-counter"></span>
+                    <span id="score-counter">Score: 0</span>
+                </div>
+                <div id="progress-bar-container">
+                    <div id="progress-bar"></div>
+                </div>
+            </div>
+
+            <div class="quiz-body">
+                <p id="question-text"></p>
+                <div id="options-container"></div>
+                
+                <div id="hint-container" class="hidden">
+                    <button id="hint-btn">Show Hint</button>
+                    <p id="hint-text" class="hidden"></p>
+                </div>
+
+                <div id="feedback-container" class="hidden"></div>
+            </div>
+
+            <div id="nav-container">
+                <button id="next-btn" disabled>Next Question</button>
+            </div>
+        </div>
+
+        <div id="results-screen" class="hidden">
+             <div class="quiz-body">
+                <h2>Quiz Complete!</h2>
+                <p id="score-text">You scored 13/15 (87%)</p>
+                <button id="restart-btn" onclick="location.reload()">Restart Quiz</button>
+                
+                <div class="study-resources">
+                    <div class="tabs">
+                        <button class="tab-btn active" onclick="showTab('study-guide')">Study Guide</button>
+                        <button class="tab-btn" onclick="showTab('flashcards')">Flashcards</button>
+                    </div>
+                    <div id="study-guide" class="tab-content">
+                        </div>
+                    <div id="flashcards" class="tab-content hidden">
+                         <div class="flashcard-container">
+                            <div class="flashcard" id="flashcard">
+                                <div class="card-face card-front" id="flashcard-front"></div>
+                                <div class="card-face card-back" id="flashcard-back"></div>
+                            </div>
+                            <div class="flashcard-nav">
+                                <button id="prev-card-btn">Previous</button>
+                                <span id="card-counter">1 / 10</span>
+                                <button id="next-card-btn">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What is the primary purpose of the `EXPLAIN` command in PostgreSQL?",
+                type: 'mc',
+                options: [
+                    "To execute the query and measure its exact runtime in milliseconds.",
+                    "To show the query planner's chosen execution plan without running the query.",
+                    "To create an index to make the query run faster.",
+                    "To display the raw data returned by the query."
+                ],
+                answer: 1,
+                hint: "Think of this command as a 'preview' of the database's strategy.",
+                explanation: "The `EXPLAIN` command reveals the roadmap—the query plan—that PostgreSQL intends to follow to fetch the data. It does this without actually performing the data retrieval, making it a safe way to inspect query strategy."
+            },
+            {
+                question: "Which type of scan reads every single row in a table from start to finish?",
+                type: 'mc',
+                options: [
+                    "Index Scan",
+                    "Bitmap Index Scan",
+                    "Sequential Scan",
+                    "Primary Key Scan"
+                ],
+                answer: 2,
+                hint: "The name of this scan type implies it happens in a specific order, one after another.",
+                explanation: "A Sequential Scan (or `Seq Scan`) is PostgreSQL's method of reading a table block by block, row by row, without using an index. It's often seen when no suitable index exists for the `WHERE` clause."
+            },
+            {
+                question: "What critical information does `EXPLAIN ANALYZE` provide that a plain `EXPLAIN` does not?",
+                type: 'mc',
+                options: [
+                    "The estimated total cost of the query.",
+                    "The type of join method to be used (e.g., Hash Join).",
+                    "The actual execution time and true row counts.",
+                    "The width in bytes of the average row."
+                ],
+                answer: 2,
+                hint: "The `ANALYZE` keyword adds a layer of real-world measurement.",
+                explanation: "`EXPLAIN ANALYZE` runs the query and therefore can report the `actual time` taken for each step and the `actual rows` returned. This allows you to compare the planner's estimates to reality."
+            },
+            {
+                question: "In an `EXPLAIN` plan, what do the `cost` units represent?",
+                type: 'mc',
+                options: [
+                    "The exact execution time in milliseconds.",
+                    "The amount of memory in kilobytes the query will use.",
+                    "An abstract, relative measure of work used for comparing plans.",
+                    "The number of CPU cycles required to complete the query."
+                ],
+                answer: 2,
+                hint: "The planner uses this value to choose the 'cheapest' plan, not necessarily the one that runs in the fewest milliseconds on your specific hardware.",
+                explanation: "The `cost` is an arbitrary unit that represents a weighted combination of CPU and I/O work. Its only purpose is for the planner to compare potential execution plans against each other and pick the one with the lowest total cost."
+            },
+            {
+                question: "A `Nested Loop` join is generally most efficient under which condition?",
+                type: 'mc',
+                options: [
+                    "When both tables being joined are very large.",
+                    "When the inputs are already sorted on the join key.",
+                    "When one table is small, and the other has an index on the join key.",
+                    "When there are no indexes available on either table."
+                ],
+                answer: 2,
+                hint: "This join works like a `for` loop inside another `for` loop, which is fast if one loop is very short and the inner lookup is quick.",
+                explanation: "A `Nested Loop` shines when the outer loop (the small table) has few rows. For each of those rows, it can perform a very fast lookup (the inner loop) on the second table using an index."
+            },
+            {
+                question: "If you run `EXPLAIN ANALYZE` and find the planner's estimated `rows` is vastly different from the `actual rows`, what is the most likely cause?",
+                type: 'mc',
+                options: [
+                    "The query is too complex for the planner to understand.",
+                    "The hardware is too slow to execute the plan correctly.",
+                    "The table's statistics are outdated or inaccurate.",
+                    "The wrong type of index is being used."
+                ],
+                answer: 2,
+                hint: "The planner makes its guesses based on the data it has. What if that data is old?",
+                explanation: "The query planner relies heavily on statistics about the data distribution in tables. If this data is stale, its row count estimates will be poor, often leading to a suboptimal query plan. The `ANALYZE` command is used to update these statistics."
+            },
+            {
+                question: "In the indented structure of an `EXPLAIN` plan tree, how does data flow?",
+                type: 'mc',
+                options: [
+                    "From the top-level node down to the leaf nodes.",
+                    "Sequentially, from the first line to the last line.",
+                    "From the most indented child nodes upward to the parent nodes.",
+                    "From the node with the lowest cost to the node with the highest cost."
+                ],
+                answer: 2,
+                hint: "The operations at the bottom (like scanning a table) have to happen first to provide data for the operations above them (like joining).",
+                explanation: "The plan tree executes from the bottom up. The most indented nodes (the leaves) are the sources of data. They produce rows that are fed upward into their parent nodes, which process them and pass the results further up the tree."
+            },
+            {
+                question: "You see a `Hash Join` in your query plan for a join between two large tables. What does this choice by the planner typically imply?",
+                type: 'mc',
+                options: [
+                    "Both tables are perfectly sorted, and a `Merge Join` was too expensive.",
+                    "The planner expects one table to be small enough to be the outer loop in a `Nested Loop`.",
+                    "A suitable index for a `Nested Loop` was not available, and building a hash table in memory was deemed the cheapest strategy.",
+                    "The query is guaranteed to be memory-intensive and will likely fail."
+                ],
+                answer: 2,
+                hint: "`Hash Join` is the planner's workhorse when it can't use a more 'surgical' approach like an indexed `Nested Loop`.",
+                explanation: "A `Hash Join` is often chosen for large-to-large joins where there isn't an index that would make a `Nested Loop` efficient. The planner calculates that the cost of building a hash table from one table and probing it with the second is lower than other available methods."
+            },
+            {
+                question: "When would it be dangerous to use `EXPLAIN ANALYZE` in a production environment?",
+                type: 'mc',
+                options: [
+                    "When running a simple `SELECT` query on a small, indexed table.",
+                    "When checking the plan for a query that modifies data, such as `DELETE` or `UPDATE`.",
+                    "When the query is known to return zero rows.",
+                    "When you want to see the planner's cost estimates."
+                ],
+                answer: 1,
+                hint: "`EXPLAIN ANALYZE` doesn't just pretend to run the query; it actually runs it.",
+                explanation: "`EXPLAIN ANALYZE` executes the full query. If the query is a `DELETE` or `UPDATE`, it will actually modify the data in your database, which is almost never what you want when just diagnosing performance."
+            },
+            {
+                question: "What does the `width` value in an `EXPLAIN` plan estimate?",
+                type: 'mc',
+                options: [
+                    "The number of columns being returned.",
+                    "The average size in bytes of a single row returned by that step.",
+                    "The total number of disk blocks the operation will read.",
+                    "The maximum depth of the plan tree."
+                ],
+                answer: 1,
+                hint: "This metric helps the planner estimate how much memory and I/O will be needed to handle the data.",
+                explanation: "The `width` is the planner's estimate of the average size of a row, in bytes, that will be output by that specific node in the plan."
+            },
+            {
+                question: "True or False: The `cost` value shown in a PostgreSQL query plan is a direct measurement of execution time in milliseconds.",
+                type: 'tf',
+                answer: false,
+                hint: "The cost is relative, not absolute.",
+                explanation: "This is false. The cost is an abstract, arbitrary unit that PostgreSQL uses internally to compare the 'work' required for different plans. The `actual time` reported by `EXPLAIN ANALYZE` is measured in milliseconds."
+            },
+            {
+                question: "True or False: A `Merge Join` requires both of its input datasets to be sorted on the join key before it can proceed.",
+                type: 'tf',
+                answer: true,
+                hint: "This join algorithm works by walking through two sorted lists simultaneously.",
+                explanation: "This is true. The core principle of a `Merge Join` is that it can efficiently find matches by iterating through two pre-sorted lists in parallel. If the data isn't already sorted, the plan will include explicit `Sort` nodes."
+            },
+            {
+                question: "True or False: In PostgreSQL's cost parameters, `random_page_cost` is typically set to a higher value than `seq_page_cost` to reflect that random disk I/O is physically slower and more 'expensive' than sequential disk I/O.",
+                type: 'tf',
+                answer: true,
+                hint: "Consider how a spinning hard drive works. Is it faster to read a continuous block or to jump the read-head all over the platter?",
+                explanation: "This is true. Reading data sequentially on disk is much faster than seeking to random locations. PostgreSQL models this by assigning a higher cost to random page reads to influence the planner's decisions."
+            },
+            {
+                question: "To refresh the table statistics that the query planner uses for its estimates, you should run the ____________ command.",
+                type: 'blank',
+                answer: 'ANALYZE',
+                hint: "This command tells PostgreSQL to analyze the current state of the data.",
+                explanation: "The `ANALYZE` command collects statistics on the contents of tables. The query planner uses these statistics to help determine the most efficient execution plans."
+            },
+            {
+                question: "Match the join type to its ideal use case.",
+                type: 'dragdrop',
+                items: ["Nested Loop", "Hash Join", "Merge Join"],
+                targets: [
+                    "Both inputs are large and already sorted on the join key.",
+                    "One input is very small, and the other is large with an index on the join key.",
+                    "Both inputs are large and unsorted, and there is enough memory."
+                ],
+                answer: { // item_index -> target_index
+                    0: 1, // Nested Loop -> One input is very small...
+                    1: 2, // Hash Join -> Both inputs are large and unsorted...
+                    2: 0, // Merge Join -> Both inputs are large and already sorted...
+                },
+                hint: "Think about the prerequisites for each join: `Merge Join` needs sorting, `Nested Loop` needs a fast inner lookup, and `Hash Join` needs memory.",
+                explanation: "Nested Loop: Ideal for 'small table -> indexed large table' scenarios. Hash Join: The default for joining large, unsorted tables with enough memory. Merge Join: Extremely efficient if inputs are already sorted."
+            }
+        ];
+        
+        const flashcardData = [
+            { term: "EXPLAIN", definition: "A PostgreSQL command that shows the query planner's chosen execution plan for a SQL query without actually running it." },
+            { term: "EXPLAIN ANALYZE", definition: "Executes a SQL query and then displays the execution plan along with the actual execution time and row counts." },
+            { term: "Seq Scan (Sequential Scan)", definition: "An execution plan node that reads every row in a table from beginning to end. It's often used when there is no suitable index." },
+            { term: "Index Scan", definition: "An execution plan node that uses an index to jump directly to the rows that match the query's conditions, avoiding a full table scan." },
+            { term: "Cost (in a query plan)", definition: "An abstract, relative unit of work estimated by the planner. It is used to compare different potential plans, not to predict actual execution time in milliseconds." },
+            { term: "Nested Loop Join", definition: "A join method where the database scans one table (the outer loop) and, for each row found, probes the second table (the inner loop) to find matching rows. Ideal when the outer table is small and the inner table is indexed." },
+            { term: "Hash Join", definition: "A join method used for large tables where one table is used to build an in-memory hash table on the join key. The second table is then scanned, and its rows are matched using the hash table." },
+            { term: "Merge Join", definition: "A join method that requires both input tables to be sorted on the join key. It then reads through both sorted lists simultaneously to find matches, similar to merging two sorted files." },
+            { term: "rows (estimated)", definition: "The planner's prediction of how many rows a specific operation or node in the query plan will return. Accuracy depends on up-to-date table statistics." },
+            { term: "ANALYZE (command)", definition: "A PostgreSQL command that collects and updates statistics about the data distribution in a table's columns. These stats are crucial for the query planner to make good decisions." },
+        ];
+        
+        const studyGuideHTML = `
+            <h3>Overview</h3>
+            <p>Understanding query performance in PostgreSQL begins with the <code>EXPLAIN</code> command. It provides a window into the query planner's mind, revealing the step-by-step strategy (the "query plan") it will use to retrieve your data. This plan outlines which methods, such as table scans or index lookups, and which join algorithms will be employed. Analyzing this plan is the first and most critical step in diagnosing and fixing slow queries.</p>
+            <h3>Key Concepts: EXPLAIN vs. EXPLAIN ANALYZE</h3>
+            <p>The <code>EXPLAIN</code> command is a safe preview; it shows the <em>estimated</em> costs and row counts without executing the query. In contrast, <code>EXPLAIN ANALYZE</code> actually runs the query and provides both the planner's estimates and the <em>actual</em> performance metrics, including real execution time and row counts. This comparison is vital for identifying where the planner's assumptions were wrong. The core components of any plan include the node type (e.g., <code>Seq Scan</code>, <code>Index Scan</code>), the estimated <code>cost</code> (an abstract unit of work), and the estimated number of <code>rows</code>.</p>
+            <h3>Understanding Join Strategies</h3>
+            <p>PostgreSQL uses several algorithms to join tables. A <code>Nested Loop</code> join is efficient when one table is small, as it iterates through it and repeatedly looks up matching rows in the second table (ideally via an index). A <code>Hash Join</code> is the workhorse for joining large, unsorted tables by building an in-memory hash map of one table to quickly find matches from the second. A <code>Merge Join</code> is optimal when both tables are already sorted on the join key, as it can efficiently merge them in a single pass. The planner chooses the join strategy with the lowest estimated cost.</p>
+            <h3>Practical Takeaways</h3>
+            <p>To effectively tune queries, always start with <code>EXPLAIN</code>. If the query is safe and fast to run, use <code>EXPLAIN ANALYZE</code> to get real-world data. If the estimated <code>rows</code> are wildly different from the actual <code>rows</code>, your table statistics are likely outdated; run the <code>ANALYZE</code> command to update them. The goal is to guide the planner toward using efficient operations like <code>Index Scans</code> over costly <code>Seq Scans</code> and choosing the right join type for your data's size and structure.</p>
+        `;
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let currentFlashcardIndex = 0;
+
+        const questionCounterEl = document.getElementById('question-counter');
+        const scoreCounterEl = document.getElementById('score-counter');
+        const progressBarEl = document.getElementById('progress-bar');
+        const questionTextEl = document.getElementById('question-text');
+        const optionsContainerEl = document.getElementById('options-container');
+        const hintContainerEl = document.getElementById('hint-container');
+        const hintBtnEl = document.getElementById('hint-btn');
+        const hintTextEl = document.getElementById('hint-text');
+        const feedbackContainerEl = document.getElementById('feedback-container');
+        const nextBtnEl = document.getElementById('next-btn');
+        const quizScreenEl = document.getElementById('quiz-screen');
+        const resultsScreenEl = document.getElementById('results-screen');
+        const scoreTextEl = document.getElementById('score-text');
+
+        function loadQuestion() {
+            resetState();
+            const currentQuestion = quizData[currentQuestionIndex];
+            
+            questionCounterEl.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+            progressBarEl.style.width = `${((currentQuestionIndex + 1) / quizData.length) * 100}%`;
+            questionTextEl.innerHTML = currentQuestion.question.replace('____________', '<input type="text" id="blank-input" placeholder="Type your answer">');
+
+            if (currentQuestion.type === 'mc') {
+                currentQuestion.options.forEach((option, index) => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('option-btn');
+                    button.addEventListener('click', () => selectAnswer(index));
+                    optionsContainerEl.appendChild(button);
+                });
+            } else if (currentQuestion.type === 'tf') {
+                 const options = ['True', 'False'];
+                 options.forEach((option, index) => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('option-btn');
+                    const answerValue = option === 'True';
+                    button.addEventListener('click', () => selectAnswer(answerValue));
+                    optionsContainerEl.appendChild(button);
+                });
+            } else if (currentQuestion.type === 'blank') {
+                const checkBtn = document.createElement('button');
+                checkBtn.textContent = 'Check Answer';
+                checkBtn.style.marginTop = '10px';
+                checkBtn.classList.add('option-btn');
+                checkBtn.addEventListener('click', () => {
+                    const input = document.getElementById('blank-input');
+                    selectAnswer(input.value.trim().toUpperCase());
+                });
+                optionsContainerEl.appendChild(checkBtn);
+            } else if (currentQuestion.type === 'dragdrop') {
+                const container = document.createElement('div');
+                container.className = 'drag-drop-container';
+                const dragCol = document.createElement('div');
+                dragCol.className = 'drag-column';
+                dragCol.innerHTML = '<h4>Items to Drag:</h4>';
+                const dropCol = document.createElement('div');
+                dropCol.className = 'drop-column';
+                dropCol.innerHTML = '<h4>Categories:</h4>';
+                
+                currentQuestion.items.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'draggable';
+                    div.textContent = item;
+                    div.draggable = true;
+                    div.dataset.index = index;
+                    dragCol.appendChild(div);
+                });
+
+                currentQuestion.targets.forEach((target, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'drop-target';
+                    div.dataset.index = index;
+                    div.innerHTML = `<em>${target}</em>`;
+                    dropCol.appendChild(div);
+                });
+
+                optionsContainerEl.appendChild(container);
+                container.appendChild(dragCol);
+                container.appendChild(dropCol);
+                setupDragAndDrop();
+
+                const checkBtn = document.createElement('button');
+                checkBtn.textContent = 'Check Answer';
+                checkBtn.style.marginTop = '10px';
+                checkBtn.classList.add('option-btn');
+                checkBtn.addEventListener('click', checkDragDropAnswer);
+                optionsContainerEl.appendChild(checkBtn);
+            }
+
+            if (currentQuestion.hint) {
+                hintContainerEl.classList.remove('hidden');
+                hintBtnEl.onclick = () => {
+                    hintTextEl.textContent = currentQuestion.hint;
+                    hintTextEl.classList.remove('hidden');
+                    hintBtnEl.classList.add('hidden');
+                };
+            }
+        }
+
+        function resetState() {
+            optionsContainerEl.innerHTML = '';
+            feedbackContainerEl.classList.add('hidden');
+            feedbackContainerEl.innerHTML = '';
+            hintContainerEl.classList.add('hidden');
+            hintTextEl.classList.add('hidden');
+            hintBtnEl.classList.remove('hidden');
+            nextBtnEl.disabled = true;
+            if (currentQuestionIndex === quizData.length - 1) {
+                nextBtnEl.textContent = 'Show Results';
+            } else {
+                nextBtnEl.textContent = 'Next Question';
+            }
+        }
+
+        function selectAnswer(selectedIndex) {
+            const currentQuestion = quizData[currentQuestionIndex];
+            let isCorrect = false;
+
+            if (currentQuestion.type === 'tf') {
+                 isCorrect = selectedIndex === currentQuestion.answer;
+            } else if (currentQuestion.type === 'blank') {
+                isCorrect = selectedIndex.toUpperCase() === currentQuestion.answer.toUpperCase();
+            } else { // mc
+                 isCorrect = selectedIndex === currentQuestion.answer;
+            }
+
+            if (isCorrect) {
+                score++;
+                scoreCounterEl.textContent = `Score: ${score}`;
+            }
+
+            showFeedback(isCorrect, selectedIndex);
+        }
+
+        function showFeedback(isCorrect, selectedIndex) {
+            const currentQuestion = quizData[currentQuestionIndex];
+            const feedbackText = `<strong>${isCorrect ? 'Correct!' : 'Incorrect.'}</strong> ${currentQuestion.explanation}`;
+            feedbackContainerEl.innerHTML = feedbackText;
+            feedbackContainerEl.classList.remove('hidden');
+
+            const optionButtons = optionsContainerEl.querySelectorAll('.option-btn');
+            optionButtons.forEach((button, index) => {
+                button.disabled = true;
+                if (currentQuestion.type === 'mc') {
+                    if (index === currentQuestion.answer) {
+                        button.classList.add('correct');
+                    }
+                    if (index === selectedIndex && !isCorrect) {
+                        button.classList.add('incorrect');
+                    }
+                } else if (currentQuestion.type === 'tf') {
+                    const buttonValue = button.textContent === 'True';
+                    if (buttonValue === currentQuestion.answer) {
+                        button.classList.add('correct');
+                    }
+                    if (buttonValue === selectedIndex && !isCorrect) {
+                        button.classList.add('incorrect');
+                    }
+                } else if (currentQuestion.type === 'blank') {
+                    const input = document.getElementById('blank-input');
+                    input.disabled = true;
+                    input.style.borderColor = isCorrect ? 'var(--correct-color)' : 'var(--incorrect-color)';
+                }
+            });
+            nextBtnEl.disabled = false;
+        }
+
+        function setupDragAndDrop() {
+            const draggables = document.querySelectorAll('.draggable');
+            const dropTargets = document.querySelectorAll('.drop-target');
+
+            draggables.forEach(draggable => {
+                draggable.addEventListener('dragstart', () => {
+                    draggable.classList.add('dragging');
+                });
+                draggable.addEventListener('dragend', () => {
+                    draggable.classList.remove('dragging');
+                });
+            });
+
+            dropTargets.forEach(target => {
+                target.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    target.classList.add('hovered');
+                });
+                target.addEventListener('dragleave', () => {
+                    target.classList.remove('hovered');
+                });
+                target.addEventListener('drop', () => {
+                    target.classList.remove('hovered');
+                    const dragging = document.querySelector('.dragging');
+                    // Allow only one item per target
+                    if (target.children.length > 1) { // 1 because of the <em> tag
+                        const existingDraggable = target.querySelector('.draggable');
+                        document.querySelector('.drag-column').appendChild(existingDraggable);
+                    }
+                    target.appendChild(dragging);
+                });
+            });
+        }
+        
+        function checkDragDropAnswer() {
+            const currentQuestion = quizData[currentQuestionIndex];
+            let isCorrect = true;
+            const dropTargets = document.querySelectorAll('.drop-target');
+            
+            dropTargets.forEach((target, targetIndex) => {
+                const draggable = target.querySelector('.draggable');
+                if (!draggable) {
+                    isCorrect = false;
+                    return;
+                }
+                const itemIndex = parseInt(draggable.dataset.index);
+                if (currentQuestion.answer[itemIndex] !== targetIndex) {
+                    isCorrect = false;
+                }
+            });
+
+             if (isCorrect) {
+                score++;
+                scoreCounterEl.textContent = `Score: ${score}`;
+            }
+            showFeedback(isCorrect);
+            document.querySelectorAll('.draggable').forEach(d => d.draggable = false);
+        }
+
+
+        function showResults() {
+            quizScreenEl.classList.add('hidden');
+            resultsScreenEl.classList.remove('hidden');
+            const percentage = Math.round((score / quizData.length) * 100);
+            scoreTextEl.textContent = `You scored ${score}/${quizData.length} (${percentage}%)`;
+            
+            // Inject study resources
+            document.getElementById('study-guide').innerHTML = studyGuideHTML;
+            loadFlashcard();
+        }
+
+        nextBtnEl.addEventListener('click', () => {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        });
+
+        // Tab functionality
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.remove('hidden');
+            document.querySelector(`.tab-btn[onclick="showTab('${tabName}')"]`).classList.add('active');
+        }
+
+        // Flashcard functionality
+        const flashcardEl = document.getElementById('flashcard');
+        const flashcardFrontEl = document.getElementById('flashcard-front');
+        const flashcardBackEl = document.getElementById('flashcard-back');
+        const cardCounterEl = document.getElementById('card-counter');
+        const prevCardBtn = document.getElementById('prev-card-btn');
+        const nextCardBtn = document.getElementById('next-card-btn');
+        
+        function loadFlashcard() {
+            if (flashcardEl.classList.contains('is-flipped')) {
+                flashcardEl.classList.remove('is-flipped');
+            }
+            const card = flashcardData[currentFlashcardIndex];
+            flashcardFrontEl.textContent = card.term;
+            flashcardBackEl.textContent = card.definition;
+            cardCounterEl.textContent = `${currentFlashcardIndex + 1} / ${flashcardData.length}`;
+        }
+        
+        flashcardEl.addEventListener('click', () => {
+            flashcardEl.classList.toggle('is-flipped');
+        });
+        
+        prevCardBtn.addEventListener('click', () => {
+            currentFlashcardIndex = (currentFlashcardIndex - 1 + flashcardData.length) % flashcardData.length;
+            loadFlashcard();
+        });
+
+        nextCardBtn.addEventListener('click', () => {
+            currentFlashcardIndex = (currentFlashcardIndex + 1) % flashcardData.length;
+            loadFlashcard();
+        });
+
+
+        // Start the quiz
+        loadQuestion();
+    </script>
+</body>
+</html>

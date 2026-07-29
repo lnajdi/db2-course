@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL DBA Interactive Tutorials</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a0a0a0;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--card-color-1), var(--card-color-2));
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .card p {
+            color: #a0a0a0;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .card-features {
+            list-style: none;
+            margin-bottom: 25px;
+        }
+
+        .card-features li {
+            padding: 8px 0;
+            color: #b0b0b0;
+            font-size: 0.9rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-features li:last-child {
+            border-bottom: none;
+        }
+
+        .card-features li::before {
+            content: '✓ ';
+            color: #4ade80;
+            margin-right: 8px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+            width: 100%;
+        }
+
+        .btn-wal {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: #fff;
+        }
+
+        .btn-pitr {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: #fff;
+        }
+
+        .btn-backup {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-wal {
+            --card-color-1: #f093fb;
+            --card-color-2: #f5576c;
+        }
+
+        .card-pitr {
+            --card-color-1: #4facfe;
+            --card-color-2: #00f2fe;
+        }
+
+        .card-backup {
+            --card-color-1: #667eea;
+            --card-color-2: #764ba2;
+        }
+
+        .card-logical {
+            --card-color-1: #22c55e;
+            --card-color-2: #10b981;
+        }
+
+        .btn-logical {
+            background: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+            color: #fff;
+        }
+
+        .card-monitoring {
+            --card-color-1: #3b82f6;
+            --card-color-2: #06b6d4;
+        }
+
+        .btn-monitoring {
+            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+            color: #fff;
+        }
+
+        .card-maintenance {
+            --card-color-1: #f59e0b;
+            --card-color-2: #eab308;
+        }
+
+        .btn-maintenance {
+            background: linear-gradient(135deg, #f59e0b 0%, #eab308 100%);
+            color: #fff;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 20px;
+            color: #606060;
+            font-size: 0.9rem;
+        }
+
+        .tech-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐘 PostgreSQL DBA Tutorials</h1>
+            <p class="subtitle">Interactive visualizations for database administration concepts</p>
+        </header>
+
+        <div class="cards">
+            <!-- WAL Slideshow -->
+            <div class="card card-wal" onclick="window.location.href='wal.html'">
+                <div class="card-icon">📝</div>
+                <h2>Write-Ahead Logging (WAL)</h2>
+                <p>Understand how PostgreSQL ensures data durability and survives crashes using Write-Ahead Logging.</p>
+                <ul class="card-features">
+                    <li>How WAL prevents data corruption</li>
+                    <li>The write-ahead principle</li>
+                    <li>WAL segments and checkpoints</li>
+                    <li>Recovery process explained</li>
+                </ul>
+                <a href="wal.html" class="btn btn-wal">Start Learning →</a>
+                <span class="tech-badge">Interactive Slideshow</span>
+            </div>
+
+            <!-- PITR Slideshow -->
+            <div class="card card-pitr" onclick="window.location.href='pitr.html'">
+                <div class="card-icon">⏰</div>
+                <h2>Point-in-Time Recovery (PITR)</h2>
+                <p>Learn how to restore your database to any specific moment in time, down to the exact second.</p>
+                <ul class="card-features">
+                    <li>Why traditional backups aren't enough</li>
+                    <li>Base backups + WAL archiving</li>
+                    <li>Recovery configuration</li>
+                    <li>Step-by-step PITR process</li>
+                </ul>
+                <a href="pitr.html" class="btn btn-pitr">Start Learning →</a>
+                <span class="tech-badge">Interactive Slideshow</span>
+            </div>
+
+            <!-- Backup Flow -->
+            <div class="card card-backup" onclick="window.location.href='backup.html'">
+                <div class="card-icon">💾</div>
+                <h2>Backup Flow Diagram</h2>
+                <p>Visualize the complete backup and recovery workflow with an interactive flow diagram.</p>
+                <ul class="card-features">
+                    <li>Backup strategies overview</li>
+                    <li>Logical vs Physical backups</li>
+                    <li>WAL archiving workflow</li>
+                    <li>Interactive node exploration</li>
+                </ul>
+                <a href="backup.html" class="btn btn-backup">Explore Diagram →</a>
+                <span class="tech-badge">Interactive Flow Diagram</span>
+            </div>
+
+            <!-- Logical Backup -->
+            <div class="card card-logical" onclick="window.location.href='logical-backup.html'">
+                <div class="card-icon">📦</div>
+                <h2>Logical Backup</h2>
+                <p>Master pg_dump and pg_restore to export and import your databases as SQL statements.</p>
+                <ul class="card-features">
+                    <li>pg_dump & pg_dumpall commands</li>
+                    <li>Output formats (plain, custom, directory)</li>
+                    <li>Selective backup & restore</li>
+                    <li>Automation best practices</li>
+                </ul>
+                <a href="logical-backup.html" class="btn btn-logical">Start Learning →</a>
+                <span class="tech-badge">Interactive Slideshow</span>
+            </div>
+
+            <!-- Monitoring -->
+            <div class="card card-monitoring" onclick="window.location.href='monitoring.html'">
+                <div class="card-icon">📊</div>
+                <h2>Monitoring</h2>
+                <p>Learn essential queries and tools to monitor your PostgreSQL database health.</p>
+                <ul class="card-features">
+                    <li>Key metrics to watch</li>
+                    <li>System views (pg_stat_*)</li>
+                    <li>Cache hit ratio & locks</li>
+                    <li>Monitoring tools</li>
+                </ul>
+                <a href="monitoring.html" class="btn btn-monitoring">Start Learning →</a>
+                <span class="tech-badge">Interactive Slideshow</span>
+            </div>
+
+            <!-- Maintenance -->
+            <div class="card card-maintenance" onclick="window.location.href='maintenance.html'">
+                <div class="card-icon">🔧</div>
+                <h2>Maintenance</h2>
+                <p>Keep your database healthy with VACUUM, ANALYZE, REINDEX and autovacuum.</p>
+                <ul class="card-features">
+                    <li>VACUUM & VACUUM FULL</li>
+                    <li>ANALYZE for query planning</li>
+                    <li>REINDEX for bloated indexes</li>
+                    <li>Autovacuum configuration</li>
+                </ul>
+                <a href="maintenance.html" class="btn btn-maintenance">Start Learning →</a>
+                <span class="tech-badge">Interactive Slideshow</span>
+            </div>
+        </div>
+
+        <footer>
+            <p>Database Administration Course - PostgreSQL Tutorials</p>
+            <p style="margin-top: 10px;">Built with React & ReactFlow</p>
+        </footer>
+    </div>
+</body>
+</html>

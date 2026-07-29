@@ -1,0 +1,1265 @@
+---
+title: "PostgreSQL Transactions & TCL - Live Demo with Pagila Database"
+subtitle: "Hands-on demonstration of Transaction Control Language and ACID Properties"
+author: "Database Course - Live Demo Session"
+format: 
+  html:
+    theme: default
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-overflow: wrap
+    highlight-style: github
+    code-block-bg: true
+    code-block-border-left: "#31BAE9"
+    number-sections: true
+---
+
+# Introduction to Transactions - Real Definitions and Concepts
+
+## What is a Database Transaction? 🎯
+
+> **Definition**: A transaction is a **sequence of one or more SQL operations** that are executed as a single logical unit of work. All operations in a transaction either complete successfully (commit) or fail together (rollback).
+
+### Key Characteristics:
+- **Atomicity**: All-or-nothing execution
+- **Consistency**: Maintains database integrity rules
+- **Isolation**: Concurrent transactions don't interfere
+- **Durability**: Committed changes are permanent
+
+## The Bank Transfer Analogy 🏦
+
+Consider transferring $100 from Account A to Account B:
+
+```
+Step 1: Subtract $100 from Account A
+Step 2: Add $100 to Account B
+```
+
+**Without transactions**: If Step 2 fails, money disappears! 💸
+**With transactions**: If any step fails, all changes are undone ↩️
+
+## ACID Properties Explained
+
+### **A**tomicity 🔗
+All operations succeed together or fail together
+- No partial execution
+- Database remains in a consistent state
+
+### **C**onsistency 📏
+Database constraints are never violated
+- Foreign keys remain valid
+- Check constraints are enforced
+- Data integrity is maintained
+
+### **I**solation 🚧
+Concurrent transactions don't interfere with each other
+- Prevents dirty reads, phantom reads
+- Controlled by isolation levels
+
+### **D**urability 💾
+Once committed, changes survive system crashes
+- Written to persistent storage
+- Guaranteed by transaction logs
+
+---
+
+# Transaction Control Language (TCL) Commands
+
+## The Four Essential TCL Commands
+
+| Command | Purpose | Effect |
+|---------|---------|--------|
+| `BEGIN` | Start transaction | Creates transaction boundary |
+| `COMMIT` | Save changes | Makes changes permanent |
+| `ROLLBACK` | Undo changes | Reverts to transaction start |
+| `SAVEPOINT` | Create checkpoint | Allows partial rollback |
+
+---
+
+# Setting Up Our Demo Environment
+
+Let's explore the Pagila database and understand transaction implications:
+
+```{sql}
+-- Connect to Pagila database
+-- \c pagila
+
+-- Check current transaction status
+SELECT 
+    pid,
+    state,
+    query_start,
+    xact_start,
+    query
+FROM pg_stat_activity 
+WHERE pid = pg_backend_pid();
+```
+
+```{sql}
+-- Examine tables we'll use for transaction demos
+SELECT 
+    table_name,
+    column_name,
+    data_type,
+    is_nullable,
+    column_default
+FROM information_schema.columns 
+WHERE table_schema = 'public' 
+    AND table_name IN ('customer', 'rental', 'payment', 'inventory', 'film')
+ORDER BY table_name, ordinal_position;
+```
+
+```{sql}
+-- Check referential integrity constraints
+SELECT 
+    tc.table_name, 
+    tc.constraint_name, 
+    tc.constraint_type,
+    kcu.column_name,
+    ccu.table_name AS foreign_table_name,
+    ccu.column_name AS foreign_column_name 
+FROM information_schema.table_constraints tc 
+JOIN information_schema.key_column_usage kcu 
+    ON tc.constraint_name = kcu.constraint_name
+JOIN information_schema.constraint_column_usage ccu 
+    ON ccu.constraint_name = tc.constraint_name
+WHERE tc.constraint_type = 'FOREIGN KEY'
+    AND tc.table_schema = 'public'
+ORDER BY tc.table_name;
+```
+
+---
+
+# Part 1: Basic Transaction Operations
+
+## Demo 1: Simple Transaction - BEGIN, COMMIT, ROLLBACK
+
+```{sql}
+-- Demo 1a: Successful transaction
+BEGIN;
+
+-- Check current customer data
+SELECT customer_id, first_name, last_name, email, active 
+FROM customer 
+WHERE customer_id = 1;
+
+-- Update customer information
+UPDATE customer 
+SET email = 'mary.smith.updated@example.com',
+    last_update = CURRENT_TIMESTAMP
+WHERE customer_id = 1;
+
+-- Verify the change within transaction
+SELECT customer_id, first_name, last_name, email, active, last_update
+FROM customer 
+WHERE customer_id = 1;
+
+-- Commit the transaction
+COMMIT;
+
+-- Verify change persists after commit
+SELECT customer_id, first_name, last_name, email, active, last_update
+FROM customer 
+WHERE customer_id = 1;
+```
+
+```{sql}
+-- Demo 1b: Transaction with rollback
+BEGIN;
+
+-- Save original data for comparison
+SELECT customer_id, first_name, last_name, email 
+FROM customer 
+WHERE customer_id = 2;
+
+-- Make a change
+UPDATE customer 
+SET email = 'temporary.email@example.com'
+WHERE customer_id = 2;
+
+-- Verify change within transaction
+SELECT customer_id, first_name, last_name, email 
+FROM customer 
+WHERE customer_id = 2;
+
+-- Decide to rollback
+ROLLBACK;
+
+-- Verify change was undone
+SELECT customer_id, first_name, last_name, email 
+FROM customer 
+WHERE customer_id = 2;
+```
+
+## Demo 2: Auto-commit vs Explicit Transactions
+
+```{sql}
+-- Check current auto-commit setting
+SHOW autocommit;
+
+-- Auto-commit behavior (default in PostgreSQL)
+-- Each statement is automatically committed
+UPDATE customer 
+SET last_update = CURRENT_TIMESTAMP 
+WHERE customer_id = 3;
+-- This change is immediately permanent
+
+-- Verify the change
+SELECT customer_id, last_update 
+FROM customer 
+WHERE customer_id = 3;
+```
+
+```{sql}
+-- Explicit transaction control
+BEGIN;
+
+-- Multiple related operations
+UPDATE customer 
+SET active = 0,
+    last_update = CURRENT_TIMESTAMP 
+WHERE customer_id = 4;
+
+-- Add a note about the deactivation (simulated)
+-- In a real scenario, you might insert into a customer_notes table
+
+-- Check the changes
+SELECT customer_id, first_name, last_name, active, last_update
+FROM customer 
+WHERE customer_id = 4;
+
+-- Commit all changes together
+COMMIT;
+```
+
+---
+
+# Part 2: Complex Transaction Scenarios
+
+## Demo 3: Movie Rental Transaction
+
+Let's simulate the complete process of renting a movie - this involves multiple tables and must be atomic:
+
+```{sql}
+-- Demo 3: Complete rental transaction
+BEGIN;
+
+-- Step 1: Check if film is available
+SELECT 
+    i.inventory_id,
+    f.title,
+    f.rental_rate,
+    s.store_id
+FROM inventory i
+JOIN film f ON i.film_id = f.film_id
+JOIN store s ON i.store_id = s.store_id
+WHERE f.title = 'ACADEMY DINOSAUR'
+    AND i.inventory_id NOT IN (
+        SELECT inventory_id 
+        FROM rental 
+        WHERE return_date IS NULL
+    )
+LIMIT 1;
+
+-- Let's get a specific available inventory_id for our demo
+-- (In a real app, this would be determined by the previous query)
+```
+
+```{sql}
+-- Continue the rental transaction
+-- Step 2: Create the rental record
+INSERT INTO rental (
+    rental_date,
+    inventory_id,
+    customer_id,
+    staff_id,
+    last_update
+) VALUES (
+    CURRENT_TIMESTAMP,
+    1,  -- Available inventory_id for ACADEMY DINOSAUR
+    1,  -- Customer ID
+    1,  -- Staff ID who processed the rental
+    CURRENT_TIMESTAMP
+);
+
+-- Step 3: Get the rental_id for payment
+-- In PostgreSQL, we can use RETURNING clause
+-- But for demo, let's get the last inserted rental_id
+SELECT currval('rental_rental_id_seq') AS new_rental_id;
+```
+
+```{sql}
+-- Step 4: Process payment
+INSERT INTO payment (
+    customer_id,
+    staff_id,
+    rental_id,
+    amount,
+    payment_date
+) VALUES (
+    1,  -- Customer ID
+    1,  -- Staff ID
+    currval('rental_rental_id_seq'),  -- The rental we just created
+    (SELECT rental_rate FROM film f 
+     JOIN inventory i ON f.film_id = i.film_id 
+     WHERE i.inventory_id = 1),  -- Get rental rate
+    CURRENT_TIMESTAMP
+);
+
+-- Verify all our changes look correct
+SELECT 
+    r.rental_id,
+    r.rental_date,
+    c.first_name || ' ' || c.last_name AS customer_name,
+    f.title,
+    p.amount
+FROM rental r
+JOIN customer c ON r.customer_id = c.customer_id
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN film f ON i.film_id = f.film_id
+JOIN payment p ON r.rental_id = p.rental_id
+WHERE r.rental_id = currval('rental_rental_id_seq');
+
+-- Everything looks good - commit the transaction
+COMMIT;
+```
+
+## Demo 4: Transaction with Error Handling
+
+```{sql}
+-- Demo 4: Handling errors in transactions
+BEGIN;
+
+-- Try to rent a film that might not be available
+DO $$
+DECLARE 
+    available_inventory_id INTEGER;
+    rental_rate_amount NUMERIC(4,2);
+    new_rental_id INTEGER;
+BEGIN
+    -- Check for available inventory
+    SELECT i.inventory_id, f.rental_rate
+    INTO available_inventory_id, rental_rate_amount
+    FROM inventory i
+    JOIN film f ON i.film_id = f.film_id
+    WHERE f.title = 'NONEXISTENT MOVIE'
+        AND i.inventory_id NOT IN (
+            SELECT inventory_id 
+            FROM rental 
+            WHERE return_date IS NULL
+        )
+    LIMIT 1;
+    
+    -- If no inventory found, raise an exception
+    IF available_inventory_id IS NULL THEN
+        RAISE EXCEPTION 'Movie not available for rental';
+    END IF;
+    
+    -- Create rental record
+    INSERT INTO rental (rental_date, inventory_id, customer_id, staff_id, last_update)
+    VALUES (CURRENT_TIMESTAMP, available_inventory_id, 1, 1, CURRENT_TIMESTAMP)
+    RETURNING rental_id INTO new_rental_id;
+    
+    -- Create payment record
+    INSERT INTO payment (customer_id, staff_id, rental_id, amount, payment_date)
+    VALUES (1, 1, new_rental_id, rental_rate_amount, CURRENT_TIMESTAMP);
+    
+    RAISE NOTICE 'Rental successful! Rental ID: %', new_rental_id;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Rental failed: %', SQLERRM;
+        -- The transaction will be automatically rolled back
+        RAISE;
+END $$;
+
+-- This will rollback due to the exception
+ROLLBACK;
+```
+
+---
+
+# Part 3: Savepoints and Partial Rollbacks
+
+## Demo 5: Using Savepoints for Complex Operations
+
+```{sql}
+-- Demo 5: Savepoints for partial rollback control
+BEGIN;
+
+-- Initial operation - update customer email
+UPDATE customer 
+SET email = 'customer1.updated@example.com' 
+WHERE customer_id = 5;
+
+-- Create a savepoint after successful email update
+SAVEPOINT after_email_update;
+
+-- Try to update customer's address (might fail)
+-- First, let's see current address
+SELECT c.customer_id, c.first_name, c.last_name, a.address
+FROM customer c
+JOIN address a ON c.address_id = a.address_id
+WHERE c.customer_id = 5;
+
+-- Update address
+UPDATE address 
+SET address = '123 New Updated Street',
+    last_update = CURRENT_TIMESTAMP
+WHERE address_id = (
+    SELECT address_id FROM customer WHERE customer_id = 5
+);
+
+-- Create another savepoint after address update
+SAVEPOINT after_address_update;
+
+-- Try to add a rental (this might fail if inventory doesn't exist)
+INSERT INTO rental (rental_date, inventory_id, customer_id, staff_id, last_update)
+VALUES (CURRENT_TIMESTAMP, 999999, 5, 1, CURRENT_TIMESTAMP);  -- Invalid inventory_id
+
+-- This will fail, so let's handle it
+```
+
+```{sql}
+-- Continue with savepoint demo - handle the error
+-- Since the rental insert failed, rollback to after address update
+ROLLBACK TO after_address_update;
+
+-- The address update is preserved, but the failed rental is undone
+-- Let's verify our changes
+SELECT 
+    c.customer_id, 
+    c.first_name, 
+    c.last_name, 
+    c.email,
+    a.address
+FROM customer c
+JOIN address a ON c.address_id = a.address_id
+WHERE c.customer_id = 5;
+
+-- Commit the successful changes (email and address updates)
+COMMIT;
+```
+
+## Demo 6: Nested Savepoints
+
+```{sql}
+-- Demo 6: Multiple savepoints in a complex transaction
+BEGIN;
+
+-- Create initial rental
+INSERT INTO rental (rental_date, inventory_id, customer_id, staff_id, last_update)
+VALUES (CURRENT_TIMESTAMP, 2, 6, 1, CURRENT_TIMESTAMP);
+
+SAVEPOINT rental_created;
+
+-- Try to create payment
+INSERT INTO payment (customer_id, staff_id, rental_id, amount, payment_date)
+VALUES (6, 1, currval('rental_rental_id_seq'), 4.99, CURRENT_TIMESTAMP);
+
+SAVEPOINT payment_created;
+
+-- Try to update inventory count (if we had such a field)
+-- This is a simulated operation that might fail
+UPDATE inventory 
+SET last_update = CURRENT_TIMESTAMP
+WHERE inventory_id = 2;
+
+SAVEPOINT inventory_updated;
+
+-- Try to send notification (simulated - might fail)
+-- Let's simulate this with an invalid operation
+DO $$
+BEGIN
+    -- Simulate notification service failure
+    IF random() > 0.5 THEN
+        RAISE EXCEPTION 'Notification service unavailable';
+    END IF;
+    RAISE NOTICE 'Notification sent successfully';
+END $$;
+
+-- If we reach here, everything succeeded
+COMMIT;
+
+-- If there was an exception, we could rollback to any savepoint:
+-- ROLLBACK TO inventory_updated;  -- Keep rental and payment
+-- ROLLBACK TO payment_created;    -- Keep rental only
+-- ROLLBACK TO rental_created;     -- Keep only rental
+-- ROLLBACK;                       -- Undo everything
+```
+
+---
+
+# Part 4: Transaction Isolation Levels
+
+## Demo 7: Understanding Isolation Levels
+
+```{sql}
+-- Check current isolation level
+SHOW transaction_isolation;
+
+-- Demo 7a: READ COMMITTED (PostgreSQL default)
+BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;
+
+-- Read some data
+SELECT customer_id, first_name, last_name, active
+FROM customer 
+WHERE customer_id BETWEEN 1 AND 5
+ORDER BY customer_id;
+
+-- In another session, someone might update this data
+-- We'll see the updated values if we read again after their commit
+
+-- For demo purposes, let's just observe the current behavior
+SELECT customer_id, last_update
+FROM customer 
+WHERE customer_id BETWEEN 1 AND 5
+ORDER BY customer_id;
+
+COMMIT;
+```
+
+```{sql}
+-- Demo 7b: REPEATABLE READ isolation
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+
+-- Read baseline data
+SELECT customer_id, first_name, last_name, last_update
+FROM customer 
+WHERE customer_id BETWEEN 6 AND 10
+ORDER BY customer_id;
+
+-- Even if another transaction updates this data and commits,
+-- we'll see the same values throughout this transaction
+
+-- Simulate some work
+SELECT pg_sleep(1);
+
+-- Read again - should be identical to first read
+SELECT customer_id, first_name, last_name, last_update
+FROM customer 
+WHERE customer_id BETWEEN 6 AND 10
+ORDER BY customer_id;
+
+COMMIT;
+```
+
+```{sql}
+-- Demo 7c: SERIALIZABLE isolation (highest level)
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+
+-- Count active customers
+SELECT COUNT(*) as active_customers
+FROM customer 
+WHERE active = 1;
+
+-- Calculate some statistics
+SELECT 
+    COUNT(*) as total_customers,
+    COUNT(CASE WHEN active = 1 THEN 1 END) as active_customers,
+    COUNT(CASE WHEN active = 0 THEN 1 END) as inactive_customers
+FROM customer;
+
+-- In SERIALIZABLE mode, if another transaction modifies data
+-- in a way that would make our results inconsistent,
+-- one of the transactions will be rolled back
+
+COMMIT;
+```
+
+---
+
+# Part 5: Concurrent Transaction Issues
+
+## Demo 8: Demonstrating Transaction Problems
+
+### Lost Update Problem
+```{sql}
+-- Scenario: Two staff members trying to process returns simultaneously
+
+-- Session 1 simulation:
+BEGIN;
+
+-- Staff member 1 processes a return
+SELECT rental_id, return_date 
+FROM rental 
+WHERE rental_id = 1 
+  AND return_date IS NULL;
+
+-- They decide to mark it as returned
+-- But first they do some other work...
+SELECT pg_sleep(2);  -- Simulate processing time
+
+-- Session 2 would do similar operations here...
+
+-- Staff member 1 finally updates
+UPDATE rental 
+SET return_date = CURRENT_TIMESTAMP,
+    last_update = CURRENT_TIMESTAMP
+WHERE rental_id = 1;
+
+COMMIT;
+
+-- Without proper locking, the second staff member's work could be lost
+```
+
+### Preventing Lost Updates with Locking
+```{sql}
+-- Better approach: Use SELECT FOR UPDATE
+BEGIN;
+
+-- Lock the rental record for update
+SELECT rental_id, customer_id, return_date 
+FROM rental 
+WHERE rental_id = 2
+  AND return_date IS NULL
+FOR UPDATE;
+
+-- Now process the return safely
+UPDATE rental 
+SET return_date = CURRENT_TIMESTAMP,
+    last_update = CURRENT_TIMESTAMP
+WHERE rental_id = 2;
+
+-- Process the associated late fees if any
+-- This is safe because we have the lock
+
+COMMIT;
+```
+
+## Demo 9: Deadlock Demonstration and Prevention
+
+```{sql}
+-- Deadlock scenario setup
+-- First, let's understand potential deadlock with customer and rental updates
+
+-- Session A would do:
+-- BEGIN;
+-- UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 1;
+-- UPDATE rental SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 1;
+-- COMMIT;
+
+-- Session B would do simultaneously:
+-- BEGIN;
+-- UPDATE rental SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 1;
+-- UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 1;
+-- COMMIT;
+
+-- This could create a deadlock!
+
+-- Prevention: Always access resources in the same order
+BEGIN;
+
+-- Always update customer first, then rentals
+UPDATE customer 
+SET last_update = CURRENT_TIMESTAMP 
+WHERE customer_id = 3;
+
+UPDATE rental 
+SET last_update = CURRENT_TIMESTAMP 
+WHERE customer_id = 3;
+
+COMMIT;
+```
+
+---
+
+# Part 6: Real-World Transaction Patterns
+
+## Demo 10: Complete Movie Return Process
+
+```{sql}
+-- Demo 10: Full movie return transaction with late fee calculation
+BEGIN;
+
+-- Step 1: Find the rental to return
+SELECT 
+    r.rental_id,
+    r.rental_date,
+    r.customer_id,
+    f.title,
+    f.rental_duration,
+    f.rental_rate,
+    (CURRENT_DATE - r.rental_date::date) as days_rented
+FROM rental r
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN film f ON i.film_id = f.film_id
+WHERE r.rental_id = 3
+  AND r.return_date IS NULL;
+
+-- Step 2: Calculate late fees (if any)
+DO $$
+DECLARE
+    rental_rec RECORD;
+    days_late INTEGER;
+    late_fee NUMERIC(5,2) := 0;
+BEGIN
+    -- Get rental information
+    SELECT 
+        r.rental_id,
+        r.rental_date,
+        r.customer_id,
+        f.rental_duration,
+        f.rental_rate,
+        (CURRENT_DATE - r.rental_date::date) as days_rented
+    INTO rental_rec
+    FROM rental r
+    JOIN inventory i ON r.inventory_id = i.inventory_id
+    JOIN film f ON i.film_id = f.film_id
+    WHERE r.rental_id = 3;
+    
+    -- Calculate late fee
+    days_late := rental_rec.days_rented - rental_rec.rental_duration;
+    
+    IF days_late > 0 THEN
+        late_fee := days_late * 1.00;  -- $1 per day late
+        RAISE NOTICE 'Late fee calculated: $% for % days late', late_fee, days_late;
+        
+        -- Create payment record for late fee
+        INSERT INTO payment (
+            customer_id, 
+            staff_id, 
+            rental_id, 
+            amount, 
+            payment_date
+        ) VALUES (
+            rental_rec.customer_id,
+            1,  -- Staff processing return
+            rental_rec.rental_id,
+            late_fee,
+            CURRENT_TIMESTAMP
+        );
+    END IF;
+    
+    -- Step 3: Mark rental as returned
+    UPDATE rental 
+    SET return_date = CURRENT_TIMESTAMP,
+        last_update = CURRENT_TIMESTAMP
+    WHERE rental_id = rental_rec.rental_id;
+    
+    RAISE NOTICE 'Movie returned successfully. Rental ID: %', rental_rec.rental_id;
+END $$;
+
+-- Verify the return was processed
+SELECT 
+    r.rental_id,
+    r.rental_date,
+    r.return_date,
+    f.title,
+    COALESCE(SUM(p.amount), 0) as total_fees
+FROM rental r
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN film f ON i.film_id = f.film_id
+LEFT JOIN payment p ON r.rental_id = p.rental_id
+WHERE r.rental_id = 3
+GROUP BY r.rental_id, r.rental_date, r.return_date, f.title;
+
+COMMIT;
+```
+
+## Demo 11: Bulk Operations with Transaction Control
+
+```{sql}
+-- Demo 11: Batch processing with transaction safety
+BEGIN;
+
+-- Bulk update customer status based on activity
+-- Mark customers as inactive if they haven't rented in 6 months
+
+-- First, let's see who would be affected
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    c.active,
+    MAX(r.rental_date) as last_rental_date,
+    CURRENT_DATE - MAX(r.rental_date)::date as days_since_last_rental
+FROM customer c
+LEFT JOIN rental r ON c.customer_id = r.customer_id
+WHERE c.active = 1
+GROUP BY c.customer_id, c.first_name, c.last_name, c.active
+HAVING MAX(r.rental_date) < CURRENT_DATE - INTERVAL '180 days'
+   OR MAX(r.rental_date) IS NULL;
+
+-- Create a savepoint before the bulk operation
+SAVEPOINT before_bulk_update;
+
+-- Perform the bulk update
+UPDATE customer 
+SET active = 0,
+    last_update = CURRENT_TIMESTAMP
+WHERE customer_id IN (
+    SELECT c.customer_id
+    FROM customer c
+    LEFT JOIN rental r ON c.customer_id = r.customer_id
+    WHERE c.active = 1
+    GROUP BY c.customer_id
+    HAVING MAX(r.rental_date) < CURRENT_DATE - INTERVAL '180 days'
+       OR MAX(r.rental_date) IS NULL
+);
+
+-- Check how many customers were affected
+SELECT 
+    COUNT(*) as customers_deactivated
+FROM customer 
+WHERE active = 0 
+  AND last_update > CURRENT_TIMESTAMP - INTERVAL '1 minute';
+
+-- If the number seems reasonable, commit; otherwise rollback to savepoint
+-- For demo, let's rollback to keep data unchanged
+ROLLBACK TO before_bulk_update;
+
+-- Commit the transaction (without the bulk update)
+COMMIT;
+```
+
+---
+
+# Part 7: Transaction Monitoring and Performance
+
+## Demo 12: Monitoring Transaction Activity
+
+```{sql}
+-- Monitor current database activity
+SELECT 
+    pid,
+    usename,
+    application_name,
+    client_addr,
+    state,
+    query_start,
+    xact_start,
+    state_change,
+    query
+FROM pg_stat_activity
+WHERE state != 'idle'
+ORDER BY xact_start NULLS LAST;
+```
+
+```{sql}
+-- Find long-running transactions
+SELECT 
+    pid,
+    usename,
+    application_name,
+    state,
+    now() - xact_start as transaction_duration,
+    now() - query_start as query_duration,
+    query
+FROM pg_stat_activity 
+WHERE xact_start IS NOT NULL
+  AND state != 'idle'
+ORDER BY transaction_duration DESC;
+```
+
+```{sql}
+-- Check for blocking transactions
+SELECT 
+    blocked_locks.pid AS blocked_pid,
+    blocked_activity.usename AS blocked_user,
+    blocking_locks.pid AS blocking_pid,
+    blocking_activity.usename AS blocking_user,
+    blocked_activity.query AS blocked_statement,
+    blocking_activity.query AS blocking_statement
+FROM pg_catalog.pg_locks blocked_locks
+JOIN pg_catalog.pg_stat_activity blocked_activity 
+    ON blocked_activity.pid = blocked_locks.pid
+JOIN pg_catalog.pg_locks blocking_locks 
+    ON blocking_locks.locktype = blocked_locks.locktype
+    AND blocking_locks.database IS NOT DISTINCT FROM blocked_locks.database
+    AND blocking_locks.relation IS NOT DISTINCT FROM blocked_locks.relation
+    AND blocking_locks.page IS NOT DISTINCT FROM blocked_locks.page
+    AND blocking_locks.tuple IS NOT DISTINCT FROM blocked_locks.tuple
+    AND blocking_locks.virtualxid IS NOT DISTINCT FROM blocked_locks.virtualxid
+    AND blocking_locks.transactionid IS NOT DISTINCT FROM blocked_locks.transactionid
+    AND blocking_locks.classid IS NOT DISTINCT FROM blocked_locks.classid
+    AND blocking_locks.objid IS NOT DISTINCT FROM blocked_locks.objid
+    AND blocking_locks.objsubid IS NOT DISTINCT FROM blocked_locks.objsubid
+    AND blocking_locks.pid != blocked_locks.pid
+JOIN pg_catalog.pg_stat_activity blocking_activity 
+    ON blocking_activity.pid = blocking_locks.pid
+WHERE NOT blocked_locks.granted;
+```
+
+## Demo 13: Transaction Performance Analysis
+
+```{sql}
+-- Check transaction commit/rollback statistics
+SELECT 
+    datname,
+    xact_commit,
+    xact_rollback,
+    ROUND(xact_rollback::numeric / (xact_commit + xact_rollback) * 100, 2) as rollback_percentage,
+    blks_read,
+    blks_hit,
+    ROUND(blks_hit::numeric / (blks_read + blks_hit) * 100, 2) as cache_hit_ratio
+FROM pg_stat_database 
+WHERE datname = current_database();
+```
+
+```{sql}
+-- Analyze table-level transaction impact
+SELECT 
+    schemaname,
+    tablename,
+    n_tup_ins as inserts,
+    n_tup_upd as updates,
+    n_tup_del as deletes,
+    n_tup_hot_upd as hot_updates,
+    n_dead_tup as dead_tuples,
+    last_vacuum,
+    last_autovacuum,
+    last_analyze,
+    last_autoanalyze
+FROM pg_stat_user_tables
+WHERE schemaname = 'public'
+ORDER BY (n_tup_ins + n_tup_upd + n_tup_del) DESC;
+```
+
+---
+
+# Part 8: Advanced Transaction Patterns
+
+## Demo 14: Two-Phase Commit Simulation
+
+```{sql}
+-- Simulate distributed transaction pattern
+-- Phase 1: Prepare all operations
+
+BEGIN;
+
+-- Prepare customer update
+UPDATE customer 
+SET email = 'twophase.test@example.com'
+WHERE customer_id = 7;
+
+-- Prepare rental record
+INSERT INTO rental (rental_date, inventory_id, customer_id, staff_id, last_update)
+VALUES (CURRENT_TIMESTAMP, 3, 7, 1, CURRENT_TIMESTAMP);
+
+-- Prepare payment record
+INSERT INTO payment (customer_id, staff_id, rental_id, amount, payment_date)
+VALUES (7, 1, currval('rental_rental_id_seq'), 3.99, CURRENT_TIMESTAMP);
+
+-- Phase 2: Verify all operations succeeded
+DO $$
+DECLARE
+    customer_updated BOOLEAN;
+    rental_created BOOLEAN;
+    payment_created BOOLEAN;
+BEGIN
+    -- Check if customer was updated
+    SELECT EXISTS(
+        SELECT 1 FROM customer 
+        WHERE customer_id = 7 
+        AND email = 'twophase.test@example.com'
+    ) INTO customer_updated;
+    
+    -- Check if rental was created
+    SELECT EXISTS(
+        SELECT 1 FROM rental 
+        WHERE rental_id = currval('rental_rental_id_seq')
+    ) INTO rental_created;
+    
+    -- Check if payment was created
+    SELECT EXISTS(
+        SELECT 1 FROM payment 
+        WHERE rental_id = currval('rental_rental_id_seq')
+    ) INTO payment_created;
+    
+    -- If all operations succeeded, commit
+    IF customer_updated AND rental_created AND payment_created THEN
+        RAISE NOTICE 'All operations successful - ready to commit';
+        -- COMMIT would happen here in real scenario
+    ELSE
+        RAISE EXCEPTION 'One or more operations failed - rolling back';
+    END IF;
+END $$;
+
+COMMIT;
+```
+
+## Demo 15: Optimistic vs Pessimistic Locking
+
+```{sql}
+-- Demo 15a: Optimistic locking using version numbers
+-- First, let's add a version column concept using last_update
+
+-- Optimistic locking pattern
+BEGIN;
+
+-- Read data with timestamp for version control
+SELECT 
+    customer_id, 
+    first_name, 
+    last_name, 
+    email, 
+    last_update
+FROM customer 
+WHERE customer_id = 8;
+
+-- Simulate user editing data
+SELECT pg_sleep(1);
+
+-- Update only if last_update hasn't changed (optimistic lock)
+UPDATE customer 
+SET email = 'optimistic.update@example.com',
+    last_update = CURRENT_TIMESTAMP
+WHERE customer_id = 8
+  AND last_update = (
+      SELECT last_update 
+      FROM customer 
+      WHERE customer_id = 8
+  );
+
+-- Check if update succeeded
+GET DIAGNOSTICS updated_rows = ROW_COUNT;
+
+DO $$
+DECLARE 
+    updated_rows INTEGER;
+BEGIN
+    GET DIAGNOSTICS updated_rows = ROW_COUNT;
+    
+    IF updated_rows = 0 THEN
+        RAISE EXCEPTION 'Record was modified by another user - please refresh and try again';
+    ELSE
+        RAISE NOTICE 'Update successful with optimistic locking';
+    END IF;
+END $$;
+
+COMMIT;
+```
+
+```{sql}
+-- Demo 15b: Pessimistic locking using SELECT FOR UPDATE
+BEGIN;
+
+-- Pessimistic locking - lock the record immediately
+SELECT 
+    customer_id, 
+    first_name, 
+    last_name, 
+    email, 
+    last_update
+FROM customer 
+WHERE customer_id = 9
+FOR UPDATE;
+
+-- Now we have exclusive access to this customer record
+-- Other transactions will wait if they try to modify it
+
+-- Simulate processing time
+SELECT pg_sleep(1);
+
+-- Safely update the locked record
+UPDATE customer 
+SET email = 'pessimistic.update@example.com',
+    last_update = CURRENT_TIMESTAMP
+WHERE customer_id = 9;
+
+COMMIT;
+-- Lock is released when transaction commits
+```
+
+---
+
+# Part 9: Transaction Best Practices
+
+## Best Practices Summary
+
+### ✅ DO:
+1. **Keep transactions short** - Minimize lock duration
+2. **Handle errors properly** - Always have rollback strategy
+3. **Use appropriate isolation levels** - Balance consistency vs performance
+4. **Access resources in consistent order** - Prevent deadlocks
+5. **Use savepoints for complex operations** - Enable partial recovery
+6. **Monitor long-running transactions** - Identify performance issues
+
+### ❌ DON'T:
+1. **Keep transactions open unnecessarily** - Causes blocking
+2. **Ignore error handling** - Can lead to data inconsistency
+3. **Use overly high isolation levels** - Impacts performance
+4. **Nest transactions without savepoints** - Unpredictable behavior
+5. **Perform I/O operations in transactions** - Increases duration
+6. **Access tables in different orders** - Can cause deadlocks
+
+## Demo 16: Performance Comparison
+
+```{sql}
+-- Compare auto-commit vs batched transactions
+-- Auto-commit approach (slower for bulk operations)
+\timing on
+
+-- This simulates multiple individual commits
+UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 10;
+UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 11;
+UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 12;
+UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 13;
+UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 14;
+
+\timing off
+```
+
+```{sql}
+-- Batched transaction approach (faster for bulk operations)
+\timing on
+
+BEGIN;
+UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 15;
+UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 16;
+UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 17;
+UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 18;
+UPDATE customer SET last_update = CURRENT_TIMESTAMP WHERE customer_id = 19;
+COMMIT;
+
+\timing off
+```
+
+---
+
+# Part 10: Practical Exercises
+
+## Exercise 1: Design a Complete Rental Transaction
+
+```{sql}
+-- Exercise: Create a complete rental transaction that includes:
+-- 1. Validation (customer exists, film available, customer has no outstanding fees)
+-- 2. Create rental record
+-- 3. Create payment record  
+-- 4. Handle all possible errors with appropriate rollbacks
+
+-- Your solution here:
+BEGIN;
+
+-- Step 1: Validate customer exists and is active
+
+
+-- Step 2: Check film availability
+
+
+-- Step 3: Verify customer has no outstanding late fees
+
+
+-- Step 4: Create rental record
+
+
+-- Step 5: Create payment record
+
+
+-- Step 6: Verify all operations succeeded
+
+
+COMMIT;
+-- or ROLLBACK on error
+```
+
+## Exercise 2: Implement Optimistic Locking
+
+```{sql}
+-- Exercise: Implement optimistic locking for updating customer information
+-- Include version checking and conflict detection
+
+-- Your solution here:
+
+
+```
+
+## Exercise 3: Batch Processing with Error Recovery
+
+```{sql}
+-- Exercise: Process returns for multiple rentals
+-- Use savepoints to handle partial failures
+-- Continue processing even if some returns fail
+
+-- Your solution here:
+
+
+```
+
+---
+
+# Part 11: Cleanup and Summary
+
+```{sql}
+-- Verify our demo didn't leave any uncommitted transactions
+SELECT 
+    pid,
+    state,
+    xact_start,
+    query
+FROM pg_stat_activity 
+WHERE pid = pg_backend_pid();
+
+-- Check for any locks we might have left
+SELECT 
+    locktype,
+    database,
+    relation::regclass,
+    mode,
+    granted
+FROM pg_locks 
+WHERE pid = pg_backend_pid();
+```
+
+## Summary - Key Takeaways 🎯
+
+### **ACID Properties:**
+- **Atomicity**: All-or-nothing execution
+- **Consistency**: Data integrity maintained
+- **Isolation**: Concurrent transactions don't interfere
+- **Durability**: Committed changes survive crashes
+
+### **TCL Commands:**
+- `BEGIN` - Start transaction
+- `COMMIT` - Make changes permanent  
+- `ROLLBACK` - Undo all changes
+- `SAVEPOINT` - Create rollback points
+
+### **Isolation Levels:**
+- `READ UNCOMMITTED` - Allows dirty reads
+- `READ COMMITTED` - PostgreSQL default
+- `REPEATABLE READ` - Consistent reads within transaction
+- `SERIALIZABLE` - Highest isolation, prevents all anomalies
+
+### **Best Practices:**
+- Keep transactions short
+- Handle errors with proper rollback logic
+- Use appropriate isolation levels
+- Prevent deadlocks with consistent resource ordering
+- Monitor transaction performance
+
+### **Common Patterns:**
+- Optimistic locking with version numbers
+- Pessimistic locking with SELECT FOR UPDATE
+- Savepoints for complex operations
+- Batch processing for performance
+
+## Questions for Discussion 💭
+
+1. When would you use SERIALIZABLE isolation level despite its performance cost?
+2. How do you decide between optimistic and pessimistic locking strategies?
+3. What are the trade-offs between short frequent transactions vs longer batch transactions?
+4. How would you handle distributed transactions across multiple databases?
+5. What monitoring strategies would you implement for transaction performance?
+
+## Real-World Scenarios to Consider 🌍
+
+1. **E-commerce**: Order processing with inventory management
+2. **Banking**: Money transfers with fraud detection
+3. **Reservation Systems**: Seat booking with overbooking prevention
+4. **Social Media**: Post creation with notification distribution
+5. **Gaming**: Player actions with leaderboard updates
+
+---
+
+*End of Live Demo Session*
+
+## Additional Resources 📚
+
+- PostgreSQL Transaction Documentation
+- ACID Properties Deep Dive
+- Deadlock Detection and Prevention
+- Transaction Performance Tuning
+- Monitoring Tools and Techniques

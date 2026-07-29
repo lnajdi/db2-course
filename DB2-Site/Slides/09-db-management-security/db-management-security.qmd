@@ -1,0 +1,1192 @@
+---
+title: "Database Course"
+subtitle: "Security and User Management for Protecting Data "
+institute: "<br>Polydisciplinary Faculty of Taroudant <br><br>2025-2026<br><br>" 
+author: "Lotfi NAJDI"
+format: 
+  clean-revealjs:
+    transition: slide
+    incremental: false
+
+---
+
+
+
+## What is Database Security? {.center}
+
+:::{.fragment}
+Database security is about controlling **who can access what** in your database
+:::
+
+:::{.fragment}
+Think of it as a **"multi-level security system"** for a building 🏢
+:::
+
+:::{.fragment}
+*Different people need different levels of access to different areas*
+:::
+
+---
+
+## A Simple Analogy 🏨
+
+:::{.center}
+Think of database security like a **hotel access system**.
+:::
+
+:::{.fragment}
+- **Guest key card**: Basic room access (regular user)
+- **Staff key card**: Multiple rooms + service areas (application role)
+- **Manager key card**: All rooms + offices (admin role)
+- **Master key**: Every door in the building (superuser)
+:::
+
+:::{.fragment}
+**Each level of access serves a specific purpose**
+:::
+
+---
+
+## PostgreSQL Security Architecture
+
+:::{.center}
+PostgreSQL uses a **layered security model**:
+:::
+
+:::{.fragment}
+1. **Authentication** - Who are you? (Identity verification)
+:::
+
+:::{.fragment}
+2. **Authorization** - What can you do? (Permission checking)
+:::
+
+:::{.fragment}
+3. **Access Control** - Where can you go? (Object-level security)
+:::
+
+:::{.fragment}
+4. **Row-Level Security** - Which data can you see? (Fine-grained control)
+:::
+
+---
+
+## A Database
+
+- In PostgreSQL, a database is a structured collection of data stored in a way that allows for efficient access and management. 
+
+- Each database is isolated from others, ensuring data integrity and security.
+
+- For example, in a multi-tenant application, each client might have their own database to keep data separate.
+
+---
+
+## Database Creation
+
+```sql
+-- Create a new database
+CREATE DATABASE company_db;
+```
+
+---
+
+## Schema
+
+- In PostgreSQL, a schema is a logical container for database objects (tables, views, functions, etc.). 
+- A schema is a namespace or a "folder" inside a database that contains objects.
+- It's the primary way to organize, manage and secure your database objects.
+
+## Schema
+
+- Think of a digital department store. 
+- Each schema is a different business unit with its own data and access rules.
+- For example, a company might have separate schemas for different departments (sales, finance, hr) within the same database.
+
+## Schema creation
+
+
+```sql
+-- Create a new schema
+CREATE SCHEMA sales;
+```
+
+---
+
+## The Public Schema
+
+- By default, PostgreSQL creates a schema named "public" in every new database.
+- All users have access to the public schema unless explicitly restricted.
+- It's a convenient place to store shared objects but can be a security risk if not managed properly.
+
+---
+
+## Schemas in Action - E-commerce Platform
+
+In an e-commerce application, schemas act as distinct business units, each with its own data and security rules. 
+
+* **`sales`** - The core of the business :   * `customers`, `orders`, `payments`, `shipments`
+* **`inventory`** - Manages all the products being sold:   * `products`, `suppliers`, `warehouses`, `product_categories`
+* **`hr`** - Holds sensitive employee information:   * `employees`, `departments`, `job_positions`, `salaries`
+* **`analytics`** - Stores aggregated data for business intelligence:   * `sales_summary_daily`, `customer_behavior_logs`, `product_performance_reports`
+
+**Key Benefit**: You can grant the `sales_team` role access only to the **`sales`** schema, enforcing clear security boundaries and the principle of least privilege.
+
+---
+
+## Schemas in Action: University Management System 🎓
+
+A university database manages distinct, sensitive areas of operation. 
+
+* **`admissions`** - Handles the entire application process:   * `applicants`, `applications`, `interview_schedules`, `recommendation_letters`
+* **`academics`** - Manages student learning and official records:   * `students`, `courses`, `professors`, `enrollments`, `grades`
+* **`hr`** - Manages all faculty and staff employment details:   * `faculty`, `staff`, `payroll`, `contracts`
+* **`library`** - Tracks all library assets and activities:   * `books`, `authors`, `loans`, `book_reservations`
+
+**Key Benefit**: The admissions office can be granted full access to the **`admissions`** schema while being completely blocked from viewing sensitive student grades in the **`academics`** schema.
+
+---
+
+## Custom Schemas
+
+:::: {.columns}
+::: {.column}
+```sql
+-- Example: Creating a table in the sales schema
+CREATE TABLE sales.customers (
+    customer_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(255)
+);
+```
+:::
+::: {.column}
+```sql
+-- Example: Accessing a table in the sales schema
+SELECT * FROM sales.customers;
+```
+:::
+::::
+
+---
+
+## Users
+
+- A user is an account that can connect to the database and perform actions based on assigned privileges.
+- Users are created to manage access and ensure security.
+
+---
+
+## User Creation
+
+```sql
+-- Create a new user
+CREATE USER app_user WITH PASSWORD 'secure_password';
+```
+
+---
+
+## User Creation Attributes
+
+- CREATEDB: Allows the user to create new databases.
+```sql
+CREATE USER app_user CREATEDB;
+```
+- CREATEROLE: Allows the user to create, alter, and drop other roles.
+```sql
+CREATE USER app_user CREATEROLE;
+```
+- SUPERUSER: Grants all privileges, including bypassing all permission checks (use with caution).
+```sql
+CREATE USER app_user SUPERUSER;
+```
+- VALID UNTIL: Sets an expiration date for the user account.
+```sql
+ALTER USER app_user VALID UNTIL 'tomorrow';
+```
+
+---
+
+## Privileges
+
+- Users can be granted various privileges such as CONNECT, SELECT, INSERT, UPDATE, DELETE, etc.
+- Privileges determine what actions a user can perform on database objects. 
+- For example, a read-only user might only have SELECT privileges on certain tables.
+
+---
+
+## Granting and Revoking Privileges to Users
+
+- To grant privileges to a user, you can use the GRANT command.
+```sql
+GRANT SELECT ON sales.customers TO app_user;
+```
+- To revoke privileges from a user, you can use the REVOKE command.
+```sql
+REVOKE SELECT ON sales.customers FROM app_user;
+```
+
+---
+
+## User, Database and Schema Relationship
+
+- A user connects to a specific database.
+- Within that database, the user can access objects in various schemas based on their privileges.
+- For example, a user might connect to the "company_db" database and have access to the "sales" schema but not the "hr" schema.
+- This separation helps enforce security and organization within the database.
+
+---
+
+## What About Roles?
+
+- A role is a more general concept that can represent either a user or a group of users.
+- Roles can own database objects and have privileges assigned to them.
+- Roles can be granted to other roles, allowing for hierarchical permission structures.
+
+---
+
+## Users vs Roles: The Difference
+
+- In PostgreSQL a role can represent either a single user or a group of privileges.
+- With LOGIN attribute a role can act as a user. Users are just roles with LOGIN privilege!
+
+```sql
+CREATE ROLE app_user WITH LOGIN PASSWORD 'secure_password';
+-- app_user can now log in like a user 
+```
+
+- Without it, the role cannot log in. Role could be used to group privileges.
+```sql
+CREATE ROLE manager;
+-- manager cannot log in, used for grouping privileges
+```
+
+---
+
+## View Existing Roles
+
+```sql
+SELECT rolname, rolsuper, rolcreatedb, rolcanlogin 
+FROM pg_roles 
+ORDER BY rolname;
+```
+
+---
+
+## Granting Privileges
+
+- Roles can be granted privileges on database objects (tables, schemas, databases).
+- Users can be granted roles to inherit their privileges.
+- Users can also be granted privileges directly, but using roles is a better practice for managing permissions.
+
+---
+
+## Roles Can Be Granted Privileges
+
+- Roles can be granted privileges on database objects (tables, schemas, databases).
+
+```sql
+-- Database-level privilege
+GRANT CONNECT ON DATABASE company_db TO sales_dept;
+
+-- Schema-level privilege
+GRANT USAGE ON SCHEMA sales TO sales_dept;
+
+-- Table-level privilege
+GRANT SELECT ON sales.customers TO sales_dept;
+```
+
+---
+
+## Users Can Be Granted Roles
+
+- Users can be granted roles to inherit their privileges.
+
+```sql
+GRANT sales_dept TO alice;
+GRANT finance_dept TO bob;
+```
+
+---
+
+## Users Can Also Be Granted Privileges Directly
+
+```sql
+GRANT SELECT ON sales.customers TO alice;
+GRANT SELECT ON finance.invoices TO bob;
+```
+
+---
+
+## Granting Several Privileges at Once
+
+```sql
+GRANT SELECT, INSERT, UPDATE ON sales.customers TO sales_dept;
+```
+
+---
+
+## ALL Privilege Keyword
+
+- The ALL keyword is a shorthand to grant or revoke all available privileges on a database object.
+
+```sql
+-- Table level privilege
+GRANT ALL ON sales.customers TO sales_dept;
+
+-- Schema level privilege
+GRANT ALL ON SCHEMA sales TO sales_dept;
+
+-- Database level privilege
+GRANT ALL ON DATABASE company_db TO sales_dept;
+```
+
+---
+
+## System Level Privileges
+
+- System-level privileges control access to the entire PostgreSQL instance.
+- These include permissions like CREATE ROLE, CREATE DATABASE, and SUPERUSER.
+- SUPERUSER: Grants all privileges, including bypassing all permission checks (use with caution).
+
+```sql
+-- Create a superuser role
+CREATE ROLE db_admin CREATEDB CREATEROLE LOGIN PASSWORD 'secret';
+```
+
+---
+
+## System-Level Privileges
+
+- **CREATEDB**: Allows a role to create new databases.
+- **CREATEROLE**: Allows a role to create, modify, or drop other roles.
+- **SUPERUSER**: Grants unrestricted privileges on the entire database cluster, bypassing all access restrictions.
+
+## System-Level Privileges
+
+- **REPLICATION**: Grants a role the ability to initiate streaming replication and create replication slots.
+- **BYPASSRLS**: Grants a role the ability to bypass Row-Level Security policies.
+- **LOGIN**: Allows the role to log in and connect to a database (this is a prerequisite for checking the CONNECT privilege).
+
+---
+
+## Database-Level Privileges
+
+- Database-level privileges in PostgreSQL are permissions that control what actions a role (user or group) can perform on a specific database instance.
+- The GRANT ... ON DATABASE command is used to assign special permissions that apply to the database as a whole.
+
+## Database-Level Privileges
+
+- **CONNECT**: This privilege allows a role to connect to the specified database. Without this privilege, a role cannot access the database at all.
+- **CREATE**: This privilege allows a role to create new schemas within the specified database.
+
+```sql
+-- Allow connection to database
+GRANT CONNECT ON DATABASE company_db TO sales_dept;
+
+-- Allow creating schemas
+GRANT CREATE ON DATABASE company_db TO finance_dept;
+```
+
+::: notes 
+- **TEMPORARY**: Allows the creation of temporary tables while connected to the database.
+::: 
+---
+
+## Schema-Level Privileges
+
+- Schema-level privileges control access to specific schemas within a database.
+- The GRANT ... ON SCHEMA command is used to assign permissions that apply to all objects within a specific schema.
+- The Two Core Schema-Level Privileges:
+  - **USAGE**: This privilege allows a role to access objects within the specified schema.
+  - **CREATE**: This privilege allows a role to create new objects (tables, views, functions) within the specified schema.
+
+---
+
+## USAGE — The "Visibility" Privilege
+
+- The fundamental permission to access or see objects within a schema.
+- It's the key to the front door of a building (the schema). Without it, you can't get inside to see the rooms (the tables), even if you have keys to those individual rooms.
+- A user cannot access any object in a schema without the USAGE privilege on that schema.
+
+---
+
+## CREATE — The "Builder" Privilege
+
+- The permission to create new objects (like tables, functions, etc.) within a schema.
+- It's the permission to build new furniture inside the building.
+- A user must also have the USAGE privilege to be able to CREATE. He can only build in a schema if he can see it.
+
+---
+
+## Table-Level Privileges
+
+- Table-level privileges control access to specific tables within a schema.
+- Common privileges include SELECT, INSERT, UPDATE, DELETE, and REFERENCES.
+
+## Table-Level Privileges
+
+
+```sql
+-- Grant different levels of access
+GRANT SELECT ON sales.customers TO sales_dept;
+GRANT INSERT, UPDATE ON sales.customers TO sales_dept;
+GRANT SELECT ON sales.customers TO finance_dept; -- Read-only
+
+GRANT SELECT, INSERT, UPDATE ON finance.invoices TO finance_dept;
+```
+
+---
+
+## Scenario 1: The Read-Only Analyst
+
+You want a user to be able to query tables but not create anything.
+
+```sql
+-- Allow the user to "enter" and see the contents of the schema sales
+GRANT USAGE ON SCHEMA sales TO analyst_user;
+
+-- Note: You still need to grant SELECT on the specific tables inside.
+GRANT SELECT ON TABLE sales.customers TO analyst_user;
+```
+
+---
+
+## Scenario 2: The Developer
+
+You want a developer to be able to create and manage tables in a dedicated schema.
+
+```sql
+-- Grant both USAGE and CREATE in a single command
+GRANT USAGE, CREATE ON SCHEMA analytics TO developer_user;
+```
+
+---
+
+## Column-Level Security
+
+- Column-level security allows restricting access to specific columns within a table.
+- This is useful for sensitive data that should not be exposed to all users.
+
+Imagine a table with the following columns:
+
+| employee_id | name | department | start_date | **salary** | **social_security_number** |
+|:---|:---|:---|:---|:---|:---|
+| 101 | Alice | Sales | 2023-05-10 | **95000** | **XXX-XX-XXXX** |
+| 102 | Bob | IT | 2022-11-20 | **110000** | **XXX-XX-XXXX** |
+
+* **Public Data:** `employee_id`, `name`, `department`
+* **Sensitive Data:** `salary`, `social_security_number`
+
+The goal is to allow a general user (like an analyst) to see the public data without ever being able to access the sensitive columns.
+
+---
+
+## Example of Direct Column GRANTs
+
+PostgreSQL allows you to grant permissions (`SELECT`, `UPDATE`, etc.) on a column-by-column basis using the `GRANT` command.
+
+```sql
+-- First, make sure the role has no access to the full table
+REVOKE SELECT ON employees FROM analyst;
+
+-- Then, grant access only to the specific columns they can see
+GRANT SELECT (employee_id, name, department, start_date)
+ON employees TO analyst;
+```
+
+---
+
+## Views as a Security Layer (Abstraction approach) 🛡
+
+Instead of giving users direct access to the table, you create a **view**. A view is a virtual table based on a query, which acts as a secure "lens" into the real data.
+
+### How It Works
+
+1. **Create a view** that only selects the non-sensitive columns.
+2. **Deny access** to the underlying (base) table.
+3. **Grant access** to the new view instead.
+
+---
+
+## Example of Views for Column-Level Security
+
+```sql
+-- 1. Create a "safe" view for analysts
+CREATE VIEW employee_public_data AS
+  SELECT employee_id, name, department, start_date
+  FROM employees;
+
+-- 2. Revoke access to the real table
+REVOKE ALL ON employees FROM analyst;
+
+-- 3. Grant access to the view
+GRANT SELECT ON employee_public_data TO analyst;
+```
+
+---
+
+## Comparing the Two Approaches
+
+| Feature | Direct `GRANT`s | Views as a Security Layer |
+|:---|:---|:---|
+| **Basic Concept** | Permissions are applied directly to the columns of the base table. | A virtual table (view) is created that exposes only the safe columns. Users are given permission on the view, not the base table. |
+| **User Experience** | Users must explicitly name the columns they have access to. A `SELECT *` query will **fail** with a permission error. | Transparent to the user. They can query the view as if it were a normal table, and `SELECT *` **works** seamlessly on the view. |
+| **Management** | Can become complex. Each time a new role needs similar access, permissions must be granted column by column. Harder to audit. | Simple and centralized. You define the security logic once in the view. To change access for all users of that view, you only alter the view. |
+| **Flexibility** | Limited to just column permissions. | Highly flexible. The view's `WHERE` clause can also enforce **row-level security**, and columns can be renamed or computed. |
+| **Security** | Secure, but exposes the underlying table structure to the user, even if they can't access all of its data. | More robust abstraction. It completely hides the existence of the sensitive columns and the underlying table from the end-user. |
+| **Best Use Case** | Good for simple, one-off rules or when you have very few roles and tables to manage. | The standard and recommended approach for most scenarios, especially in complex applications with multiple user roles. |
+
+---
+
+## Row-Level Security (RLS)
+
+- Row-Level Security (RLS) is a powerful PostgreSQL feature that controls which rows a user can access within a table.
+- Instead of granting access to an entire table, RLS applies an automatic, invisible WHERE clause to every query, filtering the data based on the user running the query. From the user's perspective, the rows they cannot see simply do not exist.
+
+---
+
+## Why Use RLS?
+
+- RLS is the foundation for building secure, multi-user applications directly into the database.
+- **User-Specific Data**: Allow users to see and manage only their own records (e.g., their own tasks, orders, or profile information).
+- **Multi-Tenant SaaS**: Ensure a customer from Company A can never see data belonging to Company B.
+- **Hierarchical Access**: A manager can see the records of their direct reports, but not the records of other managers.
+
+---
+
+## Enable RLS on a Table
+
+- Row-Level Security must be enabled on a table
+- Policies should be created
+- A policy defines the conditions under which rows are visible to users.
+- Policies can be based on user roles, session variables, or other criteria.
+
+---
+
+## A Practical Example of RLS
+
+Let's consider the following scenario: a `tasks` table where users can only see their own tasks.
+
+```sql
+CREATE TABLE tasks (
+  task_id SERIAL PRIMARY KEY,
+  owner_username TEXT NOT NULL,
+  task_description TEXT
+);
+```
+
+---
+
+## A Practical Example of RLS
+
+### Step 1: Enable RLS on the Table
+
+RLS policies have no effect until you explicitly enable them on the table. This is the master "on" switch.
+
+```sql
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+```
+
+---
+
+## A Practical Example of RLS
+
+### Step 2: Create the Security Policy
+
+This policy defines the rule: a row is only visible if the `owner_username` matches the person running the query. PostgreSQL's `current_user` function provides the username of the active session.
+
+```sql
+CREATE POLICY user_can_access_own_tasks
+ON tasks
+FOR ALL  -- Applies to SELECT, INSERT, UPDATE, DELETE
+USING (owner_username = current_user);
+```
+
+### The Result
+
+* When user `alice` runs `SELECT * FROM tasks;`, she only sees rows where `owner_username = 'alice'`.
+* When user `bob` runs the same query, he only sees rows where `owner_username = 'bob'`.
+
+The filtering is automatic and secure.
+
+---
+
+## Enable RLS on a Table
+
+- This is done using the `ALTER TABLE` command.
+- Once RLS is enabled, access to the table is restricted based on defined policies.
+
+```sql
+-- Enable RLS
+ALTER TABLE sales.customers ENABLE ROW LEVEL SECURITY;
+```
+
+---
+
+## Create RLS Policies
+
+- Policies define who can see which rows.
+- The syntax is as follows:
+
+```sql
+CREATE POLICY policy_name ON table_name
+    FOR { ALL | SELECT | INSERT | UPDATE | DELETE }
+    TO { role_name | PUBLIC }
+    USING ( condition );
+```
+
+---
+
+## Example of RLS Policies
+
+- In the following example, we create a policy for the sales representatives to see only their own customers.
+- sales_dept is a role assigned to sales reps
+- The condition checks that the sales_rep_id matches the current user's employee_id
+- current_user is a built-in function that returns the name of the current database user.
+- sales_rep_id is a column in the sales.customers table that identifies the sales representative responsible for the customer.
+
+```sql
+-- Create policy for sales reps (see only their customers)
+CREATE POLICY sales_rep_policy ON sales.customers
+    FOR ALL
+    TO sales_dept
+    USING (sales_rep_id = (
+        SELECT employee_id 
+        FROM hr.employees 
+        WHERE email = current_user || '@company.com'
+    ));
+```
+
+---
+
+## Example of RLS Policies
+
+- For managers, we create a policy that allows them to see all customers without restrictions.
+- sales_manager is a role assigned to managers.
+- The condition is simply true, meaning no restrictions apply.
+
+```sql
+-- Managers can see all customers
+CREATE POLICY manager_policy ON sales.customers
+    FOR ALL
+    TO sales_manager
+    USING (true);  -- No restrictions
+```
+
+---
+
+## Default Privileges
+
+- Default privileges allow you to set permissions that will automatically apply to future objects created by a specific role in a specific schema.
+- This simplifies permission management by ensuring that new objects inherit the desired access controls.
+
+### Set up automatic privilege assignment
+
+```sql
+-- Future tables created by finance_dept
+ALTER DEFAULT PRIVILEGES 
+    FOR ROLE finance_dept
+    IN SCHEMA finance
+    GRANT SELECT ON TABLES TO sales_dept;
+
+-- Revoke public access by default
+ALTER DEFAULT PRIVILEGES 
+    REVOKE ALL ON TABLES FROM PUBLIC;
+```
+
+---
+
+## Real-World Security Setup
+
+### E-commerce application security
+
+```sql
+-- 1. Create application roles
+CREATE ROLE ecommerce_app;
+CREATE ROLE customer_service;
+CREATE ROLE analytics_team;
+CREATE ROLE admin_team;
+
+-- 2. Create schemas
+CREATE SCHEMA products;
+CREATE SCHEMA orders;
+CREATE SCHEMA customers;
+CREATE SCHEMA analytics;
+```
+
+---
+
+## Real-World Security Setup
+
+```sql
+-- 3. Set up basic privileges
+GRANT USAGE ON SCHEMA products TO ecommerce_app, customer_service, analytics_team;
+GRANT USAGE ON SCHEMA orders TO ecommerce_app, customer_service, analytics_team;
+GRANT USAGE ON SCHEMA customers TO ecommerce_app, customer_service;
+GRANT USAGE ON SCHEMA analytics TO analytics_team;
+
+-- 4. Application gets read/write on operational data
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA products TO ecommerce_app;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA orders TO ecommerce_app;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA customers TO ecommerce_app;
+```
+
+---
+
+## Real-World Security Setup
+
+```sql
+-- 5. Customer service gets limited access
+GRANT SELECT ON ALL TABLES IN SCHEMA products TO customer_service;
+GRANT SELECT, UPDATE ON ALL TABLES IN SCHEMA orders TO customer_service;
+GRANT SELECT ON ALL TABLES IN SCHEMA customers TO customer_service;
+
+-- 6. Analytics gets read-only access
+GRANT SELECT ON ALL TABLES IN SCHEMA products TO analytics_team;
+GRANT SELECT ON ALL TABLES IN SCHEMA orders TO analytics_team;
+GRANT SELECT ON ALL TABLES IN SCHEMA customers TO analytics_team;
+GRANT ALL ON SCHEMA analytics TO analytics_team;
+```
+
+---
+
+## Advanced RLS Example
+
+```sql
+-- Create tenant-aware table
+CREATE TABLE orders.customer_orders (
+    order_id SERIAL PRIMARY KEY,
+    customer_id INTEGER,
+    tenant_id INTEGER,  -- Multi-tenant key
+    order_date DATE,
+    total DECIMAL(10,2)
+);
+```
+
+---
+
+## Multi-tenant Application
+
+```sql
+-- Create tenant-aware table
+CREATE TABLE orders.customer_orders (
+    order_id SERIAL PRIMARY KEY,
+    customer_id INTEGER,
+    tenant_id INTEGER,  -- Multi-tenant key
+    order_date DATE,
+    total DECIMAL(10,2)
+);
+
+-- Enable RLS
+ALTER TABLE orders.customer_orders ENABLE ROW LEVEL SECURITY;
+
+-- Policy for tenant isolation
+CREATE POLICY tenant_isolation ON orders.customer_orders
+    FOR ALL
+    TO ecommerce_app
+    USING (tenant_id = current_setting('app.current_tenant_id')::INTEGER);
+
+-- Policy for customer service (specific tenant)
+CREATE POLICY cs_tenant_access ON orders.customer_orders
+    FOR ALL
+    TO customer_service
+    USING (tenant_id = current_setting('app.current_tenant_id')::INTEGER);
+```
+
+---
+
+## Multi-tenant Application
+
+### Using the tenant system
+
+```sql
+-- Set tenant context
+SET app.current_tenant_id = '123';
+
+-- Now queries only see tenant 123's data
+SELECT * FROM orders.customer_orders;
+```
+
+---
+
+## Security Functions and Views
+
+### Useful security queries
+
+```sql
+-- Check current privileges
+SELECT 
+    table_schema,
+    table_name,
+    privilege_type,
+    grantee
+FROM information_schema.table_privileges
+WHERE grantee = 'sales_dept';
+
+-- See role memberships
+SELECT 
+    r.rolname AS role_name,
+    m.rolname AS member_name
+FROM pg_roles r
+JOIN pg_auth_members am ON r.oid = am.roleid
+JOIN pg_roles m ON am.member = m.oid
+ORDER BY r.rolname, m.rolname;
+
+-- Check RLS policies
+SELECT 
+    schemaname,
+    tablename,
+    policyname,
+    permissive,
+    roles
+FROM pg_policies
+ORDER BY schemaname, tablename;
+```
+
+---
+
+## Using psql for User Management
+
+- psql provides interactive commands to manage users and roles directly from the command line.
+- This is useful for quick checks and modifications without writing full SQL scripts.
+- You can also use it to test queries and explore the database schema.
+
+### Interactive user management
+
+```bash
+# Connect as superuser
+psql -U postgres
+
+# Create user interactively
+\password new_user_name
+
+# List all users and roles
+\du
+
+# Check database permissions
+\l
+
+# Connect as different user
+\c database_name user_name
+
+# Check current connection info
+\conninfo
+
+# Show current user
+SELECT current_user, session_user;
+```
+
+---
+
+## Password Security
+
+### Secure password practices
+
+```sql
+-- Create user with strong password policy
+CREATE USER secure_user WITH 
+    PASSWORD 'ComplexP@ssw0rd2024!'
+    VALID UNTIL '2025-12-31';
+
+-- Force password change on next login
+ALTER USER secure_user PASSWORD 'temp_password' VALID UNTIL 'tomorrow';
+
+-- Remove password (disable password auth)
+ALTER USER api_service PASSWORD NULL;
+```
+
+:::{.fragment}
+### Password encryption
+
+```sql
+-- Check password encryption
+SHOW password_encryption;
+
+-- Set to stronger encryption
+ALTER SYSTEM SET password_encryption = 'scram-sha-256';
+SELECT pg_reload_conf();
+```
+:::
+
+---
+
+## SSL/TLS Configuration {visibility="hidden"}
+
+### Secure connections
+
+```bash
+# Generate SSL certificates (server-side)
+openssl req -new -x509 -days 365 -nodes -text \
+    -out server.crt -keyout server.key
+
+# Enable SSL in postgresql.conf
+ssl = on
+ssl_cert_file = 'server.crt'
+ssl_key_file = 'server.key'
+```
+
+:::{.fragment}
+### Client SSL connection
+
+```bash
+# Require SSL connection
+psql "host=db.company.com port=5432 dbname=company_db user=app_user sslmode=require"
+
+# With client certificate
+psql "host=db.company.com port=5432 dbname=company_db user=admin_user sslmode=require sslcert=client.crt sslkey=client.key"
+```
+:::
+
+---
+
+## Auditing and Monitoring {visibility="hidden"}
+
+### Enable connection logging
+
+```sql
+-- In postgresql.conf
+log_connections = on
+log_disconnections = on
+log_statement = 'all'  -- or 'ddl', 'mod'
+log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+```
+
+:::{.fragment}
+### Monitor current connections
+
+```sql
+-- See active connections
+SELECT 
+    pid,
+    usename,
+    application_name,
+    client_addr,
+    backend_start,
+    state,
+    query
+FROM pg_stat_activity
+WHERE state = 'active';
+
+-- Kill problematic connections
+SELECT pg_terminate_backend(pid) 
+FROM pg_stat_activity 
+WHERE usename = 'problematic_user';
+```
+:::
+
+---
+
+## Security Best Practices
+
+:::{.fragment}
+✅ **Principle of least privilege** - Give minimum necessary access
+:::
+
+:::{.fragment}
+✅ **Use roles for grouping** - Don't grant privileges to individual users
+:::
+
+:::{.fragment}
+✅ **Enable SSL/TLS** - Encrypt data in transit 
+:::
+
+:::{.fragment}
+✅ **Regular password rotation** - Change passwords periodically
+:::
+
+:::{.fragment}
+✅ **Audit access regularly** - Review who has access to what
+:::
+
+:::{.fragment}
+✅ **Use RLS for sensitive data** - Fine-grained access control
+:::
+
+---
+
+## Common Security Mistakes
+
+:::{.fragment}
+🚫 **Using superuser for applications** - Too much privilege
+:::
+
+:::{.fragment}
+🚫 **Granting to PUBLIC** - Everyone gets access
+:::
+
+:::{.fragment}
+🚫 **Weak passwords** - Easy to guess or crack
+:::
+
+:::{.fragment}
+🚫 **No SSL in production** - Data travels in plaintext
+:::
+
+:::{.fragment}
+🚫 **Ignoring failed login attempts** - No monitoring
+:::
+
+:::{.fragment}
+🚫 **Shared accounts** - Can't track individual access
+:::
+
+---
+
+## Compliance and Regulations {visibility="hidden"}
+
+### GDPR considerations
+
+```sql
+-- Right to be forgotten
+CREATE OR REPLACE FUNCTION anonymize_customer(customer_id INTEGER)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE customers 
+    SET 
+        name = 'ANONYMIZED',
+        email = 'deleted@example.com',
+        phone = NULL,
+        address = NULL
+    WHERE id = customer_id;
+    
+    -- Log the anonymization
+    INSERT INTO gdpr_actions (customer_id, action, performed_at)
+    VALUES (customer_id, 'ANONYMIZED', NOW());
+END $$;
+```
+
+---
+
+## Backup Security {visibility="hidden"}
+
+### Secure backup practices
+
+```bash
+# Create encrypted backup
+pg_dump -U postgres company_db | gpg --encrypt --recipient admin@company.com > backup.sql.gpg
+
+# Backup with specific tables only
+pg_dump -U postgres -t customers -t orders company_db > sensitive_data.sql
+
+# Exclude sensitive tables
+pg_dump -U postgres --exclude-table=audit_logs company_db > public_data.sql
+```
+
+:::{.fragment}
+### Role-based backup access
+
+```sql
+-- Create backup role
+CREATE ROLE backup_operator;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO backup_operator;
+GRANT USAGE ON SCHEMA public TO backup_operator;
+
+-- Create backup user
+CREATE USER backup_user WITH PASSWORD 'backup_secret';
+GRANT backup_operator TO backup_user;
+```
+:::
+
+---
+
+## Troubleshooting Access Issues 
+
+### Common permission problems
+
+```sql
+-- Check if user can connect to database
+SELECT has_database_privilege('username', 'database_name', 'CONNECT');
+
+-- Check table privileges
+SELECT has_table_privilege('username', 'schema.table_name', 'SELECT');
+
+-- Check column privileges
+SELECT has_column_privilege('username', 'schema.table_name', 'column_name', 'SELECT');
+
+-- See effective privileges
+\dp schema.table_name
+```
+
+---
+
+## Real-World Security Scenario
+
+### Banking application security
+```sql
+-- Create role hierarchy
+CREATE ROLE bank_employees;
+CREATE ROLE tellers;
+CREATE ROLE loan_officers;
+CREATE ROLE managers;
+CREATE ROLE auditors;
+
+-- Set up inheritance
+GRANT bank_employees TO tellers;
+GRANT bank_employees TO loan_officers;
+GRANT tellers TO managers;
+GRANT loan_officers TO managers;
+
+-- Create schemas
+CREATE SCHEMA accounts;
+CREATE SCHEMA transactions;
+CREATE SCHEMA loans;
+CREATE SCHEMA audit;
+
+-- Basic access
+GRANT USAGE ON SCHEMA accounts TO bank_employees;
+GRANT USAGE ON SCHEMA transactions TO bank_employees;
+
+-- Specific permissions
+GRANT SELECT, INSERT ON accounts.customer_accounts TO tellers;
+GRANT SELECT, INSERT ON transactions.deposits TO tellers;
+GRANT SELECT, INSERT ON transactions.withdrawals TO tellers;
+
+-- Loan officers get loan access
+GRANT ALL ON SCHEMA loans TO loan_officers;
+
+-- Managers get broader access
+GRANT SELECT ON ALL TABLES IN SCHEMA accounts TO managers;
+GRANT SELECT ON ALL TABLES IN SCHEMA transactions TO managers;
+
+-- Auditors get read-only access to everything
+GRANT SELECT ON ALL TABLES IN SCHEMA accounts TO auditors;
+GRANT SELECT ON ALL TABLES IN SCHEMA transactions TO auditors;
+GRANT SELECT ON ALL TABLES IN SCHEMA loans TO auditors;
+GRANT ALL ON SCHEMA audit TO auditors;
+
+-- Row-level security for customer data
+ALTER TABLE accounts.customer_accounts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY customer_privacy ON accounts.customer_accounts
+    FOR ALL
+    TO tellers
+    USING (branch_id = current_setting('bank.current_branch')::INTEGER);
+```
+
+---
+
+## Summary
+
+:::{.center}
+**PostgreSQL provides comprehensive security at multiple levels**
+:::
+
+:::{.fragment}
+**Security layers:**
+
+-   Authentication (who you are)
+-   Authorization (what you can do)
+-   Access control (where you can go)
+-   Row-level security (what data you see)
+:::
+:::{.fragment}
+**Remember:**
+-   Start with least privilege
+-   Use roles for organization
+-   Monitor and audit regularly
+-   Keep security configurations simple and maintainable
+-   Security is a continuous process: review and update as needed
+:::
+

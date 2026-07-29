@@ -1,0 +1,850 @@
+---
+title: "PostgreSQL Indexes - Live Demo with Pagila Database"
+subtitle: "Hands-on demonstration of Database Indexes and Performance Optimization"
+author: "Database Course - Live Demo Session"
+format: 
+  html:
+    theme: default
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-overflow: wrap
+    highlight-style: github
+    highlight-style: github
+    code-block-bg: true
+    code-block-border-left: "#31BAE9"
+    number-sections: true
+---
+
+# Introduction to Indexes - Real Definitions and Concepts
+
+## What is a Database Index? 🎯
+
+> **Definition**: An index is a **data structure** that improves the speed of data retrieval operations on a database table at the cost of additional writes and storage space to maintain the index data structure.
+
+### Key Characteristics:
+- **Performance Booster**: Dramatically speeds up SELECT queries
+- **Storage Overhead**: Requires additional disk space
+- **Maintenance Cost**: Slows down INSERT, UPDATE, DELETE operations
+- **Automatic Usage**: Query planner automatically decides when to use indexes
+
+## The Phone Book Analogy 📞
+
+Think of a database table as a **phone book**:
+
+- **Without Index**: To find "John Smith", you'd scan every page from start to finish
+- **With Index**: Jump directly to the "S" section and find "Smith" quickly
+
+### Database Equivalent:
+- **Full Table Scan**: Examines every row in the table
+- **Index Scan**: Uses the index to jump directly to relevant rows
+
+## Types of Indexes in PostgreSQL
+
+### 1. **B-Tree Index** (Default)
+- Most common and versatile
+- Good for equality (=) and range (<, >, BETWEEN) queries
+- Automatically created for PRIMARY KEY and UNIQUE constraints
+
+### 2. **Hash Index**
+- Optimized for equality comparisons only
+- Faster than B-tree for simple equality checks
+- Cannot be used for range queries
+
+### 3. **GIN (Generalized Inverted Index)**
+- For complex data types: arrays, JSONB, full-text search
+- Excellent for "contains" operations
+
+### 4. **GiST (Generalized Search Tree)**
+- For geometric data types and full-text search
+- Supports custom data types
+
+### 5. **BRIN (Block Range Index)**
+- For very large tables with natural ordering
+- Much smaller than B-tree indexes
+
+---
+
+# Setting Up Our Demo Environment
+
+Let's start by examining our Pagila database structure and understanding where indexes might be beneficial:
+
+```{sql}
+-- Connect to Pagila database
+-- \c pagila
+
+-- Check current indexes in the database
+SELECT 
+    schemaname,
+    tablename,
+    indexname,
+    indexdef
+FROM pg_indexes 
+WHERE schemaname = 'public'
+ORDER BY tablename, indexname;
+```
+
+```{sql}
+-- Get table sizes to understand our data volume
+SELECT 
+    schemaname,
+    tablename,
+    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size,
+    pg_relation_size(schemaname||'.'||tablename) as size_bytes
+FROM pg_tables 
+WHERE schemaname = 'public'
+ORDER BY pg_relation_size(schemaname||'.'||tablename) DESC;
+```
+
+---
+
+# Part 1: Understanding Query Performance Without Indexes
+
+## Demo 1: The Problem - Slow Queries Without Indexes
+
+Let's first see how queries perform without proper indexes:
+
+```{sql}
+-- open access cli tool for postgres
+-- o docker exec -it some-postgres psql -U postgres -d pagila
+-- access cli tool for postgres
+-- psql -U postgres -d pagila
+
+
+
+
+-- First, let's see what indexes already exist on the film table
+\d film
+
+SELECT column_name, data_type 
+FROM
+    information_schema.columns
+WHERE
+    table_name = 'film';
+```
+
+```{sql}
+-- Remove an index temporarily to demonstrate the difference
+-- (We'll recreate it later)
+DROP INDEX IF EXISTS idx_film_title;
+
+-- Now let's search for a film by title without an index
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+SELECT * FROM film 
+WHERE title = 'ACADEMY DINOSAUR';
+```
+
+```{sql}
+-- Let's try a range query on rental_rate
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+SELECT film_id, title, rental_rate 
+FROM film 
+WHERE rental_rate BETWEEN 2.99 AND 4.99
+ORDER BY rental_rate;
+```
+
+```{sql}
+-- Check how many rows we're dealing with
+SELECT COUNT(*) as total_films FROM film;
+SELECT COUNT(*) as films_in_price_range 
+FROM film 
+WHERE rental_rate BETWEEN 2.99 AND 4.99;
+```
+
+---
+
+# Part 2: Creating Basic Indexes
+
+## Demo 2: Single Column B-Tree Indexes
+
+```{sql}
+-- Create an index on film title for faster title searches
+CREATE INDEX idx_film_title ON film (title);
+
+-- Now test the same query - should be much faster
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+SELECT * FROM film 
+WHERE title = 'ACADEMY DINOSAUR';
+```
+
+```{sql}
+-- Create an index on rental_rate for range queries
+CREATE INDEX idx_film_rental_rate ON film (rental_rate);
+
+-- Test the range query again
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+SELECT film_id, title, rental_rate 
+FROM film 
+WHERE rental_rate BETWEEN 2.99 AND 4.99
+ORDER BY rental_rate;
+```
+
+```{sql}
+-- Create index on customer last_name for customer searches
+CREATE INDEX idx_customer_last_name ON customer (last_name);
+
+-- Test customer search performance
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT customer_id, first_name, last_name, email
+FROM customer 
+WHERE last_name = 'SMITH';
+```
+
+## Demo 3: Composite (Multi-Column) Indexes
+
+```{sql}
+-- Create a composite index for film category and rating queries
+CREATE INDEX idx_film_category_rating ON film_category (category_id);
+-- Note: We need to join to get the actual category, so let's create a better example
+
+-- Create composite index on rental table for common query patterns
+CREATE INDEX idx_rental_customer_date ON rental (customer_id, rental_date);
+
+-- Test a query that benefits from this composite index
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT r.rental_id, r.rental_date, r.return_date
+FROM rental r
+WHERE r.customer_id = 1 
+  AND r.rental_date >= '2005-01-01'
+  AND r.rental_date < '2006-01-01'
+ORDER BY r.rental_date;
+```
+
+```{sql}
+-- Create composite index with different column order
+CREATE INDEX idx_rental_date_customer ON rental (rental_date, customer_id);
+
+-- Compare performance with different WHERE clause order
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT COUNT(*) 
+FROM rental 
+WHERE rental_date >= '2005-07-01' 
+  AND rental_date < '2005-08-01'
+  AND customer_id IN (1, 2, 3, 4, 5);
+```
+
+---
+
+# Part 3: Specialized Index Types
+
+## Demo 4: Unique Indexes for Data Integrity
+
+```{sql}
+-- Check if customer email should be unique
+SELECT email, COUNT(*) 
+FROM customer 
+GROUP BY email 
+HAVING COUNT(*) > 1;
+
+-- Create unique index on customer email (if no duplicates exist)
+-- CREATE UNIQUE INDEX idx_customer_email_unique ON customer (email);
+
+-- Demonstrate what happens when trying to insert duplicate
+-- This should fail:
+-- INSERT INTO customer (first_name, last_name, email, address_id, store_id) 
+-- VALUES ('Test', 'User', 'existing_email@example.com', 1, 1);
+```
+
+## Demo 5: Partial Indexes for Filtered Data
+
+```{sql}
+-- Create partial index for only active customers
+CREATE INDEX idx_customer_active_email ON customer (email) 
+WHERE active = 1;
+
+-- This query benefits from the partial index
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT customer_id, first_name, last_name, email
+FROM customer 
+WHERE email LIKE '%@%' 
+  AND active = 1;
+
+-- Create partial index for recent rentals only
+CREATE INDEX idx_rental_recent ON rental (customer_id, rental_date)
+WHERE rental_date >= '2005-01-01';
+
+-- Query recent rentals - uses the partial index
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT COUNT(*) 
+FROM rental 
+WHERE customer_id = 1 
+  AND rental_date >= '2005-01-01';
+```
+
+## Demo 6: Functional Indexes for Expressions
+
+```{sql}
+-- Create functional index for case-insensitive searches
+CREATE INDEX idx_customer_last_name_lower ON customer (LOWER(last_name));
+
+-- Test case-insensitive search
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT customer_id, first_name, last_name
+FROM customer 
+WHERE LOWER(last_name) = 'smith';
+
+-- Create functional index for date part queries
+CREATE INDEX idx_rental_month ON rental (EXTRACT(MONTH FROM rental_date));
+
+-- Query by month efficiently
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT COUNT(*) 
+FROM rental 
+WHERE EXTRACT(MONTH FROM rental_date) = 7;
+```
+
+---
+
+# Part 4: Index Performance Analysis
+
+## Demo 7: Measuring Index Effectiveness
+
+```{sql}
+-- Check index usage statistics
+SELECT 
+    schemaname,
+    tablename,
+    indexname,
+    idx_scan as index_scans,
+    idx_tup_read as tuples_read,
+    idx_tup_fetch as tuples_fetched
+FROM pg_stat_user_indexes 
+WHERE schemaname = 'public'
+ORDER BY idx_scan DESC;
+```
+
+```{sql}
+-- Find unused indexes (potential candidates for removal)
+SELECT 
+    schemaname,
+    tablename,
+    indexname,
+    idx_scan,
+    pg_size_pretty(pg_relation_size(indexrelid)) as index_size
+FROM pg_stat_user_indexes 
+WHERE schemaname = 'public'
+  AND idx_scan = 0
+ORDER BY pg_relation_size(indexrelid) DESC;
+```
+
+```{sql}
+-- Check index sizes
+SELECT 
+    schemaname,
+    tablename,
+    indexname,
+    pg_size_pretty(pg_relation_size(indexrelid)) as index_size
+FROM pg_stat_user_indexes 
+WHERE schemaname = 'public'
+ORDER BY pg_relation_size(indexrelid) DESC;
+```
+
+## Demo 8: Query Plan Analysis
+
+```{sql}
+-- Compare different query plans
+-- Query 1: Without index hint
+EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
+SELECT f.title, c.name as category
+FROM film f
+JOIN film_category fc ON f.film_id = fc.film_id
+JOIN category c ON fc.category_id = c.category_id
+WHERE f.rental_rate > 4.00;
+
+-- Let's create an index to help this query
+CREATE INDEX idx_film_rental_rate_title ON film (rental_rate, title);
+
+-- Query 2: With better index
+EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
+SELECT f.title, c.name as category
+FROM film f
+JOIN film_category fc ON f.film_id = fc.film_id
+JOIN category c ON fc.category_id = c.category_id
+WHERE f.rental_rate > 4.00;
+```
+
+---
+
+# Part 5: Index Maintenance and Management
+
+## Demo 9: Index Maintenance Operations
+
+```{sql}
+-- Check index bloat and health
+SELECT 
+    schemaname,
+    tablename,
+    indexname,
+    pg_size_pretty(pg_relation_size(indexrelid)) as index_size,
+    idx_scan,
+    idx_tup_read,
+    idx_tup_fetch
+FROM pg_stat_user_indexes 
+WHERE schemaname = 'public'
+ORDER BY pg_relation_size(indexrelid) DESC;
+```
+
+```{sql}
+-- Rebuild an index to optimize it
+REINDEX INDEX idx_film_title;
+
+-- Rebuild all indexes on a table
+-- REINDEX TABLE film;
+
+-- Note: REINDEX locks the table, use CONCURRENTLY for production
+-- REINDEX INDEX CONCURRENTLY idx_film_title;
+```
+
+```{sql}
+-- Drop unused or redundant indexes
+-- First, identify potentially redundant indexes
+SELECT 
+    t1.indexname as index1,
+    t2.indexname as index2,
+    t1.indexdef,
+    t2.indexdef
+FROM pg_indexes t1, pg_indexes t2
+WHERE t1.tablename = t2.tablename
+  AND t1.schemaname = t2.schemaname
+  AND t1.indexname < t2.indexname
+  AND t1.schemaname = 'public';
+```
+
+## Demo 10: Creating Indexes Concurrently
+
+```{sql}
+-- For production systems, always create indexes concurrently
+-- This doesn't lock the table during creation
+
+-- Drop an index first to demonstrate
+DROP INDEX IF EXISTS idx_customer_last_name;
+
+-- Create index concurrently (safer for production)
+CREATE INDEX CONCURRENTLY idx_customer_last_name ON customer (last_name);
+
+-- Check if the index was created successfully
+SELECT indexname, indexdef 
+FROM pg_indexes 
+WHERE tablename = 'customer' 
+  AND indexname = 'idx_customer_last_name';
+```
+
+---
+
+# Part 6: Advanced Indexing Strategies
+
+## Demo 11: Covering Indexes
+
+```{sql}
+-- Create a covering index that includes additional columns
+-- This can eliminate the need to access the table data
+CREATE INDEX idx_film_rating_covering ON film (rating) 
+INCLUDE (title, rental_rate, length);
+
+-- This query can be satisfied entirely from the index
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT title, rental_rate, length
+FROM film 
+WHERE rating = 'PG-13';
+```
+
+## Demo 12: Index on Foreign Keys
+
+```{sql}
+-- Foreign keys should almost always have indexes
+-- Check if our foreign keys are indexed
+
+-- Check film_actor table foreign keys
+\d film_actor
+
+-- Create indexes on foreign key columns if they don't exist
+CREATE INDEX IF NOT EXISTS idx_film_actor_film_id ON film_actor (film_id);
+CREATE INDEX IF NOT EXISTS idx_film_actor_actor_id ON film_actor (actor_id);
+
+-- Test join performance
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT f.title, a.first_name, a.last_name
+FROM film f
+JOIN film_actor fa ON f.film_id = fa.film_id
+JOIN actor a ON fa.actor_id = a.actor_id
+WHERE f.rating = 'R';
+```
+
+---
+
+# Part 7: Real-World Indexing Scenarios
+
+## Demo 13: E-commerce Query Patterns
+
+```{sql}
+-- Simulate common e-commerce queries using our rental data
+
+-- 1. Customer order history (frequent query)
+CREATE INDEX idx_rental_customer_date_desc ON rental (customer_id, rental_date DESC);
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT r.rental_date, f.title, f.rental_rate
+FROM rental r
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN film f ON i.film_id = f.film_id
+WHERE r.customer_id = 1
+ORDER BY r.rental_date DESC
+LIMIT 10;
+
+-- 2. Product search by category and price
+CREATE INDEX idx_film_category_price ON film_category (category_id);
+-- We already have idx_film_rental_rate
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT f.title, f.rental_rate, c.name
+FROM film f
+JOIN film_category fc ON f.film_id = fc.film_id
+JOIN category c ON fc.category_id = c.category_id
+WHERE c.name = 'Action'
+  AND f.rental_rate BETWEEN 2.99 AND 4.99
+ORDER BY f.rental_rate;
+```
+
+## Demo 14: Reporting and Analytics Queries
+
+```{sql}
+-- Create indexes for common reporting queries
+
+-- Monthly rental statistics
+CREATE INDEX idx_rental_date_stats ON rental (
+    EXTRACT(YEAR FROM rental_date),
+    EXTRACT(MONTH FROM rental_date)
+);
+
+-- Customer activity analysis
+CREATE INDEX idx_customer_activity ON rental (customer_id)
+INCLUDE (rental_date, return_date);
+
+-- Test reporting query performance
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT 
+    EXTRACT(YEAR FROM rental_date) as year,
+    EXTRACT(MONTH FROM rental_date) as month,
+    COUNT(*) as rental_count,
+    COUNT(DISTINCT customer_id) as unique_customers
+FROM rental
+WHERE rental_date >= '2005-01-01'
+GROUP BY 
+    EXTRACT(YEAR FROM rental_date),
+    EXTRACT(MONTH FROM rental_date)
+ORDER BY year, month;
+```
+
+---
+
+# Part 8: Index Monitoring and Optimization
+
+## Demo 15: Index Health Check
+
+```{sql}
+-- Comprehensive index analysis query
+WITH index_stats AS (
+    SELECT 
+        schemaname,
+        tablename,
+        indexname,
+        idx_scan,
+        idx_tup_read,
+        idx_tup_fetch,
+        pg_relation_size(indexrelid) as index_size_bytes,
+        pg_size_pretty(pg_relation_size(indexrelid)) as index_size
+    FROM pg_stat_user_indexes
+    WHERE schemaname = 'public'
+),
+table_stats AS (
+    SELECT 
+        schemaname,
+        tablename,
+        n_tup_ins + n_tup_upd + n_tup_del as total_writes,
+        seq_scan,
+        seq_tup_read
+    FROM pg_stat_user_tables
+    WHERE schemaname = 'public'
+)
+SELECT 
+    i.tablename,
+    i.indexname,
+    i.index_size,
+    i.idx_scan as index_scans,
+    CASE 
+        WHEN i.idx_scan = 0 THEN 'UNUSED'
+        WHEN i.idx_scan < 10 THEN 'LOW_USAGE'
+        ELSE 'GOOD'
+    END as usage_status,
+    t.total_writes,
+    ROUND(i.idx_scan::numeric / NULLIF(t.total_writes, 0), 4) as scan_to_write_ratio
+FROM index_stats i
+JOIN table_stats t ON i.tablename = t.tablename
+ORDER BY i.index_size_bytes DESC;
+```
+
+---
+
+# Part 9: Common Indexing Mistakes and Best Practices
+
+## Common Mistakes to Avoid ❌
+
+```{sql}
+-- Mistake 1: Too many indexes on small tables
+-- Don't do this on a table with < 1000 rows:
+-- CREATE INDEX idx_every_column1 ON small_table (col1);
+-- CREATE INDEX idx_every_column2 ON small_table (col2);
+-- CREATE INDEX idx_every_column3 ON small_table (col3);
+
+-- Mistake 2: Wrong order in composite indexes
+-- Bad: If you query mostly by rental_date, then customer_id
+-- CREATE INDEX idx_wrong_order ON rental (customer_id, rental_date);
+-- Good:
+-- CREATE INDEX idx_correct_order ON rental (rental_date, customer_id);
+
+-- Mistake 3: Redundant indexes
+-- If you have:
+-- CREATE INDEX idx_rental_customer ON rental (customer_id);
+-- Then this is redundant:
+-- CREATE INDEX idx_rental_customer_redundant ON rental (customer_id, rental_date);
+-- Because the first index can handle customer_id queries
+```
+
+## Best Practices ✅
+
+```{sql}
+-- 1. Index foreign keys
+-- Good practice - we've already done this
+SELECT 
+    tc.table_name,
+    kcu.column_name,
+    EXISTS(
+        SELECT 1 FROM pg_indexes 
+        WHERE tablename = tc.table_name 
+        AND indexdef LIKE '%' || kcu.column_name || '%'
+    ) as has_index
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu 
+    ON tc.constraint_name = kcu.constraint_name
+WHERE tc.constraint_type = 'FOREIGN KEY'
+    AND tc.table_schema = 'public'
+ORDER BY tc.table_name, kcu.column_name;
+
+-- 2. Index columns used in WHERE clauses
+-- 3. Index columns used in ORDER BY
+-- 4. Consider composite indexes for multi-column WHERE clauses
+-- 5. Use partial indexes for filtered queries
+-- 6. Monitor index usage regularly
+```
+
+---
+
+# Part 10: Performance Testing and Comparison
+
+## Demo 16: Before and After Performance Testing
+
+```{sql}
+-- Set up a performance test
+-- First, let's create a query that we'll optimize
+
+-- Remove indexes temporarily
+DROP INDEX IF EXISTS idx_rental_customer_date;
+DROP INDEX IF EXISTS idx_film_rental_rate;
+
+-- Test query without indexes
+\timing on
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT 
+    c.first_name,
+    c.last_name,
+    f.title,
+    f.rental_rate,
+    r.rental_date
+FROM customer c
+JOIN rental r ON c.customer_id = r.customer_id
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN film f ON i.film_id = f.film_id
+WHERE f.rental_rate > 4.00
+  AND r.rental_date >= '2005-07-01'
+ORDER BY r.rental_date DESC, f.rental_rate DESC
+LIMIT 20;
+
+-- Now add strategic indexes
+CREATE INDEX idx_film_rental_rate_opt ON film (rental_rate) WHERE rental_rate > 4.00;
+CREATE INDEX idx_rental_date_opt ON rental (rental_date DESC);
+
+-- Test the same query with indexes
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT 
+    c.first_name,
+    c.last_name,
+    f.title,
+    f.rental_rate,
+    r.rental_date
+FROM customer c
+JOIN rental r ON c.customer_id = r.customer_id
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN film f ON i.film_id = f.film_id
+WHERE f.rental_rate > 4.00
+  AND r.rental_date >= '2005-07-01'
+ORDER BY r.rental_date DESC, f.rental_rate DESC
+LIMIT 20;
+
+\timing off
+```
+
+---
+
+# Part 11: Practical Exercises
+
+## Exercise 1: Design Indexes for Common Queries
+
+```{sql}
+-- Analyze these queries and design appropriate indexes:
+
+-- Query 1: Find all customers from a specific city
+SELECT c.customer_id, c.first_name, c.last_name
+FROM customer c
+JOIN address a ON c.address_id = a.address_id
+JOIN city ci ON a.city_id = ci.city_id
+WHERE ci.city = 'London';
+
+-- Your index solution:
+-- CREATE INDEX ??? ON ??? (???);
+
+-- Query 2: Find top 10 most rented films
+SELECT f.title, COUNT(*) as rental_count
+FROM film f
+JOIN inventory i ON f.film_id = i.film_id
+JOIN rental r ON i.inventory_id = r.inventory_id
+GROUP BY f.film_id, f.title
+ORDER BY rental_count DESC
+LIMIT 10;
+
+-- Your index solution:
+-- CREATE INDEX ??? ON ??? (???);
+
+-- Query 3: Customer rental history for last 30 days
+SELECT f.title, r.rental_date, r.return_date
+FROM rental r
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN film f ON i.film_id = f.film_id
+WHERE r.customer_id = ?
+  AND r.rental_date >= CURRENT_DATE - INTERVAL '30 days'
+ORDER BY r.rental_date DESC;
+
+-- Your index solution:
+-- CREATE INDEX ??? ON ??? (???);
+```
+
+## Exercise 2: Index Optimization Challenge
+
+```{sql}
+-- Given this slow query, optimize it with indexes:
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT 
+    f.title,
+    f.description,
+    c.name as category,
+    f.rental_rate,
+    f.length,
+    COUNT(r.rental_id) as times_rented
+FROM film f
+LEFT JOIN film_category fc ON f.film_id = fc.film_id
+LEFT JOIN category c ON fc.category_id = c.category_id
+LEFT JOIN inventory i ON f.film_id = i.film_id
+LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+WHERE f.rating IN ('PG', 'PG-13')
+  AND f.rental_rate BETWEEN 2.99 AND 4.99
+GROUP BY f.film_id, f.title, f.description, c.name, f.rental_rate, f.length
+HAVING COUNT(r.rental_id) > 5
+ORDER BY times_rented DESC, f.title;
+
+-- Create your optimizing indexes here:
+-- CREATE INDEX ??? ON ??? (???);
+```
+
+---
+
+# Part 12: Cleanup and Summary
+
+```{sql}
+-- Clean up our demo indexes (optional)
+-- DROP INDEX IF EXISTS idx_film_title;
+-- DROP INDEX IF EXISTS idx_film_rental_rate;
+-- DROP INDEX IF EXISTS idx_customer_last_name;
+-- DROP INDEX IF EXISTS idx_rental_customer_date;
+-- DROP INDEX IF EXISTS idx_rental_date_customer;
+-- DROP INDEX IF EXISTS idx_customer_active_email;
+-- DROP INDEX IF EXISTS idx_rental_recent;
+-- DROP INDEX IF EXISTS idx_customer_last_name_lower;
+-- DROP INDEX IF EXISTS idx_rental_month;
+-- DROP INDEX IF EXISTS idx_film_rental_rate_title;
+-- DROP INDEX IF EXISTS idx_film_rating_covering;
+-- DROP INDEX IF EXISTS idx_film_actor_film_id;
+-- DROP INDEX IF EXISTS idx_film_actor_actor_id;
+-- DROP INDEX IF EXISTS idx_rental_customer_date_desc;
+-- DROP INDEX IF EXISTS idx_film_category_price;
+-- DROP INDEX IF EXISTS idx_rental_date_stats;
+-- DROP INDEX IF EXISTS idx_customer_activity;
+-- DROP INDEX IF EXISTS idx_film_rental_rate_opt;
+-- DROP INDEX IF EXISTS idx_rental_date_opt;
+
+-- Check remaining indexes
+SELECT indexname, indexdef 
+FROM pg_indexes 
+WHERE schemaname = 'public'
+ORDER BY tablename, indexname;
+```
+
+## Summary - Key Takeaways 🎯
+
+### **Index Types and When to Use Them:**
+1. **B-Tree** (default) - Most queries, equality and range
+2. **Hash** - Equality only, faster than B-tree for =
+3. **Partial** - Filtered data, smaller indexes
+4. **Composite** - Multi-column WHERE clauses
+5. **Covering** - Include additional columns to avoid table access
+6. **Functional** - Expressions and case-insensitive searches
+
+### **Best Practices:**
+- ✅ Index foreign keys
+- ✅ Index WHERE clause columns
+- ✅ Index ORDER BY columns
+- ✅ Monitor index usage regularly
+- ✅ Use EXPLAIN to verify index usage
+- ✅ Create indexes CONCURRENTLY in production
+
+### **Avoid:**
+- ❌ Too many indexes on small tables
+- ❌ Indexing low-selectivity columns
+- ❌ Redundant indexes
+- ❌ Ignoring index maintenance
+
+### **Performance Monitoring:**
+- Use `pg_stat_user_indexes` to monitor usage
+- Use `EXPLAIN (ANALYZE, BUFFERS)` to verify plans
+- Remove unused indexes periodically
+- Monitor index sizes and maintenance overhead
+
+## Questions for Discussion 💭
+
+1. How do you balance read performance vs. write performance when designing indexes?
+2. What strategies would you use to identify which columns need indexes?
+3. How do you handle index maintenance in a high-traffic production environment?
+4. When would you choose a partial index over a full index?
+5. How do you measure the ROI of an index?
+
+---
+
+*End of Live Demo Session*
+
+## Additional Resources 📚
+
+- PostgreSQL Official Documentation on Indexes
+- `pg_stat_user_indexes` system view
+- Query performance monitoring tools
+- Index maintenance best practices
+- Production index management strategies

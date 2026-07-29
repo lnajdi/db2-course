@@ -1,0 +1,9 @@
+name: clean
+title: Clean RevealJS Theme
+version: "0.1.0"
+format:
+  revealjs:
+    css: clean.scss
+    before-body: mathjax-config.js
+    include-in-header: mermaid.css
+    depends-on: []

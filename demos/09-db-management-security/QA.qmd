@@ -1,0 +1,73 @@
+
+-----
+
+### **Q1: Why was I not prompted for a password when connecting with `psql` after creating a user?**
+
+You weren't prompted for a password because your PostgreSQL server is likely configured to trust local connections without one. This behavior is controlled by the **`pg_hba.conf`** (Host-Based Authentication) file.
+
+By default, this file often contains a rule like this:
+
+```
+# TYPE  DATABASE    USER      ADDRESS     METHOD
+local   all         all                   peer
+```
+
+The `peer` authentication method tells PostgreSQL to trust the connection if your operating system username matches the database username you're connecting with. It **completely bypasses the password check**.
+
+**To fix this and force a password prompt:**
+
+1.  **Find the file** by running `SHOW hba_file;` in `psql`.
+2.  **Edit the file** (using `sudo`) and change the method from `peer` to `scram-sha-256` (recommended).
+3.  **Reload the configuration** by running `SELECT pg_reload_conf();` in `psql` or `sudo systemctl reload postgresql` in your terminal.
+
+After this change, `psql` will require a password for local connections.
+
+-----
+
+### **Q2: How do you grant permissions on all tables or all objects in a schema?**
+
+You need to handle permissions for existing objects and future objects separately.
+
+  * **For existing objects:** Use the `GRANT` command with `ALL TABLES IN SCHEMA`.
+
+    ```sql
+    -- Grant SELECT on all existing tables and views in the 'public' schema
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO regular_user;
+    ```
+
+  * **For future objects:** You must set default permissions for the schema. This ensures any new table created will automatically have the correct permissions.
+
+    ```sql
+    -- Grant SELECT on all future tables created in the 'public' schema
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT SELECT ON TABLES TO regular_user;
+    ```
+
+-----
+
+### **Q3: How can I avoid specifying the schema name when creating or querying tables?**
+
+You can set the `search_path`. The database will automatically search the schemas listed in this path when you don't specify one.
+
+  * **For the current session:**
+
+    ```sql
+    -- Look in 'my_schema' first, then 'public'
+    SET search_path TO my_schema, public;
+    ```
+
+    Now, `CREATE TABLE my_table (...)` will create the table in `my_schema`, and `SELECT * FROM my_table;` will find it there without you needing to write `my_schema.my_table`.
+
+  * **Permanently for a user:**
+
+    ```sql
+    ALTER USER regular_user SET search_path = my_schema, public;
+    ```
+
+-----
+
+### **Q4: Do users (roles) exist outside of a specific database?**
+
+**Yes.** Users and roles are **global** objects within a PostgreSQL cluster.
+
+When you run `CREATE USER regular_user ...`, that user is created at the server (cluster) level, not inside the specific database you are currently connected to. This means the user exists independently and can be granted access to *any* database on that server. By default, however, a new user has no permission to access any database until it's explicitly granted.

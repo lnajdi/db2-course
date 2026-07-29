@@ -1,0 +1,2090 @@
+---
+title: "Database Course"
+subtitle: "Database Administrator (DBA) Tasks "
+institute: "<br>Polydisciplinary Faculty of Taroudant <br><br>2025-2026<br><br>" 
+author: "Lotfi NAJDI"
+format: 
+  clean-revealjs:
+    transition: slide
+    incremental: false
+
+---
+
+## Before We Begin: Quick Setup Check ✅
+
+:::{.fragment}
+Do you have access to:
+
+- [ ] A PostgreSQL database (local or remote)
+- [ ] Command-line access (terminal/PowerShell)
+- [ ] `pg_dump` and `psql` commands working
+:::
+
+:::{.fragment}
+**Test it now:**
+```bash
+pg_dump --version
+psql --version
+```
+:::
+
+:::{.fragment}
+**See an error?** → Ask for help now!
+:::
+
+---
+
+## What is Database Administration? {.center}
+
+:::{.fragment}
+Database administration is about **keeping your database running smoothly, safely, and efficiently**
+:::
+
+:::{.fragment}
+Think of it as being a **"doctor for your database"** 🏥
+:::
+
+:::{.fragment}
+*Prevention, monitoring, maintenance, and emergency response*
+:::
+
+---
+
+## A Simple Analogy 🚗
+
+:::{.center}
+Think of database administration like **car maintenance**.
+:::
+
+:::{.fragment}
+- **Regular checkups** - Monitor performance and health
+- **Oil changes** - VACUUM and ANALYZE operations
+- **Backup spare tire** - Database backups and recovery plans
+- **Performance tuning** - Optimize for better efficiency
+- **Emergency repairs** - Troubleshoot and fix issues
+:::
+
+:::{.fragment}
+**Better maintenance = fewer emergencies!**
+:::
+
+---
+
+## The Four Pillars of DB Administration
+
+:::{.center}
+Database administration rests on **four key pillars**:
+:::
+
+:::{.fragment}
+1. **Backup & Recovery** - Protect against data loss
+:::
+
+:::{.fragment}
+2. **Performance Monitoring** - Keep things running fast
+:::
+
+:::{.fragment}
+3. **Routine Maintenance** - Prevent problems before they happen
+:::
+
+:::{.fragment}
+4. **Capacity Planning** - Prepare for growth and scaling
+:::
+
+---
+
+# Part 1: Backup & Recovery {.center}
+
+⏱️ **Estimated time:** 45 minutes
+
+*Protecting your data from loss*
+
+---
+
+## 📖 Real Story: Why Backups Saved the Day
+
+:::{.fragment}
+**Friday, 3 PM:** Sarah, a junior developer, accidentally runs:
+```sql
+DELETE FROM customer_orders;  -- Forgot WHERE clause!
+```
+**500,000 orders deleted!** 😱
+:::
+
+:::{.fragment}
+**Friday, 3:05 PM:** Team finds last night's backup
+:::
+
+:::{.fragment}
+**Friday, 3:30 PM:** Database restored, only lost 15 hours of data
+:::
+
+:::{.fragment}
+**The lesson:** Backups aren't optional – they're insurance!
+:::
+
+---
+
+---
+
+## Why Backups Matter
+
+:::{.fragment}
+**Imagine these scenarios:**
+- Accidental `DELETE FROM customers;` (forgot the WHERE clause!)
+- Hardware failure crashes your server
+- Ransomware attack encrypts your database
+- Developer mistake in production
+:::
+
+:::{.fragment}
+**Without backups, you could lose everything** 😱
+:::
+
+:::{.fragment}
+**With backups, you can recover!** ✅
+:::
+
+---
+
+## Three Types of Backups
+
+:::{.columns}
+:::{.column width="33%"}
+**1. Logical** 📝
+
+- SQL text files
+- Portable
+- Slower restore
+- **Best for:** Small databases, migrations
+:::
+
+:::{.column width="33%"}
+**2. Physical** 💾
+
+- Binary files
+- Fast restore
+- Same platform
+- **Best for:** Large databases
+:::
+
+:::{.column width="33%"}
+**3. Continuous** ⏱️
+
+- WAL files
+- Point-in-time
+- Zero data loss
+- **Best for:** Critical systems
+:::
+:::
+
+---
+
+## Backup Types: Comparison Table
+
+| Feature | Logical | Physical | Continuous (WAL) |
+|---------|---------|----------|------------------|
+| **Speed** | Slow | Fast | Fast |
+| **Size** | Compressed | Large | Medium |
+| **Portability** | ✅ Yes | ❌ Platform-specific | ❌ Platform-specific |
+| **Selective Restore** | ✅ Yes | ❌ All-or-nothing | ❌ All-or-nothing |
+| **Point-in-Time** | ❌ No | ❌ No | ✅ Yes |
+| **Complexity** | 🟢 Easy | 🟡 Medium | 🔴 Advanced |
+
+---
+
+## Your First Backup: pg_dump
+
+**Let's start simple!** Create a backup of your entire database:
+
+```bash
+# Basic backup - saves as SQL file
+pg_dump -U postgres -d my_database > backup.sql
+```
+
+:::{.fragment}
+**What this does:**
+- `-U postgres` = login as user "postgres"
+- `-d my_database` = backup database named "my_database"
+- `> backup.sql` = save to a file called "backup.sql"
+:::
+
+:::{.fragment}
+**Result:** A text file with all your SQL commands to recreate the database!
+:::
+
+---
+
+## Compressed Backups (Save Space!)
+
+**For larger databases, compress the backup:**
+
+```bash
+# Compressed backup - uses custom format
+pg_dump -U postgres -d my_database -Fc > backup.backup
+```
+
+:::{.fragment}
+**Why compress?**
+- A 1GB database might compress to 100MB
+- Faster to transfer and store
+- Still easy to restore
+:::
+
+:::{.fragment}
+**Pro tip:** Always use `.backup` extension for compressed backups to remember the format!
+:::
+
+---
+
+## Selective Backups
+
+**Don't need everything? Back up just what you need:**
+
+```bash
+# Just the structure (no data)
+pg_dump -U postgres -d my_database --schema-only > structure.sql
+
+# Just the data (no structure)
+pg_dump -U postgres -d my_database --data-only > data.sql
+
+# Just specific tables
+pg_dump -U postgres -d my_database -t customers -t orders > important_tables.sql
+```
+
+:::{.fragment}
+**When to use selective backups:**
+- Testing structure changes (schema-only)
+- Migrating data between databases (data-only)
+- Backing up critical tables frequently
+:::
+
+---
+
+## Restoring from Backup
+
+**Made a backup? Great! Here's how to restore it:**
+
+```bash
+# Restore from SQL file
+psql -U postgres -d my_database < backup.sql
+
+# Restore from compressed backup
+pg_restore -U postgres -d my_database backup.backup
+```
+
+:::{.fragment}
+**Important:** The database should already exist!
+```bash
+# Create the database first if needed
+createdb -U postgres my_database
+```
+:::
+
+---
+
+## Practice: Your First Backup
+
+**Let's walk through a complete example:**
+
+```bash
+# Step 1: Create a backup
+pg_dump -U postgres -d company_db -Fc > company_backup.backup
+
+# Step 2: Check the backup was created
+ls -lh company_backup.backup
+
+# Step 3: Test the backup by restoring to a test database
+createdb -U postgres company_test
+pg_restore -U postgres -d company_test company_backup.backup
+
+# Step 4: Verify it worked
+psql -U postgres -d company_test -c "SELECT COUNT(*) FROM customers;"
+```
+
+:::{.fragment}
+**Pro tip:** Always test your backups! A backup you can't restore is useless.
+:::
+
+---
+
+## ⏸️ Practice Break! {.center}
+
+:::{.fragment}
+Before moving forward, try this in your database:
+:::
+
+:::{.fragment}
+1. Create a test backup of any small table
+2. Drop the table (in a test database!)
+3. Restore it from backup
+:::
+
+:::{.fragment}
+**Time needed:** 5 minutes
+:::
+
+:::{.fragment}
+*Raise your hand when done!* ✋
+:::
+
+---
+
+## Logical Backup Recovery: Complete Example
+
+**Scenario: Accidentally deleted all customers!**
+
+```sql
+-- Oh no! Ran this by mistake:
+DELETE FROM customers;
+-- 500 rows deleted!
+```
+
+:::{.fragment}
+**Step 1: Stop and assess**
+```bash
+# Don't panic! You have yesterday's backup
+ls -lh /backups/company_20241028.backup
+```
+:::
+
+:::{.fragment}
+**Step 2: Create a recovery database**
+```bash
+# Make a new database for recovery
+createdb -U postgres company_recovery
+```
+:::
+
+---
+
+## Logical Recovery: Step-by-Step (continued)
+
+**Step 3: Restore the backup**
+```bash
+# Restore to the recovery database
+pg_restore -U postgres -d company_recovery /backups/company_20241028.backup
+
+# Check how many customers were recovered
+psql -U postgres -d company_recovery -c "SELECT COUNT(*) FROM customers;"
+# Output: 500
+```
+
+:::{.fragment}
+**Step 4: Extract just the customer data**
+```bash
+# Export only customers table
+pg_dump -U postgres -d company_recovery -t customers --data-only > customers_data.sql
+```
+:::
+
+---
+
+## Logical Recovery: Final Steps
+
+**Step 5: Restore to production**
+```bash
+# Import the recovered customer data
+psql -U postgres -d company_db < customers_data.sql
+
+# Verify the recovery
+psql -U postgres -d company_db -c "SELECT COUNT(*) FROM customers;"
+# Output: 500 - We're back!
+```
+
+:::{.fragment}
+**Step 6: Clean up**
+```bash
+# Drop the recovery database
+dropdb -U postgres company_recovery
+rm customers_data.sql
+```
+:::
+
+:::{.fragment}
+**Lessons learned:**
+- Recovery took ~10 minutes total
+- Lost only today's new customers (since yesterday's backup)
+- Having backups saved the day! ✅
+:::
+
+---
+
+## Physical Backup: Setup & Creation
+
+**Physical backups copy the entire data directory**
+
+**Step 1: Configure WAL archiving in postgresql.conf**
+```bash
+# Edit postgresql.conf
+wal_level = replica
+archive_mode = on
+archive_command = 'cp %p /backup/wal/%f'
+max_wal_senders = 3
+```
+
+:::{.fragment}
+**Step 2: Create directories and restart**
+```bash
+# Create backup directories
+mkdir -p /backup/wal
+mkdir -p /backup/base
+
+# Restart PostgreSQL to apply changes
+sudo systemctl restart postgresql
+```
+:::
+
+---
+
+## Physical Backup: Taking the Backup
+
+**Step 3: Create a base backup**
+```bash
+# Take a base backup (snapshot of entire database cluster)
+pg_basebackup -U postgres -D /backup/base/backup_20241029 -Ft -z -P
+
+# What this does:
+# -D = destination directory
+# -Ft = tar format
+# -z = compress with gzip
+# -P = show progress
+```
+
+:::{.fragment}
+**What you get:**
+```bash
+ls -lh /backup/base/backup_20241029/
+# base.tar.gz      (main database files)
+# pg_wal.tar.gz    (transaction log files)
+```
+:::
+
+:::{.fragment}
+**This backup captures the ENTIRE database cluster** (all databases!)
+:::
+
+---
+
+## Physical Backup Recovery: Complete Example
+
+**Scenario: Server crashed, data directory is corrupted**
+
+```bash
+# Database won't start
+sudo systemctl start postgresql
+# Failed! Data directory corrupted.
+```
+
+:::{.fragment}
+**Step 1: Stop PostgreSQL (if running)**
+```bash
+sudo systemctl stop postgresql
+```
+:::
+
+:::{.fragment}
+**Step 2: Backup the corrupted data (just in case)**
+```bash
+# Move broken data directory aside
+sudo mv /var/lib/postgresql/14/main /var/lib/postgresql/14/main.broken
+```
+:::
+
+---
+
+## Physical Recovery: Restore Process
+
+**Step 3: Extract the base backup**
+```bash
+# Create new data directory
+sudo mkdir /var/lib/postgresql/14/main
+cd /var/lib/postgresql/14/main
+
+# Extract the base backup
+sudo tar -xzf /backup/base/backup_20241029/base.tar.gz
+
+# Extract the WAL files
+sudo tar -xzf /backup/base/backup_20241029/pg_wal.tar.gz -C pg_wal/
+
+# Fix permissions
+sudo chown -R postgres:postgres /var/lib/postgresql/14/main
+```
+
+---
+
+## Physical Recovery: Point-in-Time Recovery
+
+**Step 4: Configure recovery (optional - for point-in-time)**
+```bash
+# Create recovery.signal file
+sudo touch /var/lib/postgresql/14/main/recovery.signal
+
+# Edit postgresql.conf to add:
+restore_command = 'cp /backup/wal/%f %p'
+recovery_target_time = '2024-10-29 14:30:00'  # Recover to specific time
+```
+
+:::{.fragment}
+**Step 5: Start PostgreSQL**
+```bash
+sudo systemctl start postgresql
+
+# PostgreSQL will:
+# 1. Start from the base backup
+# 2. Replay WAL files up to the target time
+# 3. Recover your database!
+```
+:::
+
+---
+
+## Physical Recovery: Verification
+
+**Step 6: Verify the recovery**
+```bash
+# Check database is running
+psql -U postgres -c "SELECT NOW();"
+
+# Check your data is there
+psql -U postgres -d company_db -c "SELECT COUNT(*) FROM customers;"
+
+# Check recovery worked
+psql -U postgres -c "SELECT pg_is_in_recovery();"
+# Should return: f (false - not in recovery mode anymore)
+```
+
+:::{.fragment}
+**Step 7: Resume normal operations**
+```bash
+# Remove recovery.signal if you used point-in-time recovery
+sudo rm /var/lib/postgresql/14/main/recovery.signal
+
+# Your database is fully recovered! ✅
+```
+:::
+
+---
+
+## Physical Backup Recovery: Complete Timeline
+
+**What just happened:**
+
+:::{.fragment}
+**10:00 AM** - Base backup created (weekly schedule)
+:::
+
+:::{.fragment}
+**2:30 PM** - Disaster strikes! Disk failure
+:::
+
+:::{.fragment}
+**2:35 PM** - Notice database is down
+:::
+
+:::{.fragment}
+**2:40 PM** - Begin recovery process
+:::
+
+:::{.fragment}
+**3:10 PM** - Recovery complete (30 minutes)
+:::
+
+:::{.fragment}
+**Data loss:** Zero! WAL files captured everything since 10 AM backup
+:::
+
+---
+
+## Comparing Recovery Methods
+
+**Logical Backup Recovery**
+- ✅ Flexible (can recover specific tables)
+- ✅ Cross-platform compatible
+- ✅ Easy to understand
+- ❌ Slower for large databases
+- ❌ Requires database to be running
+
+:::{.fragment}
+**Physical Backup Recovery**
+- ✅ Fast for any size database
+- ✅ Complete disaster recovery
+- ✅ Point-in-time recovery possible
+- ✅ Zero data loss with WAL archiving
+- ❌ All-or-nothing (entire cluster)
+- ❌ Same platform only (Linux to Linux)
+:::
+
+---
+
+## Continuous Archiving (WAL): Real Example
+
+**Scenario: Need to recover to 5 minutes before mistake**
+
+**What happened:**
+```bash
+# 2:00 PM - Base backup created
+# 2:45 PM - Accidentally ran: DROP TABLE orders;
+# 2:50 PM - Noticed the mistake!
+```
+
+:::{.fragment}
+**Recovery plan:**
+1. Use base backup from 2:00 PM
+2. Replay WAL files until 2:44 PM (1 minute before DROP)
+3. Database restored to right before the mistake!
+:::
+
+---
+
+## WAL Recovery: Configuration
+
+**Step 1: Set recovery target**
+```bash
+# In postgresql.conf
+restore_command = 'cp /backup/wal/%f %p'
+recovery_target_time = '2024-10-29 14:44:00'  # 1 min before DROP
+recovery_target_action = 'promote'  # Exit recovery when done
+```
+
+:::{.fragment}
+**Step 2: Create recovery.signal**
+```bash
+touch /var/lib/postgresql/14/main/recovery.signal
+```
+:::
+
+:::{.fragment}
+**Step 3: Start PostgreSQL**
+```bash
+sudo systemctl start postgresql
+
+# Watch the logs
+tail -f /var/log/postgresql/postgresql-14-main.log
+```
+:::
+
+---
+
+## WAL Recovery: What Happens
+
+**PostgreSQL recovery process:**
+
+:::{.fragment}
+```
+LOG: starting point-in-time recovery to 2024-10-29 14:44:00
+LOG: restored log file "00000001000000000000001A" from archive
+LOG: restored log file "00000001000000000000001B" from archive
+LOG: redo starts at 0/1A000028
+LOG: restored log file "00000001000000000000001C" from archive
+...
+LOG: recovery stopping before commit of transaction 1234
+LOG: recovery complete
+LOG: database system is ready to accept connections
+```
+:::
+
+:::{.fragment}
+**Result:** Database restored to exactly 2:44 PM - orders table is back! ✅
+:::
+
+---
+
+## Testing Your Recovery Procedures
+
+**Don't wait for a disaster to test!**
+
+**Monthly recovery drill:**
+```bash
+# 1. Take a test backup
+pg_basebackup -U postgres -D /tmp/test_backup -Ft -z
+
+# 2. Create a test instance
+mkdir /tmp/test_recovery
+cd /tmp/test_recovery
+tar -xzf /tmp/test_backup/base.tar.gz
+
+# 3. Start test instance on different port
+pg_ctl -D /tmp/test_recovery -o "-p 5433" start
+
+# 4. Verify data
+psql -p 5433 -U postgres -c "SELECT COUNT(*) FROM customers;"
+
+# 5. Clean up
+pg_ctl -D /tmp/test_recovery stop
+rm -rf /tmp/test_recovery /tmp/test_backup
+```
+
+---
+
+## Recovery Best Practices Checklist
+
+:::{.fragment}
+✅ **Test recoveries monthly** - Practice makes perfect
+:::
+
+:::{.fragment}
+✅ **Document each recovery type** - Create runbooks
+:::
+
+:::{.fragment}
+✅ **Time your recovery** - Know your RTO (Recovery Time Objective)
+:::
+
+:::{.fragment}
+✅ **Verify data integrity** - Check row counts, critical tables
+:::
+
+:::{.fragment}
+✅ **Keep multiple backup types** - Logical AND physical
+:::
+
+:::{.fragment}
+✅ **Store backups off-site** - Protect against site-wide disasters
+:::
+
+:::{.fragment}
+✅ **Archive WAL files** - Enable point-in-time recovery
+:::
+
+---
+
+## Automating Daily Backups
+
+**Don't rely on memory - automate it!**
+
+```bash
+#!/bin/bash
+# Save this as: daily_backup.sh
+
+# Configuration
+DB_NAME="my_database"
+BACKUP_DIR="/backups"
+DATE=$(date +%Y%m%d)
+
+# Create backup with today's date
+pg_dump -U postgres -d $DB_NAME -Fc > "$BACKUP_DIR/backup_$DATE.backup"
+
+# Check if it worked
+if [ $? -eq 0 ]; then
+    echo "Backup successful!"
+else
+    echo "Backup failed!"
+fi
+```
+
+---
+
+## Setting Up Automatic Backups
+
+**Make your backup script run automatically:**
+
+```bash
+# Make the script executable
+chmod +x daily_backup.sh
+
+# Schedule it to run every day at 2 AM
+# Edit crontab:
+crontab -e
+
+# Add this line:
+0 2 * * * /path/to/daily_backup.sh
+```
+
+:::{.fragment}
+**What this means:**
+- `0 2 * * *` = At 2:00 AM every day
+- Runs while you sleep!
+- No human intervention needed
+:::
+
+---
+
+## Cleaning Up Old Backups
+
+**Don't let backups fill your disk!**
+
+```bash
+#!/bin/bash
+# Add to your backup script
+
+DB_NAME="my_database"
+BACKUP_DIR="/backups"
+DATE=$(date +%Y%m%d)
+
+# Create new backup
+pg_dump -U postgres -d $DB_NAME -Fc > "$BACKUP_DIR/backup_$DATE.backup"
+
+# Delete backups older than 7 days
+find $BACKUP_DIR -name "backup_*.backup" -mtime +7 -delete
+
+echo "Backup complete. Old backups cleaned up."
+```
+
+:::{.fragment}
+**Keeps:**
+- Last 7 days of backups
+- About 7 backup files
+- Plenty of recovery options
+:::
+
+---
+
+## ⚠️ Common Backup Mistakes to Avoid
+
+:::{.fragment}
+❌ **Mistake #1:** Saving backups on the same server
+
+- 💡 **Better:** Use external storage or cloud
+:::
+
+:::{.fragment}
+❌ **Mistake #2:** Never testing restore procedures
+
+- 💡 **Better:** Monthly recovery drills
+:::
+
+:::{.fragment}
+❌ **Mistake #3:** No backup schedule
+
+- 💡 **Better:** Automate with cron/scheduled tasks
+:::
+
+:::{.fragment}
+❌ **Mistake #4:** Forgetting to document the process
+
+- 💡 **Better:** Create runbooks for your team
+:::
+
+---
+
+## Backup Best Practices Checklist
+
+:::{.fragment}
+✅ **Backup regularly** - Daily for active databases
+:::
+
+:::{.fragment}
+✅ **Test your backups** - Try restoring at least monthly
+:::
+
+:::{.fragment}
+✅ **Store backups off-site** - Not on the same server!
+:::
+
+:::{.fragment}
+✅ **Keep multiple versions** - Don't overwrite your only backup
+:::
+
+:::{.fragment}
+✅ **Automate everything** - Humans forget, computers don't
+:::
+
+:::{.fragment}
+✅ **Document the process** - Others should be able to restore too
+:::
+
+---
+
+## 📝 Quick Reference: Backup Commands
+
+:::{.nonincremental}
+| Task | Command |
+|------|---------|
+| **Backup (SQL)** | `pg_dump -U user -d db > file.sql` |
+| **Backup (Compressed)** | `pg_dump -U user -d db -Fc > file.backup` |
+| **Backup (Specific Table)** | `pg_dump -U user -d db -t table > file.sql` |
+| **Restore (SQL)** | `psql -U user -d db < file.sql` |
+| **Restore (Custom)** | `pg_restore -U user -d db file.backup` |
+| **Base Backup** | `pg_basebackup -D /path -Ft -z -P` |
+:::
+
+:::{.fragment}
+💡 **Tip:** Take a screenshot for quick reference!
+:::
+
+---
+
+# Part 2: Performance Monitoring {.center}
+
+⏱️ **Estimated time:** 30 minutes
+
+*Keeping your database fast and responsive*
+
+---
+
+## Why Monitor Performance?
+
+:::{.fragment}
+**Problems don't announce themselves!**
+- Slow queries sneak up on you
+- Connections can max out suddenly
+- Disk space fills up quietly
+:::
+
+:::{.fragment}
+**Good monitoring helps you:**
+- Catch problems before users complain
+- Understand what's happening in your database
+- Make informed decisions about improvements
+:::
+
+---
+
+## What to Monitor: The Essentials
+
+:::{.fragment}
+**1. Who's Connected?** 👥
+- How many users are connected?
+- What are they doing?
+:::
+
+:::{.fragment}
+**2. What's Slow?** 🐌
+- Which queries take too long?
+- Why are they slow?
+:::
+
+:::{.fragment}
+**3. How's the Health?** ❤️
+- Is the cache working well?
+- Are indexes being used?
+:::
+
+:::{.fragment}
+**4. How Big Is It?** 📏
+- Database size and growth
+- Disk space remaining
+:::
+
+---
+
+## Seeing Active Connections
+
+**Who's using your database right now?**
+
+```sql
+-- Simple view of current activity
+SELECT 
+    pid,                    -- Process ID
+    usename,                -- Username
+    application_name,       -- What app is connecting
+    state,                  -- What they're doing
+    query                   -- The actual query
+FROM pg_stat_activity
+WHERE state != 'idle'       -- Ignore inactive connections
+ORDER BY query_start;
+```
+
+:::{.fragment}
+**You'll see:**
+- Which users are running queries
+- What queries they're running
+- If any queries are stuck
+:::
+
+---
+
+## Understanding Connection States
+
+```sql
+-- Count connections by what they're doing
+SELECT 
+    state,
+    COUNT(*) as how_many
+FROM pg_stat_activity
+GROUP BY state;
+```
+
+:::{.fragment}
+**Common states:**
+- `active` = Running a query right now
+- `idle` = Connected but doing nothing
+- `idle in transaction` = Started a transaction but paused (⚠️ can be bad!)
+:::
+
+---
+
+## Finding Slow Queries
+
+```sql
+-- Find queries running over 1 minute
+SELECT 
+    pid,
+    usename,
+    NOW() - query_start as how_long,
+    query
+FROM pg_stat_activity
+WHERE state = 'active'
+AND NOW() - query_start > INTERVAL '1 minute'
+ORDER BY query_start;
+```
+
+:::{.fragment}
+**When you find a slow query:**
+1. Is it supposed to be slow? (Big reports are normal)
+2. Can it be optimized? (Add an index?)
+3. Should it be killed? (If it's stuck)
+:::
+
+---
+
+## Enabling Query Statistics
+
+**Get detailed stats on all queries:**
+
+```sql
+-- One-time setup: Enable the extension
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+```
+
+:::{.fragment}
+**This extension tracks:**
+- How often each query runs
+- How long queries take on average
+- Which queries use the most total time
+:::
+
+:::{.fragment}
+**Note:** You may need to add `pg_stat_statements` to `shared_preload_libraries` in postgresql.conf and restart PostgreSQL
+:::
+
+---
+
+## Finding Your Slowest Queries
+
+```sql
+-- Top 10 slowest queries by average time
+SELECT 
+    ROUND(mean_time::numeric, 2) as avg_milliseconds,
+    calls as times_run,
+    query
+FROM pg_stat_statements
+ORDER BY mean_time DESC
+LIMIT 10;
+```
+
+:::{.fragment}
+**What to look for:**
+- Queries over 100ms might need optimization
+- Queries over 1000ms definitely need attention
+- Very frequent queries add up even if fast individually
+:::
+
+---
+
+## Finding Your Most Frequent Queries
+
+```sql
+-- Top 10 most-run queries
+SELECT 
+    calls as times_run,
+    ROUND(mean_time::numeric, 2) as avg_milliseconds,
+    ROUND(total_time::numeric, 2) as total_milliseconds,
+    query
+FROM pg_stat_statements
+ORDER BY calls DESC
+LIMIT 10;
+```
+
+:::{.fragment}
+**Why this matters:**
+- A query run 1 million times at 10ms = 10,000 seconds total!
+- Optimizing frequent queries has big impact
+- Even small improvements multiply
+:::
+
+---
+
+## Understanding Index Usage
+
+**Are your indexes actually being used?**
+
+```sql
+-- See index usage for your tables
+SELECT 
+    tablename,
+    indexname,
+    idx_scan as times_used,
+    pg_size_pretty(pg_relation_size(indexrelid)) as index_size
+FROM pg_stat_user_indexes
+ORDER BY idx_scan ASC;  -- Least used first
+```
+
+:::{.fragment}
+**What to look for:**
+- `idx_scan = 0` means the index is never used (might be wasteful!)
+- Large indexes with low usage may slow down writes
+- Missing indexes show up as heavy table scans
+:::
+
+---
+
+## Finding Unused Indexes
+
+```sql
+-- Indexes that are never used (candidates for removal)
+SELECT 
+    schemaname,
+    tablename,
+    indexname,
+    pg_size_pretty(pg_relation_size(indexrelid)) as wasted_space
+FROM pg_stat_user_indexes
+WHERE idx_scan = 0                          -- Never used
+AND indexrelid NOT IN (                     -- But keep primary keys!
+    SELECT indexrelid 
+    FROM pg_index 
+    WHERE indisprimary
+);
+```
+
+:::{.fragment}
+**Before dropping an index:**
+- Confirm it's truly unused (check longer time period)
+- Understand why it was created
+- Test in a non-production environment first
+:::
+
+---
+
+## Table Scans vs Index Scans
+
+```sql
+-- How often tables are scanned vs indexed
+SELECT 
+    tablename,
+    seq_scan as table_scans,
+    idx_scan as index_scans,
+    ROUND(
+        100.0 * idx_scan / NULLIF(seq_scan + idx_scan, 0), 
+        2
+    ) as percent_indexed
+FROM pg_stat_user_tables
+ORDER BY percent_indexed ASC NULLS LAST;
+```
+
+:::{.fragment}
+**What's good?**
+- High % indexed = Good! Queries are using indexes
+- Low % indexed = May need more/better indexes
+- But: Small tables don't need indexes (full scans are fast)
+:::
+
+---
+
+## Checking Database Size
+
+```sql
+-- How big is your database?
+SELECT 
+    pg_size_pretty(pg_database_size(current_database())) as total_size;
+```
+
+:::{.fragment}
+```sql
+-- How big are your tables?
+SELECT 
+    tablename,
+    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as total_size,
+    pg_size_pretty(pg_relation_size(schemaname||'.'||tablename)) as table_size,
+    pg_size_pretty(
+        pg_total_relation_size(schemaname||'.'||tablename) - 
+        pg_relation_size(schemaname||'.'||tablename)
+    ) as index_size
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
+LIMIT 10;
+```
+:::
+
+---
+
+## Monitoring Cache Performance
+
+**Your database uses RAM to cache frequently accessed data:**
+
+```sql
+-- Check your cache hit ratio
+SELECT 
+    ROUND(
+        100.0 * sum(blks_hit) / NULLIF(sum(blks_hit + blks_read), 0),
+        2
+    ) as cache_hit_percent
+FROM pg_stat_database;
+```
+
+:::{.fragment}
+**What's good?**
+- Above 95% = Excellent! Most data comes from cache
+- 90-95% = Good for most workloads
+- Below 90% = May need more memory or query optimization
+:::
+
+---
+
+## Creating a Simple Health Dashboard
+
+```sql
+-- One query to check overall health
+SELECT 
+    'Total Size' as metric,
+    pg_size_pretty(pg_database_size(current_database())) as value
+UNION ALL
+SELECT 
+    'Active Connections',
+    COUNT(*)::text
+FROM pg_stat_activity 
+WHERE state = 'active'
+UNION ALL
+SELECT 
+    'Cache Hit Ratio',
+    ROUND(
+        100.0 * sum(blks_hit) / NULLIF(sum(blks_hit + blks_read), 0),
+        2
+    )::text || '%'
+FROM pg_stat_database;
+```
+
+:::{.fragment}
+**Run this daily to track your database health!**
+:::
+
+---
+
+## 🤔 Quick Check: Monitoring Knowledge
+
+:::{.fragment}
+**Question:** What is a good cache hit ratio percentage?
+
+a) Above 50%  
+b) Above 70%  
+c) Above 90%  
+d) Above 95%
+:::
+
+:::{.fragment}
+**Answer:** d) Above 95%
+
+- 95%+ = Excellent! Most data comes from cache
+- 90-95% = Good for most workloads
+- Below 90% = May need more memory or query optimization
+:::
+
+---
+
+# Part 3: Routine Maintenance {.center}
+
+⏱️ **Estimated time:** 25 minutes
+
+*Keeping your database clean and efficient*
+
+---
+
+## Why Maintenance Matters
+
+:::{.fragment}
+**PostgreSQL needs regular cleaning, just like your house!**
+:::
+
+:::{.fragment}
+**What happens without maintenance:**
+- Deleted data still takes up space 📦
+- Query planner makes poor decisions 🎯
+- Performance slowly degrades 🐌
+- Disk space fills up unnecessarily 💾
+:::
+
+:::{.fragment}
+**Regular maintenance keeps things running smoothly!**
+:::
+
+---
+
+## The Two Key Maintenance Tasks
+
+:::{.fragment}
+**1. VACUUM** 🧹
+- Cleans up space from deleted/updated rows
+- Think: "Taking out the trash"
+- Makes disk space available for reuse
+:::
+
+:::{.fragment}
+**2. ANALYZE** 📊
+- Updates statistics about your tables
+- Helps PostgreSQL choose the best query plans
+- Think: "Teaching your database about your data"
+:::
+
+:::{.fragment}
+**Both are essential for good performance!**
+:::
+
+---
+
+## Understanding VACUUM
+
+**What happens when you delete a row?**
+
+:::{.fragment}
+```sql
+-- You delete a customer
+DELETE FROM customers WHERE id = 123;
+```
+The row isn't actually removed from disk!
+It's just marked as "dead"
+:::
+
+:::{.fragment}
+**Why?** For transaction safety and concurrent access
+:::
+
+:::{.fragment}
+**VACUUM cleans up these dead rows:**
+```sql
+VACUUM customers;
+```
+:::
+
+---
+
+## Running VACUUM Manually
+
+```sql
+-- Vacuum a specific table
+VACUUM customers;
+
+-- Vacuum all tables
+VACUUM;
+
+-- Vacuum and analyze together (common pattern)
+VACUUM ANALYZE customers;
+```
+
+:::{.fragment}
+**When to vacuum:**
+- After large DELETE or UPDATE operations
+- When you notice tables getting bigger
+- As part of regular maintenance (weekly or daily)
+:::
+
+---
+
+## Checking If Tables Need VACUUM
+
+```sql
+-- See which tables have many dead rows
+SELECT 
+    schemaname,
+    tablename,
+    n_live_tup as live_rows,
+    n_dead_tup as dead_rows,
+    ROUND(
+        100.0 * n_dead_tup / GREATEST(n_live_tup, 1),
+        2
+    ) as dead_percent
+FROM pg_stat_user_tables
+WHERE n_dead_tup > 0
+ORDER BY dead_percent DESC;
+```
+
+:::{.fragment}
+**Rule of thumb:**
+- Over 20% dead rows = Should vacuum soon
+- Over 50% dead rows = Vacuum now!
+:::
+
+---
+
+## Understanding ANALYZE
+
+**ANALYZE teaches PostgreSQL about your data:**
+
+```sql
+-- Analyze a table
+ANALYZE customers;
+
+-- Analyze all tables
+ANALYZE;
+```
+
+:::{.fragment}
+**What it does:**
+- Samples your data
+- Counts rows
+- Tracks data distribution
+- Helps the query planner choose fast strategies
+:::
+
+---
+
+## When to ANALYZE
+
+:::{.fragment}
+**After significant data changes:**
+- Bulk INSERT of many rows
+- Loading data from a file
+- Major UPDATE or DELETE operations
+:::
+
+:::{.fragment}
+**Signs you need to ANALYZE:**
+- Queries suddenly get slower
+- Query plans look wrong (doing table scans when indexes exist)
+- After adding new indexes
+:::
+
+:::{.fragment}
+```sql
+-- Check when tables were last analyzed
+SELECT 
+    schemaname,
+    tablename,
+    last_analyze,
+    last_autoanalyze
+FROM pg_stat_user_tables
+ORDER BY last_analyze NULLS FIRST;
+```
+:::
+
+---
+
+## Autovacuum: Your Automatic Cleaner
+
+**Good news: PostgreSQL does this automatically!**
+
+:::{.fragment}
+**Autovacuum runs in the background:**
+- Watches for tables that need cleaning
+- Vacuums and analyzes automatically
+- Usually does a good job without intervention
+:::
+
+:::{.fragment}
+**Check autovacuum status:**
+```sql
+-- See when autovacuum last ran
+SELECT 
+    schemaname,
+    tablename,
+    last_autovacuum,
+    last_autoanalyze
+FROM pg_stat_user_tables
+ORDER BY last_autovacuum DESC NULLS LAST;
+```
+:::
+
+---
+
+## Manual vs Automatic Maintenance
+
+**When to rely on autovacuum:**
+- Normal day-to-day operations ✅
+- Steady, predictable workloads ✅
+- When it's keeping up with changes ✅
+
+:::{.fragment}
+**When to run manual maintenance:**
+- After bulk data loads 🔧
+- After major DELETE operations 🔧
+- When you need maintenance NOW 🔧
+- When autovacuum can't keep up 🔧
+:::
+
+---
+
+## Index Maintenance: REINDEX
+
+**Indexes can get "bloated" over time:**
+
+```sql
+-- Rebuild an index
+REINDEX INDEX customers_email_idx;
+
+-- Rebuild all indexes on a table
+REINDEX TABLE customers;
+```
+
+:::{.fragment}
+**When to REINDEX:**
+- After major data changes
+- If index scans get slower
+- During scheduled maintenance windows
+- Not usually needed frequently!
+:::
+
+:::{.fragment}
+**Better option for production (doesn't lock the table):**
+```sql
+REINDEX INDEX CONCURRENTLY customers_email_idx;
+```
+:::
+
+---
+
+## Creating a Maintenance Routine
+
+**Simple weekly maintenance checklist:**
+
+:::{.fragment}
+1. **Check dead tuple percentage** (from previous slide)
+2. **VACUUM tables over 20% dead rows**
+3. **ANALYZE all tables** (especially if data changed)
+4. **Check for unused indexes** (monthly)
+5. **Review slow queries** (from pg_stat_statements)
+6. **Check disk space** and database size
+:::
+
+:::{.fragment}
+**Time needed:** 15-30 minutes per week for small databases
+:::
+
+---
+
+## Automating Maintenance with pg_cron
+
+**Schedule maintenance to run automatically:**
+
+```sql
+-- Enable the pg_cron extension (one-time setup)
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Schedule daily vacuum and analyze at 2 AM
+SELECT cron.schedule(
+    'nightly-maintenance',
+    '0 2 * * *',
+    'VACUUM ANALYZE;'
+);
+```
+
+:::{.fragment}
+**Cron schedule format:**
+- `0 2 * * *` means: At 2:00 AM every day
+- Minute, Hour, Day of month, Month, Day of week
+:::
+
+---
+
+## More Automated Maintenance Examples
+
+```sql
+-- Weekly full vacuum of large table (Sunday at 3 AM)
+SELECT cron.schedule(
+    'weekly-full-vacuum',
+    '0 3 * * 0',
+    'VACUUM FULL large_table;'
+);
+
+-- Daily index usage check (Monday-Friday at 1 AM)
+SELECT cron.schedule(
+    'daily-index-check',
+    '0 1 * * 1-5',
+    'SELECT * FROM monitoring.check_unused_indexes();'
+);
+```
+
+:::{.fragment}
+**View your scheduled jobs:**
+```sql
+SELECT * FROM cron.job;
+```
+:::
+
+:::{.fragment}
+**Remove a job:**
+```sql
+SELECT cron.unschedule('job-name');
+```
+:::
+
+---
+
+## Maintenance Best Practices
+
+:::{.fragment}
+✅ **Let autovacuum do its job** - It handles most cases
+:::
+
+:::{.fragment}
+✅ **Monitor dead tuple percentage** - Catch problems early
+:::
+
+:::{.fragment}
+✅ **ANALYZE after bulk changes** - Keep statistics current
+:::
+
+:::{.fragment}
+✅ **Schedule maintenance during low-traffic times** - Usually nights/weekends
+:::
+
+:::{.fragment}
+✅ **Don't over-maintain** - VACUUM FULL and REINDEX can be disruptive
+:::
+
+:::{.fragment}
+✅ **Track maintenance in a log** - Know what was done when
+:::
+
+---
+
+## 📝 Quick Reference: Maintenance Commands
+
+:::{.nonincremental}
+| Task | Command |
+|------|---------|
+| **Vacuum Table** | `VACUUM table_name;` |
+| **Vacuum All** | `VACUUM;` |
+| **Vacuum & Analyze** | `VACUUM ANALYZE table_name;` |
+| **Analyze Table** | `ANALYZE table_name;` |
+| **Reindex** | `REINDEX INDEX index_name;` |
+| **Reindex (No Lock)** | `REINDEX INDEX CONCURRENTLY index_name;` |
+| **Check Dead Tuples** | See previous query slide |
+:::
+
+---
+
+# Part 4: Capacity Planning {.center}
+
+⏱️ **Estimated time:** 20 minutes
+
+*Preparing for growth*
+
+---
+
+## What is Capacity Planning?
+
+:::{.fragment}
+**Planning ahead so you don't run out of resources!**
+:::
+
+:::{.fragment}
+**Key questions:**
+- How fast is my database growing? 📈
+- When will I run out of disk space? 💾
+- Can my server handle more users? 👥
+- Do I need to upgrade hardware? 🖥️
+:::
+
+:::{.fragment}
+**Better to plan now than scramble in an emergency!**
+:::
+
+---
+
+## Tracking Database Growth
+
+**Create a simple growth monitoring table:**
+
+```sql
+-- One-time setup
+CREATE SCHEMA IF NOT EXISTS monitoring;
+
+CREATE TABLE monitoring.size_history (
+    recorded_at TIMESTAMP DEFAULT NOW(),
+    table_name TEXT,
+    size_bytes BIGINT
+);
+```
+
+:::{.fragment}
+**Record sizes daily:**
+```sql
+-- Run this daily (automate with pg_cron!)
+INSERT INTO monitoring.size_history (table_name, size_bytes)
+SELECT 
+    tablename,
+    pg_total_relation_size('public.' || tablename)
+FROM pg_tables
+WHERE schemaname = 'public';
+```
+:::
+
+---
+
+## Viewing Growth Trends
+
+```sql
+-- See how tables have grown over the last 30 days
+SELECT 
+    table_name,
+    pg_size_pretty(MIN(size_bytes)) as starting_size,
+    pg_size_pretty(MAX(size_bytes)) as current_size,
+    pg_size_pretty(MAX(size_bytes) - MIN(size_bytes)) as growth,
+    COUNT(DISTINCT DATE(recorded_at)) as days_tracked
+FROM monitoring.size_history
+WHERE recorded_at >= CURRENT_DATE - INTERVAL '30 days'
+GROUP BY table_name
+ORDER BY MAX(size_bytes) - MIN(size_bytes) DESC;
+```
+
+:::{.fragment}
+**This shows which tables are growing fastest!**
+:::
+
+---
+
+## Projecting Future Growth
+
+```sql
+-- Estimate when you'll run out of space
+WITH daily_growth AS (
+    SELECT 
+        table_name,
+        AVG(size_bytes - LAG(size_bytes) OVER (
+            PARTITION BY table_name ORDER BY recorded_at
+        )) as bytes_per_day
+    FROM monitoring.size_history
+    WHERE recorded_at >= CURRENT_DATE - INTERVAL '30 days'
+    GROUP BY table_name, recorded_at, size_bytes
+)
+SELECT 
+    table_name,
+    pg_size_pretty(AVG(bytes_per_day)::BIGINT) as avg_growth_per_day,
+    ROUND(AVG(bytes_per_day) * 365 / 1024 / 1024 / 1024, 2) as gb_per_year
+FROM daily_growth
+WHERE bytes_per_day > 0
+GROUP BY table_name
+ORDER BY AVG(bytes_per_day) DESC;
+```
+
+---
+
+## Monitoring Connection Usage
+
+```sql
+-- How many connections are typically used?
+SELECT 
+    COUNT(*) as current_connections,
+    (SELECT setting::int FROM pg_settings WHERE name = 'max_connections') as max_allowed,
+    ROUND(
+        100.0 * COUNT(*) / 
+        (SELECT setting::int FROM pg_settings WHERE name = 'max_connections'),
+        2
+    ) as percent_used
+FROM pg_stat_activity;
+```
+
+:::{.fragment}
+**Watch out when you're consistently above 80% of max_connections!**
+:::
+
+---
+
+## Resource Utilization Overview
+
+```sql
+-- Quick health check query
+SELECT 
+    'Connections' as resource,
+    COUNT(*)::text || ' / ' || 
+    (SELECT setting FROM pg_settings WHERE name = 'max_connections') as usage
+FROM pg_stat_activity
+UNION ALL
+SELECT 
+    'Database Size',
+    pg_size_pretty(pg_database_size(current_database()))
+UNION ALL
+SELECT 
+    'Largest Table',
+    (SELECT tablename || ': ' || 
+     pg_size_pretty(pg_total_relation_size('public.' || tablename))
+     FROM pg_tables 
+     WHERE schemaname = 'public'
+     ORDER BY pg_total_relation_size('public.' || tablename) DESC 
+     LIMIT 1);
+```
+
+---
+
+## When to Scale Up
+
+:::{.fragment}
+**Signs you need more resources:**
+:::
+
+:::{.fragment}
+- Disk usage consistently above 80% 💾
+- Connections frequently at limit 👥
+- Queries getting slower despite optimization 🐌
+- Cache hit ratio below 90% despite tuning 📉
+- Growing 10GB+ per month 📈
+:::
+
+:::{.fragment}
+**Options for scaling:**
+- Add more disk space
+- Increase RAM (improves caching)
+- Upgrade CPU (faster query processing)
+- Add read replicas (distribute load)
+:::
+
+---
+
+## Capacity Planning Best Practices
+
+:::{.fragment}
+✅ **Track growth weekly** - Know your trends
+:::
+
+:::{.fragment}
+✅ **Plan 3-6 months ahead** - Time to order hardware/upgrade
+:::
+
+:::{.fragment}
+✅ **Monitor multiple metrics** - Disk, RAM, CPU, connections
+:::
+
+:::{.fragment}
+✅ **Set up alerts** - Get warned before you run out
+:::
+
+:::{.fragment}
+✅ **Test under load** - Know your limits before you hit them
+:::
+
+:::{.fragment}
+✅ **Document your capacity** - Share knowledge with your team
+:::
+
+---
+
+# Troubleshooting Common Issues {.center}
+
+⏱️ **Estimated time:** 15 minutes
+
+*Fixing problems when they happen*
+
+---
+
+## 🔧 Troubleshooting Approach
+
+:::{.center}
+**Database is slow or not responding?**
+
+Follow this systematic approach:
+:::
+
+:::{.fragment}
+**1.** Check active connections (too many?)
+:::
+
+:::{.fragment}
+**2.** Look for slow/stuck queries
+:::
+
+:::{.fragment}
+**3.** Check dead tuple percentage
+:::
+
+:::{.fragment}
+**4.** Verify cache hit ratio
+:::
+
+:::{.fragment}
+**5.** Check disk space availability
+:::
+
+---
+
+## Issue 1: "Too Many Connections"
+
+**Error: `FATAL: sorry, too many clients already`**
+
+:::{.fragment}
+**Diagnose:**
+```sql
+-- See current connection count
+SELECT 
+    COUNT(*) as current,
+    (SELECT setting::int FROM pg_settings 
+     WHERE name = 'max_connections') as maximum
+FROM pg_stat_activity;
+```
+:::
+
+:::{.fragment}
+**Quick fix:**
+```sql
+-- Find and kill idle connections
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE state = 'idle'
+AND state_change < NOW() - INTERVAL '1 hour';
+```
+:::
+
+---
+
+## Issue 2: Slow Queries
+
+**Queries that used to be fast are now slow**
+
+:::{.fragment}
+**Check if ANALYZE is needed:**
+```sql
+SELECT 
+    tablename,
+    last_analyze,
+    last_autoanalyze,
+    n_mod_since_analyze
+FROM pg_stat_user_tables
+WHERE n_mod_since_analyze > 1000
+ORDER BY n_mod_since_analyze DESC;
+```
+:::
+
+:::{.fragment}
+**Fix:**
+```sql
+-- Update statistics
+ANALYZE problematic_table;
+```
+:::
+
+---
+
+## Issue 3: Running Out of Disk Space
+
+**Database is filling up your disk**
+
+:::{.fragment}
+**Find space hogs:**
+```sql
+-- Biggest tables
+SELECT 
+    tablename,
+    pg_size_pretty(pg_total_relation_size('public.' || tablename)) as size
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size('public.' || tablename) DESC
+LIMIT 10;
+```
+:::
+
+---
+
+## 🎓 What You've Mastered Today
+
+:::{.fragment}
+✅ **Backup & Recovery:** Created and tested database backups
+:::
+
+:::{.fragment}
+✅ **Backup Types:** Understood logical vs physical vs continuous backups
+:::
+
+:::{.fragment}
+✅ **Performance Monitoring:** Checked connections, queries, and cache
+:::
+
+:::{.fragment}
+✅ **Routine Maintenance:** Performed VACUUM and ANALYZE operations
+:::
+
+:::{.fragment}
+✅ **Capacity Planning:** Tracked database growth and resource usage
+:::
+
+:::{.fragment}
+✅ **Troubleshooting:** Diagnosed and fixed common issues
+:::
+
+---
+
+## 📖 Key Terms Glossary
+
+**WAL** (Write-Ahead Log)
+: Transaction log that records all database changes
+
+**Dead Tuples**
+: Deleted or updated rows that still occupy disk space
+
+**Autovacuum**
+: Background process that automatically cleans up dead tuples
+
+**Cache Hit Ratio**
+: Percentage of data requests served from memory vs disk
+
+**pg_dump**
+: Utility for creating logical backups (SQL text files)
+
+**pg_basebackup**
+: Utility for creating physical backups (binary files)
+
+---
+
+## 💡 Your Next Steps
+
+:::{.fragment}
+**This Week:**
+
+1. Set up automated daily backups
+2. Test a recovery on a test database
+3. Check your dead tuple percentage
+:::
+
+:::{.fragment}
+**This Month:**
+
+1. Document your backup procedures
+2. Create a monitoring dashboard
+3. Schedule regular maintenance tasks
+4. Review slow queries
+:::
+
+:::{.fragment}
+**Continuous:**
+
+- Monitor database growth weekly
+- Test backups monthly
+- Review and optimize performance quarterly
+:::
+
+---
+
+## 📚 Additional Resources
+
+**Official Documentation:**
+
+- [PostgreSQL Backup & Recovery](https://www.postgresql.org/docs/current/backup.html)
+- [Server Administration](https://www.postgresql.org/docs/current/admin.html)
+- [Monitoring Database Activity](https://www.postgresql.org/docs/current/monitoring.html)
+
+**Useful Tools:**
+
+- [pgAdmin](https://www.pgadmin.org/) - GUI administration tool
+- [pg_stat_statements](https://www.postgresql.org/docs/current/pgstatstatements.html) - Query performance tracking
+- [pg_cron](https://github.com/citusdata/pg_cron) - Job scheduler
+
+**Practice:**
+
+- Set up a test database and practice all operations
+- Join PostgreSQL community forums
+- Follow PostgreSQL blogs and newsletters
+
+---
+
+## 🙏 Thank You!
+
+:::{.center}
+**Questions?**
+
+Remember: Good database administration is about:
+
+- **Prevention** (backups, monitoring)
+- **Maintenance** (regular care)
+- **Preparation** (capacity planning)
+- **Response** (troubleshooting)
+:::
+
+:::{.fragment}
+**Practice makes perfect!** 🎯
+
+Start small, automate what you can, and document everything.
+:::
+
+:::{.fragment}
+*Your database will thank you!* 💚
+:::

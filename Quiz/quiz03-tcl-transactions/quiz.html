@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL TCL & Transactions Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #ff9a56 0%, #ff6b6b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #ff6b6b;
+            padding-bottom: 20px;
+        }
+
+        .quiz-title {
+            color: #2d3748;
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .quiz-subtitle {
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .progress-container {
+            margin-bottom: 30px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .question-counter {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        .score-display {
+            font-weight: 600;
+            color: #ff6b6b;
+            font-size: 1.1em;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff9a56, #ff6b6b);
+            transition: width 0.3s ease;
+        }
+
+        .question-container {
+            margin-bottom: 30px;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            color: #2d3748;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border-left: 5px solid #ff6b6b;
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .options-container {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-button {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px 20px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+            color: #4a5568;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-button:hover {
+            border-color: #ff6b6b;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.15);
+        }
+
+        .option-button.selected {
+            border-color: #ff6b6b;
+            background: #fff5f5;
+        }
+
+        .option-button.correct {
+            border-color: #38a169;
+            background: #f0fff4;
+            color: #22543d;
+        }
+
+        .option-button.incorrect {
+            border-color: #e53e3e;
+            background: #fff5f5;
+            color: #742a2a;
+        }
+
+        .option-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-letter {
+            font-weight: 700;
+            color: #ff6b6b;
+            margin-right: 12px;
+        }
+
+        .controls-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff9a56, #ff6b6b);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .hint-container {
+            background: #fffbeb;
+            border: 1px solid #f6cc3e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #744210;
+            display: none;
+        }
+
+        .hint-container.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #22543d;
+            display: none;
+        }
+
+        .explanation.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .explanation h4 {
+            color: #22543d;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .explanation p {
+            line-height: 1.6;
+        }
+
+        .results-container {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .final-score {
+            font-size: 3em;
+            font-weight: 700;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+        }
+
+        .results-message {
+            font-size: 1.3em;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .performance-breakdown {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .performance-item:last-child {
+            border-bottom: none;
+        }
+
+        .restart-btn {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .quiz-container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .quiz-title {
+                font-size: 1.8em;
+            }
+
+            .question-text {
+                font-size: 1.2em;
+                padding: 15px;
+            }
+
+            .option-button {
+                padding: 15px;
+                font-size: 1em;
+            }
+
+            .controls-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .difficulty-easy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .difficulty-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .difficulty-hard {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 class="quiz-title">PostgreSQL TCL & Transactions</h1>
+            <p class="quiz-subtitle">Test your knowledge of Transaction Control Language and ACID properties</p>
+        </div>
+
+        <div id="quiz-content">
+            <div class="progress-container">
+                <div class="progress-info">
+                    <span class="question-counter" id="question-counter">Question 1 of 20</span>
+                    <span class="score-display" id="score-display">Score: 0/20</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <div class="question-container">
+                <div class="question-text" id="question-text">Loading question...</div>
+                <div class="options-container" id="options-container"></div>
+                <div class="hint-container" id="hint-container"></div>
+                <div class="explanation" id="explanation"></div>
+            </div>
+
+            <div class="controls-container">
+                <button class="btn btn-secondary" id="hint-btn" onclick="showHint()">
+                    💡 Show Hint
+                </button>
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>
+                    Next Question →
+                </button>
+            </div>
+        </div>
+
+        <div class="results-container" id="results-container">
+            <div class="final-score" id="final-score">0/20</div>
+            <div class="results-message" id="results-message"></div>
+            <div class="performance-breakdown">
+                <div class="performance-item">
+                    <span>Correct Answers:</span>
+                    <span id="correct-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Incorrect Answers:</span>
+                    <span id="incorrect-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Accuracy:</span>
+                    <span id="accuracy-percent">0%</span>
+                </div>
+            </div>
+            <button class="btn btn-primary restart-btn" onclick="restartQuiz()">
+                🔄 Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What does the acronym ACID stand for in database transactions?",
+                options: [
+                    "Atomicity, Consistency, Isolation, Durability",
+                    "Availability, Consistency, Integrity, Durability",
+                    "Atomicity, Completeness, Isolation, Dependability",
+                    "Accuracy, Consistency, Independence, Durability"
+                ],
+                correctAnswer: 0,
+                hint: "Think about the four fundamental properties that ensure reliable database transactions.",
+                explanation: "ACID stands for Atomicity (all-or-nothing), Consistency (maintains integrity rules), Isolation (concurrent transactions don't interfere), and Durability (committed changes survive crashes).",
+                difficulty: "easy"
+            },
+            {
+                question: "Which command is used to start a transaction in PostgreSQL?",
+                options: [
+                    "START TRANSACTION",
+                    "BEGIN",
+                    "BEGIN TRANSACTION",
+                    "All of the above"
+                ],
+                correctAnswer: 3,
+                hint: "PostgreSQL provides multiple ways to start a transaction block.",
+                explanation: "PostgreSQL accepts START TRANSACTION, BEGIN, and BEGIN TRANSACTION as equivalent commands to start a transaction block.",
+                difficulty: "easy"
+            },
+            {
+                question: "In PostgreSQL, individual SQL statements are automatically committed by default (auto-commit mode).",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider what happens when you execute a single UPDATE statement without explicitly starting a transaction.",
+                explanation: "True. PostgreSQL operates in auto-commit mode by default, meaning each individual SQL statement is automatically wrapped in its own transaction and committed immediately unless explicitly started within a transaction block.",
+                difficulty: "easy"
+            },
+            {
+                question: "What happens if you execute ROLLBACK TO SAVEPOINT after committing a transaction?",
+                options: [
+                    "The transaction rolls back to the specified savepoint",
+                    "An error occurs because savepoints are destroyed after commit",
+                    "Only changes after the savepoint are undone",
+                    "The entire transaction history is restored"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the lifetime of savepoints in relation to transaction boundaries.",
+                explanation: "After a transaction is committed, all savepoints within that transaction are destroyed. Attempting to rollback to a savepoint after commit will result in an error.",
+                difficulty: "medium"
+            },
+            {
+                question: "Which isolation level prevents dirty reads but allows non-repeatable reads and phantom reads?",
+                options: [
+                    "READ UNCOMMITTED",
+                    "READ COMMITTED",
+                    "REPEATABLE READ",
+                    "SERIALIZABLE"
+                ],
+                correctAnswer: 1,
+                hint: "This is PostgreSQL's default isolation level.",
+                explanation: "READ COMMITTED prevents dirty reads (reading uncommitted changes) but allows non-repeatable reads (same query returns different results) and phantom reads (new rows appearing).",
+                difficulty: "medium"
+            },
+            {
+                question: "Savepoints can be nested, allowing you to create multiple checkpoint levels within a single transaction.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider complex business processes that might need multiple rollback points.",
+                explanation: "True. PostgreSQL supports nested savepoints, allowing you to create multiple checkpoint levels and rollback to different points within a single transaction.",
+                difficulty: "medium"
+            },
+            {
+                question: "In this transaction sequence, what will be the final state?<br><div class='code-block'>BEGIN;<br>UPDATE customer SET email = 'new@email.com' WHERE id = 1;<br>SAVEPOINT sp1;<br>UPDATE customer SET phone = '555-1234' WHERE id = 1;<br>SAVEPOINT sp2;<br>UPDATE customer SET address = 'New Address' WHERE id = 1;<br>ROLLBACK TO sp1;<br>UPDATE customer SET phone = '555-5678' WHERE id = 1;<br>COMMIT;</div>",
+                options: [
+                    "Only email is updated",
+                    "Email and phone ('555-1234') are updated",
+                    "Email and phone ('555-5678') are updated",
+                    "All three fields are updated"
+                ],
+                correctAnswer: 2,
+                hint: "Trace through each operation and consider what ROLLBACK TO sp1 undoes.",
+                explanation: "ROLLBACK TO sp1 undoes the phone and address changes made after sp1. The subsequent phone update to '555-5678' then occurs before commit, so final state has updated email and phone ('555-5678').",
+                difficulty: "hard"
+            },
+            {
+                question: "What is a deadlock in the context of database transactions?",
+                options: [
+                    "When a transaction takes too long to complete",
+                    "When two or more transactions are waiting for each other to release locks",
+                    "When a transaction cannot acquire any locks",
+                    "When the database runs out of memory for transactions"
+                ],
+                correctAnswer: 1,
+                hint: "Think about a circular dependency situation between transactions.",
+                explanation: "A deadlock occurs when two or more transactions are each waiting for the other to release locks, creating a circular dependency that cannot resolve without external intervention (usually automatic deadlock detection and rollback).",
+                difficulty: "hard"
+            },
+            {
+                question: "Which PostgreSQL system view can you query to monitor active locks?",
+                options: [
+                    "pg_stat_activity",
+                    "pg_locks",
+                    "pg_stat_database",
+                    "pg_transactions"
+                ],
+                correctAnswer: 1,
+                hint: "The view name directly relates to what it monitors.",
+                explanation: "pg_locks provides information about currently held locks, including lock types, objects being locked, and which processes hold the locks.",
+                difficulty: "medium"
+            },
+            {
+                question: "The ROLLBACK command undoes all changes made since the beginning of the current transaction.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider what ROLLBACK does without any additional parameters.",
+                explanation: "True. ROLLBACK (without TO SAVEPOINT) undoes all changes made since the transaction began, returning the database to its state before BEGIN was executed.",
+                difficulty: "easy"
+            },
+            {
+                question: "In SERIALIZABLE isolation level, what happens when PostgreSQL detects a serialization anomaly?",
+                options: [
+                    "The transaction is automatically retried",
+                    "One of the conflicting transactions is rolled back with a serialization failure error",
+                    "The database switches to a lower isolation level",
+                    "All transactions are temporarily suspended"
+                ],
+                correctAnswer: 1,
+                hint: "Think about how the database resolves conflicts at the highest isolation level.",
+                explanation: "In SERIALIZABLE isolation, PostgreSQL detects serialization anomalies and rolls back one of the conflicting transactions with a serialization failure error, which the application must handle and retry.",
+                difficulty: "hard"
+            },
+            {
+                question: "What is the key difference between COMMIT and COMMIT AND CHAIN?",
+                options: [
+                    "COMMIT AND CHAIN is faster than regular COMMIT",
+                    "COMMIT AND CHAIN starts a new transaction immediately after committing",
+                    "COMMIT AND CHAIN only commits certain tables",
+                    "There is no difference in PostgreSQL"
+                ],
+                correctAnswer: 1,
+                hint: "Consider what \"chain\" might mean in the context of transactions.",
+                explanation: "COMMIT AND CHAIN commits the current transaction and immediately starts a new transaction with the same characteristics (isolation level, access mode, etc.).",
+                difficulty: "medium"
+            },
+            {
+                question: "Which command makes all changes in the current transaction permanent?",
+                options: [
+                    "SAVE",
+                    "COMMIT",
+                    "APPLY",
+                    "FINALIZE"
+                ],
+                correctAnswer: 1,
+                hint: "This is one of the fundamental TCL commands.",
+                explanation: "COMMIT makes all changes in the current transaction permanent and ends the transaction block.",
+                difficulty: "easy"
+            },
+            {
+                question: "In PostgreSQL, READ UNCOMMITTED isolation level behaves identically to READ COMMITTED due to PostgreSQL's implementation.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider PostgreSQL's specific implementation compared to other database systems.",
+                explanation: "True. PostgreSQL treats READ UNCOMMITTED the same as READ COMMITTED because PostgreSQL never allows dirty reads in any isolation level, unlike some other database systems.",
+                difficulty: "hard"
+            },
+            {
+                question: "What happens to uncommitted changes when a database session is terminated unexpectedly?",
+                options: [
+                    "Changes are automatically committed",
+                    "Changes are automatically rolled back",
+                    "Changes remain in a pending state",
+                    "The database becomes corrupted"
+                ],
+                correctAnswer: 1,
+                hint: "Think about what happens to transactions that haven't been explicitly committed.",
+                explanation: "Uncommitted changes are automatically rolled back when a session terminates unexpectedly, ensuring data consistency and maintaining the atomicity property of transactions.",
+                difficulty: "medium"
+            },
+            {
+                question: "You can have multiple active savepoints with the same name within a single transaction.",
+                options: ["True", "False"],
+                correctAnswer: 1,
+                hint: "Consider how savepoint names work as identifiers.",
+                explanation: "False. Savepoint names must be unique within a transaction. Creating a savepoint with an existing name will release the previous savepoint with that name.",
+                difficulty: "medium"
+            },
+            {
+                question: "Consider this scenario: Transaction A reads a row, Transaction B updates the same row and commits, then Transaction A reads the row again. Under which isolation level would Transaction A see different values?",
+                options: [
+                    "SERIALIZABLE only",
+                    "READ COMMITTED only",
+                    "Both READ COMMITTED and REPEATABLE READ",
+                    "READ COMMITTED but not REPEATABLE READ"
+                ],
+                correctAnswer: 3,
+                hint: "Think about which isolation levels allow non-repeatable reads.",
+                explanation: "In READ COMMITTED, Transaction A would see the updated values on the second read. In REPEATABLE READ and SERIALIZABLE, Transaction A would see the same values both times (preventing non-repeatable reads).",
+                difficulty: "hard"
+            },
+            {
+                question: "What is the primary purpose of the Durability property in ACID transactions?",
+                options: [
+                    "To ensure transactions execute quickly",
+                    "To guarantee that committed changes survive system failures",
+                    "To prevent concurrent transaction conflicts",
+                    "To maintain referential integrity"
+                ],
+                correctAnswer: 1,
+                hint: "Think about what happens to your data after a system crash.",
+                explanation: "Durability ensures that once a transaction is committed, the changes are permanently stored and will survive system crashes, power failures, or other unexpected shutdowns.",
+                difficulty: "medium"
+            },
+            {
+                question: "PostgreSQL automatically detects and resolves deadlocks by rolling back one of the involved transactions.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider how databases handle the circular waiting problem.",
+                explanation: "True. PostgreSQL has a deadlock detector that automatically identifies deadlock situations and resolves them by rolling back one of the involved transactions, allowing the others to proceed.",
+                difficulty: "easy"
+            },
+            {
+                question: "In a high-concurrency environment, what is the trade-off when using higher isolation levels like SERIALIZABLE?",
+                options: [
+                    "Better performance but less data consistency",
+                    "Stronger data consistency but potentially more serialization failures and retries",
+                    "Higher memory usage but faster queries",
+                    "Lower CPU usage but increased disk I/O"
+                ],
+                correctAnswer: 1,
+                hint: "Consider what happens when the database has to maintain stronger consistency guarantees.",
+                explanation: "Higher isolation levels like SERIALIZABLE provide stronger consistency guarantees but may result in more serialization failures when conflicts are detected, requiring applications to handle retries and potentially reducing overall throughput in high-concurrency scenarios.",
+                difficulty: "hard"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+        let quizCompleted = false;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            const question = quizData[currentQuestion];
+            const questionCounter = document.getElementById('question-counter');
+            const scoreDisplay = document.getElementById('score-display');
+            const progressFill = document.getElementById('progress-fill');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const hintContainer = document.getElementById('hint-container');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Update progress
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+            progressFill.style.width = `${((currentQuestion + 1) / quizData.length) * 100}%`;
+
+            // Load question
+            const difficultyClass = `difficulty-${question.difficulty}`;
+            const difficultyBadge = `<span class="difficulty-badge ${difficultyClass}">${question.difficulty.toUpperCase()}</span>`;
+            questionText.innerHTML = question.question + difficultyBadge;
+
+            // Load options
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}.</span>${option}`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+
+            // Reset controls
+            selectedAnswer = null;
+            hintContainer.classList.remove('show');
+            explanation.classList.remove('show');
+            nextBtn.disabled = true;
+            hintBtn.style.display = 'block';
+
+            if (currentQuestion === quizData.length - 1) {
+                nextBtn.textContent = 'Show Results';
+            }
+        }
+
+        function selectAnswer(answerIndex) {
+            if (selectedAnswer !== null) return;
+
+            selectedAnswer = answerIndex;
+            const question = quizData[currentQuestion];
+            const options = document.querySelectorAll('.option-button');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Disable all options
+            options.forEach(option => option.classList.add('disabled'));
+
+            // Show correct/incorrect styling
+            options[question.correctAnswer].classList.add('correct');
+            if (answerIndex !== question.correctAnswer) {
+                options[answerIndex].classList.add('incorrect');
+            } else {
+                score++;
+                document.getElementById('score-display').textContent = `Score: ${score}/${quizData.length}`;
+            }
+
+            // Show explanation
+            explanation.innerHTML = `
+                <h4>🧠 Explanation</h4>
+                <p><strong>Correct Answer:</strong> ${question.explanation}</p>
+            `;
+            explanation.classList.add('show');
+
+            // Enable next button and hide hint button
+            nextBtn.disabled = false;
+            hintBtn.style.display = 'none';
+        }
+
+        function showHint() {
+            const question = quizData[currentQuestion];
+            const hintContainer = document.getElementById('hint-container');
+            hintContainer.innerHTML = `<strong>💡 Hint:</strong> ${question.hint}`;
+            hintContainer.classList.add('show');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+            const finalScore = document.getElementById('final-score');
+            const resultsMessage = document.getElementById('results-message');
+            const correctCount = document.getElementById('correct-count');
+            const incorrectCount = document.getElementById('incorrect-count');
+            const accuracyPercent = document.getElementById('accuracy-percent');
+
+            quizContent.style.display = 'none';
+            resultsContainer.classList.add('show');
+
+            const accuracy = Math.round((score / quizData.length) * 100);
+            
+            finalScore.textContent = `${score}/${quizData.length}`;
+            correctCount.textContent = score;
+            incorrectCount.textContent = quizData.length - score;
+            accuracyPercent.textContent = `${accuracy}%`;
+
+            let message = '';
+            if (accuracy >= 90) {
+                message = '🏆 Outstanding! You have mastered PostgreSQL transactions and TCL!';
+            } else if (accuracy >= 80) {
+                message = '⭐ Excellent! You understand ACID properties and transaction control very well.';
+            } else if (accuracy >= 70) {
+                message = '📈 Good work! You grasp transaction fundamentals with room to grow.';
+            } else if (accuracy >= 60) {
+                message = '📚 You\'re making progress! Review isolation levels and savepoints.';
+            } else {
+                message = '🔄 Keep studying! Transaction control is crucial for database integrity.';
+            }
+
+            resultsMessage.textContent = message;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            selectedAnswer = null;
+            quizCompleted = false;
+
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+
+            resultsContainer.classList.remove('show');
+            quizContent.style.display = 'block';
+
+            loadQuestion();
+        }
+
+        // Initialize quiz
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>

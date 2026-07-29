@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL CTEs and Window Functions Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .quiz-title {
+            color: #2d3748;
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .quiz-subtitle {
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .progress-container {
+            margin-bottom: 30px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .question-counter {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        .score-display {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+
+        .question-container {
+            margin-bottom: 30px;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            color: #2d3748;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border-left: 5px solid #667eea;
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .options-container {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-button {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px 20px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+            color: #4a5568;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-button:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .option-button.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .option-button.correct {
+            border-color: #38a169;
+            background: #f0fff4;
+            color: #22543d;
+        }
+
+        .option-button.incorrect {
+            border-color: #e53e3e;
+            background: #fff5f5;
+            color: #742a2a;
+        }
+
+        .option-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-letter {
+            font-weight: 700;
+            color: #667eea;
+            margin-right: 12px;
+        }
+
+        .controls-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .hint-container {
+            background: #fffbeb;
+            border: 1px solid #f6cc3e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #744210;
+            display: none;
+        }
+
+        .hint-container.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #22543d;
+            display: none;
+        }
+
+        .explanation.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .explanation h4 {
+            color: #22543d;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .explanation p {
+            line-height: 1.6;
+        }
+
+        .results-container {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .final-score {
+            font-size: 3em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .results-message {
+            font-size: 1.3em;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .performance-breakdown {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .performance-item:last-child {
+            border-bottom: none;
+        }
+
+        .restart-btn {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .quiz-container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .quiz-title {
+                font-size: 1.8em;
+            }
+
+            .question-text {
+                font-size: 1.2em;
+                padding: 15px;
+            }
+
+            .option-button {
+                padding: 15px;
+                font-size: 1em;
+            }
+
+            .controls-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .difficulty-easy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .difficulty-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .difficulty-hard {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 class="quiz-title">PostgreSQL CTEs & Window Functions</h1>
+            <p class="quiz-subtitle">Test your knowledge of advanced SQL analytical features</p>
+        </div>
+
+        <div id="quiz-content">
+            <div class="progress-container">
+                <div class="progress-info">
+                    <span class="question-counter" id="question-counter">Question 1 of 20</span>
+                    <span class="score-display" id="score-display">Score: 0/20</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <div class="question-container">
+                <div class="question-text" id="question-text">Loading question...</div>
+                <div class="options-container" id="options-container"></div>
+                <div class="hint-container" id="hint-container"></div>
+                <div class="explanation" id="explanation"></div>
+            </div>
+
+            <div class="controls-container">
+                <button class="btn btn-secondary" id="hint-btn" onclick="showHint()">
+                    💡 Show Hint
+                </button>
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>
+                    Next Question →
+                </button>
+            </div>
+        </div>
+
+        <div class="results-container" id="results-container">
+            <div class="final-score" id="final-score">0/20</div>
+            <div class="results-message" id="results-message"></div>
+            <div class="performance-breakdown">
+                <div class="performance-item">
+                    <span>Correct Answers:</span>
+                    <span id="correct-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Incorrect Answers:</span>
+                    <span id="incorrect-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Accuracy:</span>
+                    <span id="accuracy-percent">0%</span>
+                </div>
+            </div>
+            <button class="btn btn-primary restart-btn" onclick="restartQuiz()">
+                🔄 Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What is a Common Table Expression (CTE) in PostgreSQL?",
+                options: [
+                    "A permanent view that is stored in the database schema",
+                    "A temporary named result set that exists only for the duration of a single SQL statement",
+                    "A special type of index that improves query performance",
+                    "A constraint that enforces data integrity across multiple tables"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the 'temporary' and 'named' aspects of CTEs.",
+                explanation: "A CTE is a temporary named result set that exists only during the execution of a single SQL statement. It acts like a temporary view that can be referenced within the main query.",
+                difficulty: "easy"
+            },
+            {
+                question: "What is the correct syntax to create a CTE in PostgreSQL?",
+                options: [
+                    "CREATE TEMP TABLE cte_name AS (SELECT ...)",
+                    "WITH cte_name AS (SELECT ...)",
+                    "DECLARE cte_name AS (SELECT ...)",
+                    "LET cte_name = (SELECT ...)"
+                ],
+                correctAnswer: 1,
+                hint: "CTEs use a specific keyword that indicates they're 'with' the main query.",
+                explanation: "The correct syntax is WITH cte_name AS (SELECT ...) followed by the main query that can reference the CTE.",
+                difficulty: "easy"
+            },
+            {
+                question: "What is the primary difference between window functions and GROUP BY aggregations?",
+                options: [
+                    "Window functions are faster than GROUP BY operations",
+                    "Window functions preserve individual rows while GROUP BY collapses them",
+                    "Window functions can only work with numeric data",
+                    "Window functions require indexes while GROUP BY does not"
+                ],
+                correctAnswer: 1,
+                hint: "Think about what happens to individual rows in each approach.",
+                explanation: "Window functions perform calculations across sets of rows while preserving individual rows in the result set, whereas GROUP BY aggregations collapse rows into summary results.",
+                difficulty: "easy"
+            },
+            {
+                question: "Given these rental rates: 4.99, 4.99, 2.99, 2.99, 1.99, what would DENSE_RANK() produce?",
+                options: [
+                    "1, 2, 3, 4, 5",
+                    "1, 1, 2, 2, 3",
+                    "1, 1, 3, 3, 5",
+                    "1, 2, 2, 3, 4"
+                ],
+                correctAnswer: 1,
+                hint: "DENSE_RANK gives the same rank to ties and doesn't skip any rank numbers.",
+                explanation: "DENSE_RANK() assigns rank 1 to both 4.99 values, rank 2 to both 2.99 values, and rank 3 to 1.99, with no gaps in the sequence.",
+                difficulty: "medium"
+            },
+            {
+                question: "What does the PARTITION BY clause do in a window function?",
+                options: [
+                    "It divides the result set into separate groups for the window function calculation",
+                    "It sorts the data in ascending order for the calculation",
+                    "It limits the number of rows returned by the query",
+                    "It creates a physical partition on the disk for better performance"
+                ],
+                correctAnswer: 0,
+                hint: "Think about how you might want to calculate ranks separately within different categories.",
+                explanation: "PARTITION BY divides the result set into separate groups (partitions), and the window function is applied independently within each partition.",
+                difficulty: "medium"
+            },
+            {
+                question: "You can define multiple CTEs in a single query by separating them with commas.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Think about how you might break down a complex analysis into multiple logical steps.",
+                explanation: "True. You can define multiple CTEs in one query using WITH cte1 AS (...), cte2 AS (...), cte3 AS (...) SELECT ... syntax.",
+                difficulty: "medium"
+            },
+            {
+                question: "In this query, what will LAG(rental_date, 2) return for the third row?<br><div class='code-block'>SELECT rental_date, LAG(rental_date, 2) OVER (ORDER BY rental_date)<br>FROM rental ORDER BY rental_date;</div>",
+                options: [
+                    "The rental_date from the second row",
+                    "The rental_date from the first row",
+                    "The rental_date from the fifth row",
+                    "NULL because there isn't a second previous row"
+                ],
+                correctAnswer: 1,
+                hint: "LAG(column, n) looks n rows back from the current position.",
+                explanation: "LAG(rental_date, 2) looks 2 rows back from the current row. For the third row, 2 rows back is the first row, so it returns the first row's rental_date.",
+                difficulty: "hard"
+            },
+            {
+                question: "What does this window frame specification calculate?<br><div class='code-block'>SUM(amount) OVER (ORDER BY payment_date<br>ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)</div>",
+                options: [
+                    "Sum of all payments from the beginning to current row",
+                    "Sum of current row plus the next 2 rows",
+                    "Sum of current row plus the previous 2 rows (3 rows total)",
+                    "Sum of only the 2 rows immediately before the current row"
+                ],
+                correctAnswer: 2,
+                hint: "'ROWS BETWEEN 2 PRECEDING AND CURRENT ROW' defines a 3-row sliding window.",
+                explanation: "This creates a sliding window that includes the current row plus the 2 preceding rows, calculating a 3-row moving sum.",
+                difficulty: "hard"
+            },
+            {
+                question: "Why might you need \"ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING\" with LAST_VALUE?",
+                options: [
+                    "To improve query performance",
+                    "To ensure LAST_VALUE sees the actual last row in the partition, not just the current row",
+                    "To make LAST_VALUE work the same as FIRST_VALUE",
+                    "To prevent LAST_VALUE from returning NULL values"
+                ],
+                correctAnswer: 1,
+                hint: "Consider the default window frame and how it affects what LAST_VALUE can 'see.'",
+                explanation: "By default, window functions use 'ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW', so LAST_VALUE would only see up to the current row. The extended frame ensures it sees the actual last row.",
+                difficulty: "hard"
+            },
+            {
+                question: "What is the main advantage of using a CTE instead of a subquery?",
+                options: [
+                    "CTEs always execute faster than subqueries",
+                    "CTEs can be referenced multiple times within the same query",
+                    "CTEs use less memory than subqueries",
+                    "CTEs automatically create indexes on their results"
+                ],
+                correctAnswer: 1,
+                hint: "Think about reusability and readability when breaking down complex logic.",
+                explanation: "CTEs can be referenced multiple times in the main query, improving code reusability and readability compared to duplicating subqueries.",
+                difficulty: "medium"
+            },
+            {
+                question: "Recursive CTEs in PostgreSQL can potentially run infinitely if not properly constrained.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Think about what could happen if the recursive condition never becomes false.",
+                explanation: "True. Recursive CTEs can create infinite loops if the recursive condition is never false and no limits are set. This is why proper termination conditions are crucial.",
+                difficulty: "hard"
+            },
+            {
+                question: "What does NTILE(4) do in a window function?",
+                options: [
+                    "Returns the top 4 rows from each partition",
+                    "Divides the result set into 4 approximately equal groups",
+                    "Calculates a 4-period moving average",
+                    "Looks 4 rows ahead in the ordered result set"
+                ],
+                correctAnswer: 1,
+                hint: "Think about dividing data into equal-sized buckets or quantiles.",
+                explanation: "NTILE(4) divides the ordered result set into 4 approximately equal groups (quartiles), assigning each row a bucket number from 1 to 4.",
+                difficulty: "medium"
+            },
+            {
+                question: "Window functions always perform better than equivalent GROUP BY queries with JOINs.",
+                options: ["True", "False"],
+                correctAnswer: 1,
+                hint: "Performance depends on many factors including data size, indexes, and specific query requirements.",
+                explanation: "False. Performance depends on various factors like data volume, available indexes, and specific query patterns. Sometimes GROUP BY with JOINs can be more efficient.",
+                difficulty: "medium"
+            },
+            {
+                question: "How are CTEs typically executed in PostgreSQL?",
+                options: [
+                    "They are always materialized (stored) before the main query executes",
+                    "They are always inlined (merged) with the main query",
+                    "PostgreSQL decides whether to materialize or inline based on query optimization",
+                    "They are executed once for each time they are referenced"
+                ],
+                correctAnswer: 2,
+                hint: "Think about how query optimizers make decisions about execution plans.",
+                explanation: "PostgreSQL's query planner decides whether to materialize the CTE or inline it based on factors like CTE complexity, reference count, and overall query optimization.",
+                difficulty: "hard"
+            },
+            {
+                question: "What does PERCENT_RANK() return?",
+                options: [
+                    "The percentage each value represents of the total sum",
+                    "The relative rank of each row as a percentage between 0 and 1",
+                    "The percentile that each value falls into (1-100)",
+                    "The percentage change from the previous row's value"
+                ],
+                correctAnswer: 1,
+                hint: "Think about ranking position relative to the total number of rows.",
+                explanation: "PERCENT_RANK() returns the relative rank of each row as a value between 0 and 1, where 0 is the lowest rank and 1 is the highest rank.",
+                difficulty: "medium"
+            },
+            {
+                question: "A CTE defined in one query can be used in a completely separate query later in the same session.",
+                options: ["True", "False"],
+                correctAnswer: 1,
+                hint: "Consider the 'temporary' nature of CTEs and their scope.",
+                explanation: "False. CTEs exist only for the duration of the single SQL statement in which they are defined. They cannot be referenced in separate queries.",
+                difficulty: "easy"
+            },
+            {
+                question: "Which window function specification creates a running total from the beginning of the partition?",
+                options: [
+                    "SUM(amount) OVER (ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)",
+                    "SUM(amount) OVER (ROWS UNBOUNDED PRECEDING)",
+                    "SUM(amount) OVER (PARTITION BY customer_id)",
+                    "SUM(amount) OVER (ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)"
+                ],
+                correctAnswer: 1,
+                hint: "A running total accumulates all values from the start up to the current row.",
+                explanation: "'ROWS UNBOUNDED PRECEDING' creates a window from the beginning of the partition to the current row, producing a running total.",
+                difficulty: "medium"
+            },
+            {
+                question: "What are the two main parts of a recursive CTE?",
+                options: [
+                    "SELECT clause and WHERE clause",
+                    "Base case (anchor) and recursive case",
+                    "PARTITION BY and ORDER BY clauses",
+                    "Initial query and final query"
+                ],
+                correctAnswer: 1,
+                hint: "Think about how recursion works - you need a starting point and a way to continue.",
+                explanation: "Recursive CTEs have a base case (anchor member) that provides initial rows, and a recursive case that defines how to generate additional rows from existing ones.",
+                difficulty: "hard"
+            },
+            {
+                question: "Window functions like LAG() and LEAD() return NULL when looking beyond the available rows in the partition.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider what happens when LAG tries to look at a previous row that doesn't exist.",
+                explanation: "True. When LAG() or LEAD() functions try to access rows that don't exist (e.g., LAG on the first row, or LEAD on the last row), they return NULL.",
+                difficulty: "easy"
+            },
+            {
+                question: "What is a common pattern when combining CTEs with window functions?",
+                options: [
+                    "Use CTEs to prepare base data, then apply window functions in the main query",
+                    "Never use them together as they conflict with each other",
+                    "Always use window functions inside CTE definitions, never in the main query",
+                    "Use CTEs only for recursive operations and window functions only for rankings"
+                ],
+                correctAnswer: 0,
+                hint: "Think about how you might break down complex analytical queries into logical steps.",
+                explanation: "A common pattern is to use CTEs to prepare, clean, and structure base data, then apply window functions in the main query for analytical calculations like rankings, running totals, or comparisons.",
+                difficulty: "medium"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+        let quizCompleted = false;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            const question = quizData[currentQuestion];
+            const questionCounter = document.getElementById('question-counter');
+            const scoreDisplay = document.getElementById('score-display');
+            const progressFill = document.getElementById('progress-fill');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const hintContainer = document.getElementById('hint-container');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Update progress
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+            progressFill.style.width = `${((currentQuestion + 1) / quizData.length) * 100}%`;
+
+            // Load question
+            const difficultyClass = `difficulty-${question.difficulty}`;
+            const difficultyBadge = `<span class="difficulty-badge ${difficultyClass}">${question.difficulty.toUpperCase()}</span>`;
+            questionText.innerHTML = question.question + difficultyBadge;
+
+            // Load options
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}.</span>${option}`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+
+            // Reset controls
+            selectedAnswer = null;
+            hintContainer.classList.remove('show');
+            explanation.classList.remove('show');
+            nextBtn.disabled = true;
+            hintBtn.style.display = 'block';
+
+            if (currentQuestion === quizData.length - 1) {
+                nextBtn.textContent = 'Show Results';
+            }
+        }
+
+        function selectAnswer(answerIndex) {
+            if (selectedAnswer !== null) return;
+
+            selectedAnswer = answerIndex;
+            const question = quizData[currentQuestion];
+            const options = document.querySelectorAll('.option-button');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Disable all options
+            options.forEach(option => option.classList.add('disabled'));
+
+            // Show correct/incorrect styling
+            options[question.correctAnswer].classList.add('correct');
+            if (answerIndex !== question.correctAnswer) {
+                options[answerIndex].classList.add('incorrect');
+            } else {
+                score++;
+                document.getElementById('score-display').textContent = `Score: ${score}/${quizData.length}`;
+            }
+
+            // Show explanation
+            explanation.innerHTML = `
+                <h4>🧠 Explanation</h4>
+                <p><strong>Correct Answer:</strong> ${question.explanation}</p>
+            `;
+            explanation.classList.add('show');
+
+            // Enable next button and hide hint button
+            nextBtn.disabled = false;
+            hintBtn.style.display = 'none';
+        }
+
+        function showHint() {
+            const question = quizData[currentQuestion];
+            const hintContainer = document.getElementById('hint-container');
+            hintContainer.innerHTML = `<strong>💡 Hint:</strong> ${question.hint}`;
+            hintContainer.classList.add('show');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+            const finalScore = document.getElementById('final-score');
+            const resultsMessage = document.getElementById('results-message');
+            const correctCount = document.getElementById('correct-count');
+            const incorrectCount = document.getElementById('incorrect-count');
+            const accuracyPercent = document.getElementById('accuracy-percent');
+
+            quizContent.style.display = 'none';
+            resultsContainer.classList.add('show');
+
+            const accuracy = Math.round((score / quizData.length) * 100);
+            
+            finalScore.textContent = `${score}/${quizData.length}`;
+            correctCount.textContent = score;
+            incorrectCount.textContent = quizData.length - score;
+            accuracyPercent.textContent = `${accuracy}%`;
+
+            let message = '';
+            if (accuracy >= 90) {
+                message = '🎖️ Outstanding! You have mastered CTEs and Window Functions!';
+            } else if (accuracy >= 80) {
+                message = '🌟 Excellent! You understand advanced PostgreSQL analytical features well.';
+            } else if (accuracy >= 70) {
+                message = '📊 Good work! You grasp the fundamentals with room to grow.';
+            } else if (accuracy >= 60) {
+                message = '🧩 You\'re making progress! Review these concepts and practice more.';
+            } else {
+                message = '🔍 Keep studying! CTEs and Window Functions are powerful tools worth mastering.';
+            }
+
+            resultsMessage.textContent = message;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            selectedAnswer = null;
+            quizCompleted = false;
+
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+
+            resultsContainer.classList.remove('show');
+            quizContent.style.display = 'block';
+
+            loadQuestion();
+        }
+
+        // Initialize quiz
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>

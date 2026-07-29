@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logical Backup in PostgreSQL - Interactive Tutorial</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #root { width: 100vw; min-height: 100vh; }
+        .back-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 1000;
+            padding: 10px 20px; background: rgba(0, 0, 0, 0.7); color: white;
+            border: none; border-radius: 20px; cursor: pointer; font-size: 14px;
+            text-decoration: none; transition: all 0.3s ease;
+        }
+        .back-btn:hover { background: rgba(0, 0, 0, 0.9); transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← Back to Menu</a>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const slides = [
+            { id: 'intro', title: 'Logical Backup', subtitle: 'Export your database as SQL statements', type: 'title' },
+            { id: 'what-is', title: 'What is Logical Backup?', subtitle: 'Understanding the concept', content: { definition: 'A backup that exports database objects and data as SQL commands', output: 'Human-readable SQL file that can recreate the database', tools: ['pg_dump', 'pg_dumpall', 'pg_restore'] }, type: 'what-is' },
+            { id: 'vs-physical', title: 'Logical vs Physical Backup', subtitle: 'Two different approaches', content: { logical: { title: 'Logical Backup', points: ['SQL statements', 'Portable across versions', 'Selective backup possible', 'Slower for large DBs', 'Human readable'] }, physical: { title: 'Physical Backup', points: ['Binary file copy', 'Same version only', 'Full database only', 'Faster for large DBs', 'Not readable'] } }, type: 'comparison' },
+            { id: 'pg-dump', title: 'pg_dump', subtitle: 'The primary backup tool', content: { description: 'Dumps a single database to a file', syntax: 'pg_dump [options] dbname > backup.sql', keyPoints: ['Backs up one database at a time', 'Does not block other users', 'Consistent snapshot', 'Multiple output formats'] }, type: 'tool' },
+            { id: 'output-formats', title: 'Output Formats', subtitle: 'Choose the right format', content: { formats: [{ name: 'Plain SQL (-Fp)', desc: 'Human-readable SQL script', ext: '.sql', restore: 'psql' }, { name: 'Custom (-Fc)', desc: 'Compressed, flexible restore', ext: '.dump', restore: 'pg_restore' }, { name: 'Directory (-Fd)', desc: 'Parallel backup/restore', ext: 'folder/', restore: 'pg_restore' }, { name: 'Tar (-Ft)', desc: 'Tar archive format', ext: '.tar', restore: 'pg_restore' }] }, type: 'formats' },
+            { id: 'basic-examples', title: 'Basic Examples', subtitle: 'Common pg_dump commands', content: { examples: [{ title: 'Simple backup', cmd: 'pg_dump mydb > mydb.sql' }, { title: 'Custom format (recommended)', cmd: 'pg_dump -Fc mydb > mydb.dump' }, { title: 'Compressed SQL', cmd: 'pg_dump mydb | gzip > mydb.sql.gz' }, { title: 'With password prompt', cmd: 'pg_dump -U postgres -W mydb > backup.sql' }] }, type: 'examples' },
+            { id: 'selective-backup', title: 'Selective Backup', subtitle: 'Back up what you need', content: { options: [{ flag: '-t table', desc: 'Backup specific table(s)' }, { flag: '-n schema', desc: 'Backup specific schema(s)' }, { flag: '-T table', desc: 'Exclude specific table(s)' }, { flag: '-N schema', desc: 'Exclude specific schema(s)' }, { flag: '--data-only', desc: 'Only data, no schema' }, { flag: '--schema-only', desc: 'Only schema, no data' }] }, type: 'options' },
+            { id: 'important-options', title: 'Important Options', subtitle: 'Frequently used flags', content: { options: [{ flag: '-C', desc: 'Include CREATE DATABASE command' }, { flag: '-c', desc: 'Include DROP commands before CREATE' }, { flag: '--if-exists', desc: 'Use IF EXISTS with DROP' }, { flag: '-O', desc: 'Skip ownership commands' }, { flag: '-x', desc: 'Skip privileges (GRANT/REVOKE)' }, { flag: '--no-comments', desc: 'Skip comments' }] }, type: 'options' },
+            { id: 'pg-dumpall', title: 'pg_dumpall', subtitle: 'Backup everything', content: { description: 'Dumps all databases and global objects', syntax: 'pg_dumpall > full_backup.sql', includes: ['All databases', 'Roles and users', 'Tablespaces', 'Global settings'], note: 'Only outputs plain SQL format' }, type: 'tool' },
+            { id: 'pg-dumpall-options', title: 'pg_dumpall Options', subtitle: 'Selective global backup', content: { examples: [{ title: 'Roles only', cmd: 'pg_dumpall --roles-only > roles.sql' }, { title: 'Globals only (roles + tablespaces)', cmd: 'pg_dumpall --globals-only > globals.sql' }, { title: 'Full cluster backup', cmd: 'pg_dumpall > cluster.sql' }] }, type: 'examples' },
+            { id: 'restore-psql', title: 'Restore with psql', subtitle: 'For plain SQL backups', content: { examples: [{ title: 'Basic restore', cmd: 'psql mydb < backup.sql' }, { title: 'Create and restore', cmd: 'createdb mydb && psql mydb < backup.sql' }, { title: 'With error handling', cmd: 'psql --set ON_ERROR_STOP=on mydb < backup.sql' }, { title: 'From compressed', cmd: 'gunzip -c backup.sql.gz | psql mydb' }] }, type: 'examples' },
+            { id: 'pg-restore', title: 'pg_restore', subtitle: 'For custom/directory/tar formats', content: { examples: [{ title: 'Basic restore', cmd: 'pg_restore -d mydb backup.dump' }, { title: 'Create database first', cmd: 'pg_restore -C -d postgres backup.dump' }, { title: 'Parallel restore (4 jobs)', cmd: 'pg_restore -j 4 -d mydb backup.dump' }, { title: 'Restore specific table', cmd: 'pg_restore -t users -d mydb backup.dump' }] }, type: 'examples' },
+            { id: 'pg-restore-options', title: 'pg_restore Options', subtitle: 'Fine-grained control', content: { options: [{ flag: '-c', desc: 'Drop objects before recreating' }, { flag: '-C', desc: 'Create the target database' }, { flag: '-j n', desc: 'Use n parallel jobs' }, { flag: '-t table', desc: 'Restore specific table' }, { flag: '-n schema', desc: 'Restore specific schema' }, { flag: '-l', desc: 'List contents of archive' }, { flag: '-L list.txt', desc: 'Restore only items in list' }] }, type: 'options' },
+            { id: 'parallel-backup', title: 'Parallel Backup', subtitle: 'Speed up large backups', content: { requirement: 'Use directory format (-Fd) for parallel operations', backup: 'pg_dump -Fd -j 4 mydb -f backup_dir/', restore: 'pg_restore -j 4 -d mydb backup_dir/', benefits: ['Significantly faster', 'Uses multiple CPU cores', 'Great for large databases'] }, type: 'parallel' },
+            { id: 'remote-backup', title: 'Remote Backup', subtitle: 'Backup over the network', content: { examples: [{ title: 'Backup remote database', cmd: 'pg_dump -h remote.server.com -U postgres mydb > backup.sql' }, { title: 'With port', cmd: 'pg_dump -h server -p 5433 -U admin mydb > backup.sql' }, { title: 'To remote server via SSH', cmd: 'pg_dump mydb | ssh user@remote "cat > /backups/mydb.sql"' }] }, type: 'examples' },
+            { id: 'automation', title: 'Backup Automation', subtitle: 'Schedule regular backups', content: { script: '#!/bin/bash\nDATE=$(date +%Y%m%d_%H%M%S)\nBACKUP_DIR="/backups"\nDB_NAME="mydb"\n\npg_dump -Fc $DB_NAME > $BACKUP_DIR/${DB_NAME}_$DATE.dump\n\n# Keep only last 7 days\nfind $BACKUP_DIR -name "*.dump" -mtime +7 -delete', cron: '0 2 * * * /path/to/backup_script.sh' }, type: 'automation' },
+            { id: 'best-practices', title: 'Best Practices', subtitle: 'Do it right', content: { practices: ['Use custom format (-Fc) for flexibility', 'Test restores regularly', 'Store backups off-site', 'Document your backup strategy', 'Monitor backup success/failure', 'Use parallel jobs for large DBs', 'Compress plain SQL backups', 'Include globals with pg_dumpall'] }, type: 'best-practices' },
+            { id: 'common-issues', title: 'Common Issues', subtitle: 'Troubleshooting tips', content: { issues: [{ problem: 'Permission denied', solution: 'Check user has SELECT on all tables' }, { problem: 'Connection refused', solution: 'Verify pg_hba.conf and host/port' }, { problem: 'Out of disk space', solution: 'Use compression or stream to remote' }, { problem: 'Long running backup', solution: 'Use parallel dump with -j' }] }, type: 'issues' },
+            { id: 'summary', title: 'Summary', subtitle: 'Key takeaways', content: { points: ['pg_dump for single database backup', 'pg_dumpall for entire cluster', 'Custom format (-Fc) recommended', 'pg_restore for non-plain formats', 'Use parallel jobs for speed', 'Automate and test regularly'] }, type: 'summary' },
+            { id: 'cheatsheet', title: 'Quick Reference', subtitle: 'Commands at a glance', type: 'cheatsheet' }
+        ];
+
+        function TitleSlide({ slide }) {
+            return (
+                <div style={{ textAlign: 'center', padding: '60px 40px' }}>
+                    <div style={{ fontSize: '4rem', marginBottom: '20px' }}>📦</div>
+                    <h1 style={{ fontSize: '3.2rem', fontWeight: 800, color: '#1a1a2e', marginBottom: '16px' }}>{slide.title}</h1>
+                    <p style={{ fontSize: '1.4rem', color: '#6b7280' }}>{slide.subtitle}</p>
+                    <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                        {['🐘', '→', '📄', '→', '💾'].map((icon, i) => (<span key={i} style={{ fontSize: icon === '→' ? '1.5rem' : '2.5rem', color: icon === '→' ? '#9ca3af' : 'inherit' }}>{icon}</span>))}
+                    </div>
+                </div>
+            );
+        }
+
+        function WhatIsSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+                        <div style={{ padding: '24px', background: '#eff6ff', borderRadius: '16px', marginBottom: '20px' }}>
+                            <strong style={{ color: '#1e40af' }}>Definition:</strong>
+                            <p style={{ color: '#1e3a5f', marginTop: '8px' }}>{slide.content.definition}</p>
+                        </div>
+                        <div style={{ padding: '24px', background: '#f0fdf4', borderRadius: '16px', marginBottom: '20px' }}>
+                            <strong style={{ color: '#166534' }}>Output:</strong>
+                            <p style={{ color: '#166534', marginTop: '8px' }}>{slide.content.output}</p>
+                        </div>
+                        <div style={{ padding: '24px', background: '#f9fafb', borderRadius: '16px' }}>
+                            <strong style={{ color: '#374151' }}>Tools:</strong>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '12px', flexWrap: 'wrap' }}>
+                                {slide.content.tools.map((tool, i) => (
+                                    <code key={i} style={{ padding: '8px 16px', background: '#1a1a2e', color: '#22c55e', borderRadius: '8px', fontFamily: 'monospace' }}>{tool}</code>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function ComparisonSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', maxWidth: '700px', margin: '0 auto' }}>
+                        <div style={{ background: '#f0fdf4', borderRadius: '16px', padding: '24px', border: '2px solid #22c55e' }}>
+                            <h3 style={{ color: '#166534', marginBottom: '16px', textAlign: 'center' }}>{slide.content.logical.title}</h3>
+                            {slide.content.logical.points.map((p, i) => (<div key={i} style={{ padding: '10px 14px', background: '#dcfce7', borderRadius: '8px', marginBottom: '8px', color: '#166534' }}>✓ {p}</div>))}
+                        </div>
+                        <div style={{ background: '#fef3c7', borderRadius: '16px', padding: '24px', border: '2px solid #f59e0b' }}>
+                            <h3 style={{ color: '#92400e', marginBottom: '16px', textAlign: 'center' }}>{slide.content.physical.title}</h3>
+                            {slide.content.physical.points.map((p, i) => (<div key={i} style={{ padding: '10px 14px', background: '#fef9c3', borderRadius: '8px', marginBottom: '8px', color: '#92400e' }}>✓ {p}</div>))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function ToolSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+                        <div style={{ padding: '20px', background: '#f9fafb', borderRadius: '12px', marginBottom: '20px' }}>
+                            <p style={{ color: '#374151' }}>{slide.content.description}</p>
+                        </div>
+                        <div style={{ padding: '16px 24px', background: '#1a1a2e', borderRadius: '12px', marginBottom: '20px', fontFamily: 'monospace' }}>
+                            <code style={{ color: '#22c55e' }}>{slide.content.syntax}</code>
+                        </div>
+                        {slide.content.keyPoints && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {slide.content.keyPoints.map((point, i) => (
+                                    <div key={i} style={{ padding: '12px 16px', background: '#eff6ff', borderRadius: '8px', color: '#1e40af' }}>• {point}</div>
+                                ))}
+                            </div>
+                        )}
+                        {slide.content.includes && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {slide.content.includes.map((item, i) => (
+                                    <div key={i} style={{ padding: '12px 16px', background: '#f0fdf4', borderRadius: '8px', color: '#166534' }}>✓ {item}</div>
+                                ))}
+                            </div>
+                        )}
+                        {slide.content.note && (
+                            <div style={{ padding: '16px', background: '#fef3c7', borderRadius: '12px', marginTop: '20px', color: '#92400e' }}>
+                                ⚠️ {slide.content.note}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function FormatsSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', maxWidth: '700px', margin: '0 auto' }}>
+                        {slide.content.formats.map((fmt, i) => (
+                            <div key={i} style={{ padding: '20px', background: i === 1 ? '#f0fdf4' : '#f9fafb', borderRadius: '12px', border: i === 1 ? '2px solid #22c55e' : '1px solid #e5e7eb' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <code style={{ padding: '4px 8px', background: '#1a1a2e', color: '#22c55e', borderRadius: '4px', fontSize: '0.85rem' }}>{fmt.name}</code>
+                                    <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{fmt.ext}</span>
+                                </div>
+                                <p style={{ color: '#374151', fontSize: '0.9rem', marginBottom: '8px' }}>{fmt.desc}</p>
+                                <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>Restore: <code style={{ color: '#3b82f6' }}>{fmt.restore}</code></span>
+                                {i === 1 && <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#22c55e', fontWeight: 600 }}>⭐ RECOMMENDED</div>}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function ExamplesSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '650px', margin: '0 auto' }}>
+                        {slide.content.examples.map((ex, i) => (
+                            <div key={i} style={{ background: '#f9fafb', borderRadius: '12px', overflow: 'hidden' }}>
+                                <div style={{ padding: '12px 16px', background: '#e5e7eb', color: '#374151', fontWeight: 600, fontSize: '0.9rem' }}>{ex.title}</div>
+                                <div style={{ padding: '16px', background: '#1a1a2e', fontFamily: 'monospace' }}>
+                                    <code style={{ color: '#22c55e', fontSize: '0.9rem' }}>{ex.cmd}</code>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function OptionsSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', maxWidth: '700px', margin: '0 auto' }}>
+                        {slide.content.options.map((opt, i) => (
+                            <div key={i} style={{ display: 'flex', gap: '12px', padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', alignItems: 'center' }}>
+                                <code style={{ padding: '4px 8px', background: '#1a1a2e', color: '#22c55e', borderRadius: '4px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{opt.flag}</code>
+                                <span style={{ color: '#374151', fontSize: '0.9rem' }}>{opt.desc}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function ParallelSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+                        <div style={{ padding: '16px 20px', background: '#fef3c7', borderRadius: '12px', marginBottom: '20px', color: '#92400e' }}>
+                            ⚠️ {slide.content.requirement}
+                        </div>
+                        <div style={{ background: '#f9fafb', borderRadius: '12px', overflow: 'hidden', marginBottom: '16px' }}>
+                            <div style={{ padding: '12px 16px', background: '#dbeafe', color: '#1e40af', fontWeight: 600 }}>Backup</div>
+                            <div style={{ padding: '16px', background: '#1a1a2e', fontFamily: 'monospace' }}>
+                                <code style={{ color: '#22c55e' }}>{slide.content.backup}</code>
+                            </div>
+                        </div>
+                        <div style={{ background: '#f9fafb', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px' }}>
+                            <div style={{ padding: '12px 16px', background: '#dcfce7', color: '#166534', fontWeight: 600 }}>Restore</div>
+                            <div style={{ padding: '16px', background: '#1a1a2e', fontFamily: 'monospace' }}>
+                                <code style={{ color: '#22c55e' }}>{slide.content.restore}</code>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {slide.content.benefits.map((b, i) => (
+                                <div key={i} style={{ padding: '12px 16px', background: '#f0fdf4', borderRadius: '8px', color: '#166534' }}>✓ {b}</div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function AutomationSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ maxWidth: '650px', margin: '0 auto' }}>
+                        <div style={{ background: '#f9fafb', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px' }}>
+                            <div style={{ padding: '12px 16px', background: '#e5e7eb', color: '#374151', fontWeight: 600 }}>backup_script.sh</div>
+                            <pre style={{ padding: '20px', background: '#1a1a2e', fontFamily: 'monospace', fontSize: '0.85rem', overflowX: 'auto', margin: 0 }}>
+                                <code style={{ color: '#22c55e', whiteSpace: 'pre' }}>{slide.content.script}</code>
+                            </pre>
+                        </div>
+                        <div style={{ background: '#f9fafb', borderRadius: '12px', overflow: 'hidden' }}>
+                            <div style={{ padding: '12px 16px', background: '#dbeafe', color: '#1e40af', fontWeight: 600 }}>Cron job (daily at 2 AM)</div>
+                            <div style={{ padding: '16px', background: '#1a1a2e', fontFamily: 'monospace' }}>
+                                <code style={{ color: '#22c55e' }}>{slide.content.cron}</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function BestPracticesSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', maxWidth: '700px', margin: '0 auto' }}>
+                        {slide.content.practices.map((p, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #22c55e' }}>
+                                <span style={{ color: '#22c55e', fontWeight: 700 }}>✓</span>
+                                <span style={{ color: '#166534' }}>{p}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function IssuesSlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px', margin: '0 auto' }}>
+                        {slide.content.issues.map((issue, i) => (
+                            <div key={i} style={{ background: '#f9fafb', borderRadius: '12px', overflow: 'hidden' }}>
+                                <div style={{ padding: '12px 16px', background: '#fef2f2', color: '#991b1b', fontWeight: 600 }}>❌ {issue.problem}</div>
+                                <div style={{ padding: '12px 16px', background: '#f0fdf4', color: '#166534' }}>✅ {issue.solution}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function SummarySlide({ slide }) {
+            return (
+                <div style={{ padding: '40px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '40px', textAlign: 'center' }}>{slide.subtitle}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '500px', margin: '0 auto' }}>
+                        {slide.content.points.map((point, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px 24px', background: 'linear-gradient(135deg, #eff6ff, #faf5ff)', borderRadius: '12px', border: '1px solid #c7d2fe' }}>
+                                <span style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>{i + 1}</span>
+                                <span style={{ color: '#1e3a5f', fontWeight: 600, fontSize: '1.05rem' }}>{point}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function CheatsheetSlide() {
+            const commands = [
+                { category: 'Backup', items: [
+                    { cmd: 'pg_dump mydb > backup.sql', desc: 'Simple SQL backup' },
+                    { cmd: 'pg_dump -Fc mydb > backup.dump', desc: 'Custom format (recommended)' },
+                    { cmd: 'pg_dump -Fd -j4 mydb -f dir/', desc: 'Parallel directory backup' },
+                    { cmd: 'pg_dump -t users mydb > users.sql', desc: 'Single table backup' },
+                    { cmd: 'pg_dumpall > cluster.sql', desc: 'Full cluster backup' },
+                ]},
+                { category: 'Restore', items: [
+                    { cmd: 'psql mydb < backup.sql', desc: 'Restore SQL backup' },
+                    { cmd: 'pg_restore -d mydb backup.dump', desc: 'Restore custom format' },
+                    { cmd: 'pg_restore -C -d postgres backup.dump', desc: 'Create DB and restore' },
+                    { cmd: 'pg_restore -j4 -d mydb dir/', desc: 'Parallel restore' },
+                ]}
+            ];
+            return (
+                <div style={{ padding: '30px' }}>
+                    <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>Quick Reference</h2>
+                    <p style={{ color: '#6b7280', marginBottom: '30px', textAlign: 'center' }}>Commands at a glance</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', maxWidth: '900px', margin: '0 auto' }}>
+                        {commands.map((cat, i) => (
+                            <div key={i}>
+                                <h3 style={{ color: '#374151', marginBottom: '12px', fontSize: '1.1rem' }}>{cat.category}</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {cat.items.map((item, j) => (
+                                        <div key={j} style={{ background: '#f9fafb', borderRadius: '8px', overflow: 'hidden' }}>
+                                            <div style={{ padding: '10px 12px', background: '#1a1a2e', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                                                <code style={{ color: '#22c55e' }}>{item.cmd}</code>
+                                            </div>
+                                            <div style={{ padding: '8px 12px', fontSize: '0.8rem', color: '#6b7280' }}>{item.desc}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function renderSlide(slide) {
+            switch (slide.type) {
+                case 'title': return <TitleSlide slide={slide} />;
+                case 'what-is': return <WhatIsSlide slide={slide} />;
+                case 'comparison': return <ComparisonSlide slide={slide} />;
+                case 'tool': return <ToolSlide slide={slide} />;
+                case 'formats': return <FormatsSlide slide={slide} />;
+                case 'examples': return <ExamplesSlide slide={slide} />;
+                case 'options': return <OptionsSlide slide={slide} />;
+                case 'parallel': return <ParallelSlide slide={slide} />;
+                case 'automation': return <AutomationSlide slide={slide} />;
+                case 'best-practices': return <BestPracticesSlide slide={slide} />;
+                case 'issues': return <IssuesSlide slide={slide} />;
+                case 'summary': return <SummarySlide slide={slide} />;
+                case 'cheatsheet': return <CheatsheetSlide />;
+                default: return null;
+            }
+        }
+
+        function LogicalBackupSlideshow() {
+            const [current, setCurrent] = useState(0);
+            const next = () => setCurrent(c => Math.min(c + 1, slides.length - 1));
+            const prev = () => setCurrent(c => Math.max(c - 1, 0));
+            useEffect(() => { const handleKey = (e) => { if (e.key === 'ArrowRight' || e.key === ' ') next(); if (e.key === 'ArrowLeft') prev(); }; window.addEventListener('keydown', handleKey); return () => window.removeEventListener('keydown', handleKey); }, []);
+            return (
+                <div style={{ minHeight: '100vh', background: '#ffffff', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                        <div style={{ width: '100%', maxWidth: '950px' }} key={current}>{renderSlide(slides[current])}</div>
+                    </div>
+                    <div style={{ padding: '20px 40px', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
+                        <button onClick={prev} disabled={current === 0} style={{ padding: '12px 24px', background: current === 0 ? '#f3f4f6' : '#1a1a2e', color: current === 0 ? '#9ca3af' : '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: current === 0 ? 'not-allowed' : 'pointer' }}>← Previous</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {slides.map((_, i) => (<button key={i} onClick={() => setCurrent(i)} style={{ width: i === current ? '20px' : '8px', height: '8px', borderRadius: '4px', background: i === current ? '#3b82f6' : '#d1d5db', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }} />))}
+                        </div>
+                        <button onClick={next} disabled={current === slides.length - 1} style={{ padding: '12px 24px', background: current === slides.length - 1 ? '#f3f4f6' : '#3b82f6', color: current === slides.length - 1 ? '#9ca3af' : '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: current === slides.length - 1 ? 'not-allowed' : 'pointer' }}>Next →</button>
+                    </div>
+                    <div style={{ position: 'fixed', bottom: '80px', right: '40px', padding: '8px 16px', background: '#1a1a2e', color: '#fff', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>{current + 1} / {slides.length}</div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<LogicalBackupSlideshow />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+## Concise version of the instructions for generating a PostgreSQL SQL lab.
+
+Generate a single .sql lab for <TOPIC> on PostgreSQL <PG_VERSION> against <SAMPLE_DB>.
+Sections: Setup→Core actions→Tests (two users: <USER_A>/<PASS_A>, <USER_B>/<PASS_B>)→Checkpoints→(optional <DEMO_DB>)→Summary→Cleanup.
+Include Docker/CLI/pgAdmin connects, EXPECTED FAIL comments, info_schema/pg_catalog verifications, IF EXISTS/NOT EXISTS, and full cleanup (terminate, revoke, drop, verify 0 rows).
+All names prefixed <PREFIX> under schema <SCHEMA>. Output only SQL with bannered sections.
+
+
+
+
+## Detailed Instructions for Generating the SQL Lab
+-- ==============================================
+Inputs:
+<TOPIC>, <SAMPLE_DB>, <DEMO_DB>, <SCHEMA>, <PREFIX>, <ROLE>, <USER_A>/<PASS_A>, <USER_B>/<PASS_B>, <HOST>, <PORT>, <PG_VERSION>.
+
+Requirements:
+- Sections (numbered):
+  1) Connection Setup (Docker, CLI, pgAdmin) to <SAMPLE_DB>; show "\c", and "SELECT current_database(), current_user".
+  2) Setup: create objects prefixed <PREFIX> in schema <SCHEMA> (use IF NOT EXISTS) + minimal sample data.
+  3) Core <TOPIC> actions (GRANT/REVOKE/ALTER/POLICY/CREATE INDEX/EXPLAIN/CREATE VIEW/CREATE FUNCTION ... as relevant).
+  4) Tests as <USER_A> and <USER_B>: include queries that SHOULD WORK and SHOULD FAIL with "Expected error: ...".
+  5) Checkpoints after each step using information_schema/pg_catalog views; list the exact verification queries.
+  6) (If relevant) create <DEMO_DB> and grant minimal access.
+  7) Final summary queries (roles, memberships, table/schema privileges, policies; plus <TOPIC>-specific catalogs).
+  8) Cleanup Script: terminate sessions, REVOKE before DROP, DROP policies/tables/indexes/views/functions/triggers/schema/roles/users/db with IF EXISTS; end with zero-residue verification queries.
+
+Conventions:
+- Comment banners "====", subsection dashes "----".
+- Show alternative connect commands: `psql -U ... -d <SAMPLE_DB>`, `psql -h <HOST> -p <PORT> ...`.
+- Qualify objects with <SCHEMA>.<name>; use <PREFIX> for all created names; avoid extensions; make the script re-runnable.
+- Grant sequence USAGE where needed; include EXPLAIN/ANALYZE only if <TOPIC> is performance.
+- Keep it compact; no prose outside SQL comments; keep all narrative inside `--` comments.
+- Replace inputs with given concrete values; if any input is missing, use safe defaults and clearly mark them in comments.
+- Produce only the .sql content.

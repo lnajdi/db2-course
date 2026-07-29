@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL Procedures & Functions Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .quiz-title {
+            color: #2d3748;
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .quiz-subtitle {
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .progress-container {
+            margin-bottom: 30px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .question-counter {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        .score-display {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            transition: width 0.3s ease;
+        }
+
+        .question-container {
+            margin-bottom: 30px;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            color: #2d3748;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border-left: 5px solid #667eea;
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .options-container {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-button {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px 20px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+            color: #4a5568;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-button:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .option-button.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .option-button.correct {
+            border-color: #38a169;
+            background: #f0fff4;
+            color: #22543d;
+        }
+
+        .option-button.incorrect {
+            border-color: #e53e3e;
+            background: #fff5f5;
+            color: #742a2a;
+        }
+
+        .option-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-letter {
+            font-weight: 700;
+            color: #667eea;
+            margin-right: 12px;
+        }
+
+        .controls-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .hint-container {
+            background: #fffbeb;
+            border: 1px solid #f6cc3e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #744210;
+            display: none;
+        }
+
+        .hint-container.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #22543d;
+            display: none;
+        }
+
+        .explanation.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .explanation h4 {
+            color: #22543d;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .explanation p {
+            line-height: 1.6;
+        }
+
+        .results-container {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .final-score {
+            font-size: 3em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .results-message {
+            font-size: 1.3em;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .performance-breakdown {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .performance-item:last-child {
+            border-bottom: none;
+        }
+
+        .restart-btn {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .quiz-container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .quiz-title {
+                font-size: 1.8em;
+            }
+
+            .question-text {
+                font-size: 1.2em;
+                padding: 15px;
+            }
+
+            .option-button {
+                padding: 15px;
+                font-size: 1em;
+            }
+
+            .controls-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .difficulty-easy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .difficulty-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .difficulty-hard {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 class="quiz-title">PostgreSQL Procedures & Functions</h1>
+            <p class="quiz-subtitle">Test your knowledge of stored procedures and database functions</p>
+        </div>
+
+        <div id="quiz-content">
+            <div class="progress-container">
+                <div class="progress-info">
+                    <span class="question-counter" id="question-counter">Question 1 of 20</span>
+                    <span class="score-display" id="score-display">Score: 0/20</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <div class="question-container">
+                <div class="question-text" id="question-text">Loading question...</div>
+                <div class="options-container" id="options-container"></div>
+                <div class="hint-container" id="hint-container"></div>
+                <div class="explanation" id="explanation"></div>
+            </div>
+
+            <div class="controls-container">
+                <button class="btn btn-secondary" id="hint-btn" onclick="showHint()">
+                    💡 Show Hint
+                </button>
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>
+                    Next Question →
+                </button>
+            </div>
+        </div>
+
+        <div class="results-container" id="results-container">
+            <div class="final-score" id="final-score">0/20</div>
+            <div class="results-message" id="results-message"></div>
+            <div class="performance-breakdown">
+                <div class="performance-item">
+                    <span>Correct Answers:</span>
+                    <span id="correct-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Incorrect Answers:</span>
+                    <span id="incorrect-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Accuracy:</span>
+                    <span id="accuracy-percent">0%</span>
+                </div>
+            </div>
+            <button class="btn btn-primary restart-btn" onclick="restartQuiz()">
+                🔄 Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What is the primary difference between a PostgreSQL function and a stored procedure?",
+                options: [
+                    "Functions are faster than procedures",
+                    "Functions must return a value, procedures may not return anything",
+                    "Procedures can only be written in PL/pgSQL, functions can use any language",
+                    "There is no difference, they are synonyms"
+                ],
+                correctAnswer: 1,
+                hint: "Think about what each one is designed to produce or accomplish.",
+                explanation: "Functions must return a value and can be used in expressions and SELECT statements, while procedures perform operations and may not return anything, being called with the CALL statement.",
+                difficulty: "easy"
+            },
+            {
+                question: "Which command is used to execute a stored procedure in PostgreSQL?",
+                options: [
+                    "EXECUTE procedure_name()",
+                    "RUN procedure_name()",
+                    "CALL procedure_name()",
+                    "SELECT procedure_name()"
+                ],
+                correctAnswer: 2,
+                hint: "Think about the SQL standard command for invoking procedures.",
+                explanation: "The CALL statement is used to execute stored procedures in PostgreSQL. Functions are invoked in SELECT statements or expressions, but procedures require CALL.",
+                difficulty: "easy"
+            },
+            {
+                question: "PostgreSQL functions can be used in WHERE clauses and SELECT statements.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider how functions integrate with SQL expressions.",
+                explanation: "True. Functions can be used anywhere expressions are allowed, including WHERE clauses, SELECT lists, JOIN conditions, and other SQL contexts.",
+                difficulty: "easy"
+            },
+            {
+                question: "What does the RETURNS TABLE syntax allow a function to do?",
+                options: [
+                    "Return a single row with multiple columns",
+                    "Return multiple rows with a predefined column structure",
+                    "Return a JSON object representing a table",
+                    "Return metadata about an existing table"
+                ],
+                correctAnswer: 1,
+                hint: "Think about table-valued functions and their output structure.",
+                explanation: "RETURNS TABLE allows a function to return multiple rows with a predefined column structure, essentially acting like a parameterized view.",
+                difficulty: "medium"
+            },
+            {
+                question: "Which of these is a valid way to create a simple SQL function that calculates tax?",
+                options: [
+                    "CREATE FUNCTION calc_tax(amount DECIMAL) RETURNS DECIMAL AS 'SELECT amount * 0.08' LANGUAGE SQL;",
+                    "CREATE FUNCTION calc_tax(amount DECIMAL) RETURNS DECIMAL BEGIN SELECT amount * 0.08; END;",
+                    "CREATE FUNCTION calc_tax(amount DECIMAL) AS SELECT amount * 0.08;",
+                    "FUNCTION calc_tax(amount DECIMAL) RETURNS DECIMAL = amount * 0.08;"
+                ],
+                correctAnswer: 0,
+                hint: "Think about the complete syntax for creating SQL language functions.",
+                explanation: "Option A shows the correct syntax: CREATE FUNCTION with RETURNS clause, function body in quotes, and LANGUAGE specification.",
+                difficulty: "medium"
+            },
+            {
+                question: "Stored procedures in PostgreSQL can manage their own transactions using COMMIT and ROLLBACK.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Think about what procedures can do that functions cannot.",
+                explanation: "True. Stored procedures can control transactions using COMMIT, ROLLBACK, and transaction management, while functions cannot control transactions.",
+                difficulty: "medium"
+            },
+            {
+                question: "What happens when you call a function that has side effects (like INSERT/UPDATE) from within a SELECT statement?",
+                options: [
+                    "PostgreSQL prevents this and throws an error",
+                    "The side effects execute once for each row processed",
+                    "The side effects are ignored in SELECT contexts",
+                    "The function is automatically converted to read-only mode"
+                ],
+                correctAnswer: 1,
+                hint: "Consider how functions are evaluated in the context of row processing.",
+                explanation: "Functions with side effects will execute those side effects for each row they process, which can lead to unexpected behavior. It's generally recommended to keep functions pure (without side effects).",
+                difficulty: "hard"
+            },
+            {
+                question: "In this function definition, what will happen if no rows are found?<br><div class='code-block'>CREATE OR REPLACE FUNCTION get_customer_email(cust_id INTEGER)<br>RETURNS VARCHAR(50) AS $$<br>DECLARE<br>    email_addr VARCHAR(50);<br>BEGIN<br>    SELECT email INTO email_addr FROM customer WHERE customer_id = cust_id;<br>    RETURN email_addr;<br>END;<br>$$ LANGUAGE plpgsql;</div>",
+                options: [
+                    "An exception will be raised",
+                    "The function will return NULL",
+                    "The function will return an empty string",
+                    "The function will return the default value for VARCHAR"
+                ],
+                correctAnswer: 1,
+                hint: "Think about PL/pgSQL's behavior when SELECT INTO finds no rows.",
+                explanation: "When SELECT INTO finds no rows, the target variable is set to NULL, and the function returns NULL. No exception is raised automatically.",
+                difficulty: "hard"
+            },
+            {
+                question: "What is the difference between LANGUAGE SQL and LANGUAGE plpgsql in function creation?",
+                options: [
+                    "SQL functions are faster, plpgsql functions are more flexible",
+                    "SQL functions can only do simple calculations, plpgsql can use control structures",
+                    "SQL functions are read-only, plpgsql functions can modify data",
+                    "Both A and B are correct"
+                ],
+                correctAnswer: 3,
+                hint: "Think about the capabilities and performance characteristics of each language.",
+                explanation: "SQL functions are generally faster for simple operations and are limited to SQL expressions, while plpgsql functions offer full procedural capabilities including variables, loops, and complex logic.",
+                difficulty: "medium"
+            },
+            {
+                question: "You can overload functions in PostgreSQL by creating multiple functions with the same name but different parameter types.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Think about how PostgreSQL distinguishes between functions with the same name.",
+                explanation: "True. PostgreSQL supports function overloading, allowing multiple functions with the same name as long as they have different parameter types or numbers of parameters.",
+                difficulty: "easy"
+            },
+            {
+                question: "What is the purpose of the SECURITY DEFINER option when creating functions?",
+                options: [
+                    "It makes the function run faster by bypassing security checks",
+                    "It makes the function execute with the privileges of the function creator",
+                    "It prevents unauthorized users from calling the function",
+                    "It encrypts the function definition in the database"
+                ],
+                correctAnswer: 1,
+                hint: "Think about whose permissions are used when the function executes.",
+                explanation: "SECURITY DEFINER makes the function execute with the privileges of the user who created it, not the user who calls it. This is useful for controlled access to restricted operations.",
+                difficulty: "hard"
+            },
+            {
+                question: "How do you return multiple values from a PL/pgSQL function?",
+                options: [
+                    "Use multiple RETURN statements",
+                    "Return a composite type or use OUT parameters",
+                    "Use RETURN NEXT for each value",
+                    "PostgreSQL functions can only return single values"
+                ],
+                correctAnswer: 1,
+                hint: "Think about structured ways to package multiple values together.",
+                explanation: "You can return multiple values by defining a composite type or using OUT parameters in the function signature, or by using RETURNS TABLE for tabular results.",
+                difficulty: "medium"
+            },
+            {
+                question: "Which keyword is used to make a function replace an existing function with the same name and parameters?",
+                options: [
+                    "CREATE FUNCTION",
+                    "ALTER FUNCTION",
+                    "CREATE OR REPLACE FUNCTION",
+                    "UPDATE FUNCTION"
+                ],
+                correctAnswer: 2,
+                hint: "Think about the standard SQL pattern for creating objects that might already exist.",
+                explanation: "CREATE OR REPLACE FUNCTION will create a new function or replace an existing one with the same name and parameter signature.",
+                difficulty: "easy"
+            },
+            {
+                question: "PostgreSQL functions can modify the parameters passed to them if the parameters are declared with INOUT mode.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider the different parameter modes available in PostgreSQL functions.",
+                explanation: "True. INOUT parameters allow functions to both receive input values and return modified values through the same parameter, effectively allowing parameter modification.",
+                difficulty: "hard"
+            },
+            {
+                question: "What is the correct way to handle exceptions in a PL/pgSQL function?",
+                options: [
+                    "Use TRY...CATCH blocks",
+                    "Use EXCEPTION WHEN clauses in a BEGIN...END block",
+                    "Use IF statements to check for errors",
+                    "PostgreSQL functions cannot handle exceptions"
+                ],
+                correctAnswer: 1,
+                hint: "Think about PL/pgSQL's specific syntax for exception handling.",
+                explanation: "PL/pgSQL uses EXCEPTION WHEN clauses within BEGIN...END blocks to handle exceptions, similar to try-catch but with PostgreSQL-specific syntax.",
+                difficulty: "medium"
+            },
+            {
+                question: "Function parameters in PostgreSQL are passed by reference, so modifying them inside the function changes the original values.",
+                options: ["True", "False"],
+                correctAnswer: 1,
+                hint: "Consider how PostgreSQL handles parameter passing by default.",
+                explanation: "False. By default, PostgreSQL function parameters are passed by value (IN mode), so modifications inside the function don't affect the original values unless using INOUT or OUT parameters.",
+                difficulty: "medium"
+            },
+            {
+                question: "When should you use a stored procedure instead of a function?",
+                options: [
+                    "When you need to return calculated values",
+                    "When you need transaction control and complex workflows",
+                    "When you want to use the result in a SELECT statement",
+                    "When you need better performance"
+                ],
+                correctAnswer: 1,
+                hint: "Think about the unique capabilities that procedures offer over functions.",
+                explanation: "Stored procedures are ideal for complex workflows that require transaction control, multiple operations, and side effects, while functions are better for calculations and operations that return values.",
+                difficulty: "hard"
+            },
+            {
+                question: "What does the STABLE volatility category mean for a function?",
+                options: [
+                    "The function might crash the database",
+                    "The function returns the same result for the same inputs within a single statement",
+                    "The function can only be called from stable connections",
+                    "The function's definition cannot be changed"
+                ],
+                correctAnswer: 1,
+                hint: "Think about function optimization and when PostgreSQL can cache results.",
+                explanation: "STABLE functions return the same result for the same inputs within a single statement, allowing PostgreSQL to optimize by potentially calling the function fewer times.",
+                difficulty: "medium"
+            },
+            {
+                question: "You can create functions that return different data types based on runtime conditions.",
+                options: ["True", "False"],
+                correctAnswer: 1,
+                hint: "Think about PostgreSQL's type system and function signatures.",
+                explanation: "False. PostgreSQL requires functions to have a fixed return type declared at creation time. The return type cannot change based on runtime conditions, though you can return different values of the same type.",
+                difficulty: "easy"
+            },
+            {
+                question: "What is the main advantage of using SQL language functions over PL/pgSQL functions for simple calculations?",
+                options: [
+                    "SQL functions can access more database features",
+                    "SQL functions can be inlined by the query planner for better performance",
+                    "SQL functions are more secure than PL/pgSQL functions",
+                    "SQL functions can be used in more contexts"
+                ],
+                correctAnswer: 1,
+                hint: "Think about query optimization and how the planner can handle different function types.",
+                explanation: "SQL functions can often be inlined by the PostgreSQL query planner, meaning their logic can be incorporated directly into the calling query for better optimization and performance.",
+                difficulty: "hard"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+        let quizCompleted = false;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            const question = quizData[currentQuestion];
+            const questionCounter = document.getElementById('question-counter');
+            const scoreDisplay = document.getElementById('score-display');
+            const progressFill = document.getElementById('progress-fill');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const hintContainer = document.getElementById('hint-container');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Update progress
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+            progressFill.style.width = `${((currentQuestion + 1) / quizData.length) * 100}%`;
+
+            // Load question
+            const difficultyClass = `difficulty-${question.difficulty}`;
+            const difficultyBadge = `<span class="difficulty-badge ${difficultyClass}">${question.difficulty.toUpperCase()}</span>`;
+            questionText.innerHTML = question.question + difficultyBadge;
+
+            // Load options
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}.</span>${option}`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+
+            // Reset controls
+            selectedAnswer = null;
+            hintContainer.classList.remove('show');
+            explanation.classList.remove('show');
+            nextBtn.disabled = true;
+            hintBtn.style.display = 'block';
+
+            if (currentQuestion === quizData.length - 1) {
+                nextBtn.textContent = 'Show Results';
+            }
+        }
+
+        function selectAnswer(answerIndex) {
+            if (selectedAnswer !== null) return;
+
+            selectedAnswer = answerIndex;
+            const question = quizData[currentQuestion];
+            const options = document.querySelectorAll('.option-button');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Disable all options
+            options.forEach(option => option.classList.add('disabled'));
+
+            // Show correct/incorrect styling
+            options[question.correctAnswer].classList.add('correct');
+            if (answerIndex !== question.correctAnswer) {
+                options[answerIndex].classList.add('incorrect');
+            } else {
+                score++;
+                document.getElementById('score-display').textContent = `Score: ${score}/${quizData.length}`;
+            }
+
+            // Show explanation
+            explanation.innerHTML = `
+                <h4>🧠 Explanation</h4>
+                <p><strong>Correct Answer:</strong> ${question.explanation}</p>
+            `;
+            explanation.classList.add('show');
+
+            // Enable next button and hide hint button
+            nextBtn.disabled = false;
+            hintBtn.style.display = 'none';
+        }
+
+        function showHint() {
+            const question = quizData[currentQuestion];
+            const hintContainer = document.getElementById('hint-container');
+            hintContainer.innerHTML = `<strong>💡 Hint:</strong> ${question.hint}`;
+            hintContainer.classList.add('show');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+            const finalScore = document.getElementById('final-score');
+            const resultsMessage = document.getElementById('results-message');
+            const correctCount = document.getElementById('correct-count');
+            const incorrectCount = document.getElementById('incorrect-count');
+            const accuracyPercent = document.getElementById('accuracy-percent');
+
+            quizContent.style.display = 'none';
+            resultsContainer.classList.add('show');
+
+            const accuracy = Math.round((score / quizData.length) * 100);
+            
+            finalScore.textContent = `${score}/${quizData.length}`;
+            correctCount.textContent = score;
+            incorrectCount.textContent = quizData.length - score;
+            accuracyPercent.textContent = `${accuracy}%`;
+
+            let message = '';
+            if (accuracy >= 90) {
+                message = '🎖️ Outstanding! You have mastered PostgreSQL functions and procedures and can design effective database logic!';
+            } else if (accuracy >= 80) {
+                message = '⭐ Excellent! You understand most stored procedure and function concepts very well.';
+            } else if (accuracy >= 70) {
+                message = '📈 Good work! You grasp the fundamentals but should review advanced topics like parameter modes.';
+            } else if (accuracy >= 60) {
+                message = '📚 You\'re making progress! Focus on the differences between functions and procedures.';
+            } else {
+                message = '🔄 Keep studying! Functions and procedures are powerful tools for database logic.';
+            }
+
+            resultsMessage.textContent = message;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            selectedAnswer = null;
+            quizCompleted = false;
+
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+
+            resultsContainer.classList.remove('show');
+            quizContent.style.display = 'block';
+
+            loadQuestion();
+        }
+
+        // Initialize quiz
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+Nice, let’s do the **full tutorial** now:
+
+* Using **`pagilla`** as the example DB
+* Using **`pg_dump`, `pg_restore`, `psql`, `createdb`, `dropdb`, `pg_dumpall`** directly (no `& "C:\..."`)
+* Assuming **Windows + PowerShell**, with PostgreSQL tools in your **PATH**
+* Explaining **custom format, schema-only, data-only, globals, etc.**
+
+Pagilla is that DVD rental sample DB with films, rentals, customers, etc.([Dataedo][1])
+
+---
+
+## 0. Assumptions & quick setup
+
+### 0.1 PATH and PowerShell
+
+In PowerShell, you should be able to run:
+
+```powershell
+psql --version
+pg_dump --version
+pg_restore --version
+```
+
+If those work, you’re good.
+If not, temporarily do:
+
+```powershell
+$env:Path += ";C:\Program Files\PostgreSQL\16\bin"
+```
+
+(adapt the version/path if needed).
+
+### 0.2 Check that `pagilla` exists
+
+```powershell
+psql -U postgres -d pagilla -c "SELECT COUNT(*) FROM customer;"
+```
+
+You should see a count (number of customers).
+
+---
+
+## 1. Logical backup vs physical (super short)
+
+* **Logical backup**: export schema + data using SQL/archives with tools like `pg_dump`, `pg_restore`, `pg_dumpall`. Portable, good for migrations.([PostgreSQL][2])
+* **Physical backup**: copy the data files (`pg_basebackup`, file-system copy), good for PITR and huge DBs but tied to same PG major version, same OS/arch.
+
+Here we’re focusing on **logical**.
+
+Core tools:
+
+* `pg_dump` – backups **one database** (`pagilla`)([PostgreSQL][2])
+* `pg_restore` – restores **custom / directory / tar** backups([PostgreSQL][3])
+* `pg_dumpall` – backup **all DBs** and **globals** (roles, tablespaces)([PostgreSQL][4])
+
+---
+
+## 2. `pg_dump` formats (plain, custom, directory, tar)
+
+### 2.1 Plain SQL (default / `-Fp`)
+
+**Backup `pagilla` as plain SQL:**
+
+```powershell
+pg_dump -U postgres -d pagilla > "C:\pgbackups\pagilla.sql"
+```
+
+* Human-readable `.sql` file.
+* Contains `CREATE TABLE`, `CREATE INDEX`, `INSERT`, etc.
+* Restore to a **new DB** (example: `pagilla_plain_restore`):
+
+```powershell
+createdb -U postgres pagilla_plain_restore
+psql -U postgres -d pagilla_plain_restore -f "C:\pgbackups\pagilla.sql"
+```
+
+Good for **small DBs** or when you want to **read/edit** the dump.
+
+---
+
+### 2.2 Custom format (`-Fc`) – your “go-to” format
+
+```powershell
+New-Item -ItemType Directory -Force -Path "C:\pgbackups" | Out-Null
+
+pg_dump -U postgres -d pagilla -Fc -f "C:\pgbackups\pagilla_custom.dump"
+```
+
+* Binary/compressed archive.([PostgreSQL][2])
+* Must restore with **`pg_restore`**.
+* Supports:
+
+  * **Parallel restore** (`-j`).
+  * Restoring **only some tables/schemas**.
+  * Reordering objects.
+
+**Restore into `pagilla_custom_restore`:**
+
+```powershell
+createdb -U postgres pagilla_custom_restore
+
+pg_restore -U postgres -d pagilla_custom_restore "C:\pgbackups\pagilla_custom.dump"
+```
+
+Parallel:
+
+```powershell
+pg_restore -U postgres -d pagilla_custom_restore -j 4 "C:\pgbackups\pagilla_custom.dump"
+```
+
+---
+
+### 2.3 Directory format (`-Fd`)
+
+```powershell
+pg_dump -U postgres -d pagilla -Fd -f "C:\pgbackups\pagilla_dir"
+```
+
+* Creates a directory with many files.
+* Also restored with `pg_restore`:
+
+```powershell
+createdb -U postgres pagilla_dir_restore
+pg_restore -U postgres -d pagilla_dir_restore "C:\pgbackups\pagilla_dir"
+```
+
+Supports parallel **dump** and **restore** very well.([PostgreSQL][2])
+
+### 2.4 Tar format (`-Ft`)
+
+```powershell
+pg_dump -U postgres -d pagilla -Ft -f "C:\pgbackups\pagilla.tar"
+```
+
+Can also be restored with `pg_restore`. Less used, but good to know.
+
+---
+
+## 3. Schema-only vs data-only (concepts + pagilla examples)
+
+* **Schema-only**: only object definitions (tables, indexes, views, functions…).
+* **Data-only**: only the actual rows + sequence values, large objects (no `CREATE TABLE`).([PostgreSQL][2])
+
+### 3.1 Schema-only backup of pagilla
+
+```powershell
+pg_dump -U postgres -d pagilla --schema-only -f "C:\pgbackups\pagilla_schema.sql"
+# or short form:
+# pg_dump -U postgres -d pagilla -s -f "C:\pgbackups\pagilla_schema.sql"
+```
+
+Use this when:
+
+* You want to **copy the schema** (no data) to dev/test.
+* You want to **version-control** the schema.
+
+**Restore schema-only into new DB:**
+
+```powershell
+createdb -U postgres pagilla_schema_only
+psql -U postgres -d pagilla_schema_only -f "C:\pgbackups\pagilla_schema.sql"
+```
+
+(You’ll have empty tables like `customer`, `rental`, etc., but no rows.)
+
+---
+
+### 3.2 Data-only backup of pagilla
+
+```powershell
+pg_dump -U postgres -d pagilla --data-only -f "C:\pgbackups\pagilla_data.sql"
+# or short form:
+# pg_dump -U postgres -d pagilla -a -f "C:\pgbackups\pagilla_data.sql"
+```
+
+According to docs, `--data-only` dumps only table data, large objects, and sequence values.([PostgreSQL][2])
+
+Use when:
+
+* Schema is already there and identical.
+* You just want to **refresh data**.
+
+**Typical flow:**
+
+1. First create schema:
+
+   ```powershell
+   pg_dump -U postgres -d pagilla --schema-only -f "C:\pgbackups\pagilla_schema.sql"
+
+   createdb -U postgres pagilla_clean
+   psql -U postgres -d pagilla_clean -f "C:\pgbackups\pagilla_schema.sql"
+   ```
+
+2. Then load data:
+
+   ```powershell
+   psql -U postgres -d pagilla_clean -f "C:\pgbackups\pagilla_data.sql"
+   ```
+
+---
+
+### 3.3 Schema/data-only using `pg_restore` (custom format)
+
+If you used custom format:
+
+```powershell
+pg_dump -U postgres -d pagilla -Fc -f "C:\pgbackups\pagilla_custom.dump"
+```
+
+Then:
+
+* **Schema-only restore**:
+
+  ```powershell
+  createdb -U postgres pagilla_schema_from_custom
+
+  pg_restore -U postgres -d pagilla_schema_from_custom --schema-only "C:\pgbackups\pagilla_custom.dump"
+  ```
+
+* **Data-only restore**:
+
+  ```powershell
+  createdb -U postgres pagilla_data_from_custom
+
+  # First schema
+  pg_restore -U postgres -d pagilla_data_from_custom --schema-only "C:\pgbackups\pagilla_custom.dump"
+  # Then only data
+  pg_restore -U postgres -d pagilla_data_from_custom --data-only "C:\pgbackups\pagilla_custom.dump"
+  ```
+
+`pg_restore` uses `--schema-only` / `--data-only` with similar meaning to `pg_dump`.([PostgreSQL][3])
+
+---
+
+## 4. Selecting tables / schemas (pagilla examples)
+
+Pagilla has tables like `film`, `actor`, `customer`, `rental`, `payment`, etc.([Dataedo][1])
+
+### 4.1 Dump just the customer-related data
+
+Example: only `customer` + `payment`.
+
+```powershell
+pg_dump -U postgres -d pagilla `
+  -t public.customer `
+  -t public.payment `
+  -Fc `
+  -f "C:\pgbackups\pagilla_customer_payment.dump"
+```
+
+Restore into new DB:
+
+```powershell
+createdb -U postgres pagilla_customer_only
+
+pg_restore -U postgres -d pagilla_customer_only "C:\pgbackups\pagilla_customer_payment.dump"
+```
+
+### 4.2 Exclude big / noisy tables
+
+Imagine `rental` is huge and you want pagilla without rentals:
+
+```powershell
+pg_dump -U postgres -d pagilla `
+  --exclude-table=public.rental `
+  -Fc `
+  -f "C:\pgbackups\pagilla_no_rental.dump"
+```
+
+Later restore with `pg_restore` as usual.
+
+### 4.3 Restore only certain tables from a full custom dump
+
+Given full dump:
+
+```powershell
+pg_dump -U postgres -d pagilla -Fc -f "C:\pgbackups\pagilla_full.dump"
+```
+
+Restore only `film` and `actor`:
+
+```powershell
+createdb -U postgres pagilla_films
+
+pg_restore -U postgres -d pagilla_films `
+  -t public.film `
+  -t public.actor `
+  "C:\pgbackups\pagilla_full.dump"
+```
+
+`pg_restore` supports `-t/--table` and `-n/--schema` to pick subsets.([tigerdata.com][5])
+
+---
+
+## 5. Globals: roles & tablespaces with `pg_dumpall`
+
+**Important**: `pg_dump` does **not** dump roles or tablespaces. ([PostgreSQL][4])
+
+To dump **global objects (roles, tablespaces)**:
+
+```powershell
+pg_dumpall -U postgres --globals-only -f "C:\pgbackups\globals.sql"
+# or short:
+# pg_dumpall -U postgres -g -f "C:\pgbackups\globals.sql"
+```
+
+Docs say `--globals-only` dumps roles and tablespaces, but no databases.([PostgreSQL][4])
+
+Restore:
+
+```powershell
+psql -U postgres -d postgres -f "C:\pgbackups\globals.sql"
+```
+
+To dump **all DBs (cluster)** including pagilla:
+
+```powershell
+pg_dumpall -U postgres -f "C:\pgbackups\full_cluster.sql"
+```
+
+Restore cluster on another server:
+
+```powershell
+psql -U postgres -d postgres -f "C:\pgbackups\full_cluster.sql"
+```
+
+(This recreates all DBs, including `pagilla`.)
+
+---
+
+## 6. PowerShell backup script for pagilla (daily, keep 7 days)
+
+Create `C:\pgbackups\backup_pagilla.ps1`:
+
+```powershell
+param(
+    [string]$DbName = "pagilla",
+    [string]$DbUser = "postgres"
+)
+
+$backupDir = "C:\pgbackups"
+
+if (-not (Test-Path $backupDir)) {
+    New-Item -ItemType Directory -Path $backupDir | Out-Null
+}
+
+$timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$dumpFile  = Join-Path $backupDir "$DbName`_$timestamp.dump"
+
+# Create custom-format dump
+pg_dump -U $DbUser -d $DbName -Fc -f $dumpFile
+
+# Delete backups older than 7 days
+Get-ChildItem $backupDir -Filter "$DbName`_*.dump" |
+  Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } |
+  Remove-Item
+```
+
+You can schedule this with **Task Scheduler**:
+
+* Program: `powershell.exe`
+* Arguments: `-File "C:\pgbackups\backup_pagilla.ps1"`
+* Trigger: every night at e.g. 02:00.
+
+Then you have **automatic logical backups** for pagilla.
+
+---
+
+## 7. Mini “lab”: practice everything on pagilla
+
+### Step 1 – Make a custom backup
+
+```powershell
+pg_dump -U postgres -d pagilla -Fc -f "C:\pgbackups\pagilla_lab.dump"
+```
+
+### Step 2 – Drop & recreate pagilla (danger: do this only if it’s safe!)
+
+```powershell
+dropdb -U postgres pagilla
+createdb -U postgres pagilla
+```
+
+### Step 3 – Restore
+
+```powershell
+pg_restore -U postgres -d pagilla "C:\pgbackups\pagilla_lab.dump"
+```
+
+### Step 4 – Verify
+
+```powershell
+psql -U postgres -d pagilla -c "SELECT COUNT(*) FROM film;"
+psql -U postgres -d pagilla -c "SELECT COUNT(*) FROM customer;"
+psql -U postgres -d pagilla -c "SELECT COUNT(*) FROM rental;"
+```
+
+Counts should look reasonable (Pagilla has a non-trivial amount of rows in those tables).
+
+---
+
+## 8. Quick recap of key concepts
+
+* **Formats**
+
+  * Plain SQL = simple, readable.
+  * Custom (`-Fc`) = flexible, compressed, supports parallel + selective restore.
+  * Directory (`-Fd`) = best for very large DBs, parallel dump/restore.
+* **Scope**
+
+  * schema-only: `-s` / `--schema-only`
+  * data-only: `-a` / `--data-only`([PostgreSQL][2])
+  * tables: `-t`, exclude: `--exclude-table`, schema: `-n`.
+* **Globals**
+
+  * `pg_dumpall -g` for roles/tablespaces.
+* **Restore**
+
+  * plain → `psql`.
+  * custom/dir/tar → `pg_restore` (with options like `-j`, `--table`, `--schema`).
+
+---
+
+If you want, next I can:
+
+* Turn this into a **cheat sheet** (one page of commands for pagilla), or
+* Show a **restore script** that creates a fresh DB, restores schema-only, then data-only, all in one go with PowerShell.
+
+[1]: https://dataedo.com/samples/html/Pagila/doc/Pagila_10/home.html?utm_source=chatgpt.com "Pagila (sample PostgreSQL database)"
+[2]: https://www.postgresql.org/docs/current/app-pgdump.html?utm_source=chatgpt.com "PostgreSQL: Documentation: 18: pg_dump"
+[3]: https://www.postgresql.org/docs/current/app-pgrestore.html?utm_source=chatgpt.com "Documentation: 18: pg_restore"
+[4]: https://www.postgresql.org/docs/current/app-pg-dumpall.html?utm_source=chatgpt.com "Documentation: 18: pg_dumpall"
+[5]: https://www.tigerdata.com/learn/a-guide-to-pg_restore-and-pg_restore-example?utm_source=chatgpt.com "A Guide to pg_restore (and pg_restore Example)"

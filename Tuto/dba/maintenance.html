@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL Maintenance - Interactive Tutorial</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; }
+        #root { width: 100vw; min-height: 100vh; }
+        .back-btn { position: fixed; top: 20px; left: 20px; z-index: 1000; padding: 10px 20px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; text-decoration: none; }
+        .back-btn:hover { background: rgba(0,0,0,0.9); }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← Back to Menu</a>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const slides = [
+            { type: 'title', title: 'PostgreSQL Maintenance', subtitle: 'Keep your database running smoothly', icon: '🔧' },
+            { type: 'intro', title: 'Why Maintenance?', items: ['Reclaim disk space from deleted rows', 'Update query planner statistics', 'Prevent transaction ID wraparound', 'Maintain index efficiency'] },
+            { type: 'category', title: 'Core Tasks', subtitle: 'Essential maintenance operations', items: [
+                { icon: '🧹', name: 'VACUUM', desc: 'Reclaim dead tuple space' },
+                { icon: '📊', name: 'ANALYZE', desc: 'Update planner statistics' },
+                { icon: '🔄', name: 'REINDEX', desc: 'Rebuild indexes' },
+                { icon: '📦', name: 'CLUSTER', desc: 'Reorder table data' }
+            ]},
+            { type: 'concept', title: 'Dead Tuples', desc: 'When you UPDATE or DELETE, PostgreSQL marks rows as dead but doesn\'t remove them immediately. VACUUM cleans these up.', visual: ['UPDATE → old row marked dead', 'DELETE → row marked dead', 'VACUUM → space reclaimed'] },
+            { type: 'sql', title: 'VACUUM', commands: [
+                { cmd: 'VACUUM tablename;', desc: 'Basic vacuum on table' },
+                { cmd: 'VACUUM FULL tablename;', desc: 'Reclaim space to OS (locks table!)' },
+                { cmd: 'VACUUM VERBOSE tablename;', desc: 'Show detailed progress' },
+                { cmd: 'VACUUM;', desc: 'Vacuum entire database' }
+            ]},
+            { type: 'comparison', title: 'VACUUM vs VACUUM FULL', left: { name: 'VACUUM', items: ['Non-blocking', 'Fast', 'Marks space reusable', 'Run frequently'] }, right: { name: 'VACUUM FULL', items: ['Locks table', 'Slow', 'Returns space to OS', 'Run rarely'] }},
+            { type: 'sql', title: 'ANALYZE', commands: [
+                { cmd: 'ANALYZE tablename;', desc: 'Update stats for table' },
+                { cmd: 'ANALYZE;', desc: 'Update stats for all tables' },
+                { cmd: 'VACUUM ANALYZE tablename;', desc: 'Vacuum + analyze together' }
+            ]},
+            { type: 'concept', title: 'Why ANALYZE?', desc: 'PostgreSQL query planner uses statistics to choose the best execution plan. Outdated stats = poor query performance.', visual: ['Table data changes', 'Stats become stale', 'ANALYZE updates stats', 'Better query plans'] },
+            { type: 'sql', title: 'REINDEX', commands: [
+                { cmd: 'REINDEX INDEX indexname;', desc: 'Rebuild one index' },
+                { cmd: 'REINDEX TABLE tablename;', desc: 'Rebuild all indexes on table' },
+                { cmd: 'REINDEX DATABASE dbname;', desc: 'Rebuild all indexes in database' },
+                { cmd: 'REINDEX (CONCURRENTLY) INDEX idx;', desc: 'Non-blocking rebuild (v12+)' }
+            ]},
+            { type: 'concept', title: 'When to REINDEX?', desc: 'Index bloat occurs over time with many updates/deletes. Bloated indexes are larger and slower.', visual: ['Many updates/deletes', 'Index becomes bloated', 'REINDEX rebuilds', 'Faster queries'] },
+            { type: 'auto', title: 'Autovacuum', desc: 'PostgreSQL automatically runs VACUUM and ANALYZE in the background', params: [
+                { name: 'autovacuum', value: 'on', desc: 'Enable autovacuum' },
+                { name: 'autovacuum_vacuum_threshold', value: '50', desc: 'Min rows before vacuum' },
+                { name: 'autovacuum_analyze_threshold', value: '50', desc: 'Min rows before analyze' },
+                { name: 'autovacuum_vacuum_scale_factor', value: '0.2', desc: '20% of table changed' }
+            ]},
+            { type: 'sql', title: 'Check Autovacuum', commands: [
+                { cmd: `SELECT relname, last_vacuum, last_autovacuum, 
+  last_analyze, last_autoanalyze
+FROM pg_stat_user_tables;`, desc: 'When was maintenance last run?' },
+                { cmd: `SELECT relname, n_dead_tup, n_live_tup
+FROM pg_stat_user_tables 
+ORDER BY n_dead_tup DESC;`, desc: 'Tables with most dead tuples' }
+            ]},
+            { type: 'schedule', title: 'Maintenance Schedule', items: [
+                { freq: 'Continuous', task: 'Autovacuum (automatic)' },
+                { freq: 'Daily', task: 'Monitor dead tuples' },
+                { freq: 'Weekly', task: 'Check index bloat' },
+                { freq: 'Monthly', task: 'REINDEX bloated indexes' },
+                { freq: 'As needed', task: 'VACUUM FULL (off-hours)' }
+            ]},
+            { type: 'tips', title: 'Best Practices', items: [
+                '✓ Never disable autovacuum',
+                '✓ Monitor n_dead_tup regularly',
+                '✓ Run ANALYZE after bulk loads',
+                '✓ Use REINDEX CONCURRENTLY when possible',
+                '✓ Schedule VACUUM FULL during low traffic',
+                '✓ Monitor table and index bloat'
+            ]},
+            { type: 'summary', title: 'Summary', items: ['VACUUM reclaims dead tuple space', 'ANALYZE updates planner stats', 'REINDEX fixes bloated indexes', 'Autovacuum handles routine maintenance', 'Monitor and tune as needed'] }
+        ];
+
+        function Slide({ slide }) {
+            if (slide.type === 'title') {
+                return (
+                    <div style={{ textAlign: 'center', padding: '60px' }}>
+                        <div style={{ fontSize: '4rem', marginBottom: '20px' }}>{slide.icon}</div>
+                        <h1 style={{ fontSize: '3rem', fontWeight: 800, color: '#1a1a2e', marginBottom: '16px' }}>{slide.title}</h1>
+                        <p style={{ fontSize: '1.3rem', color: '#6b7280' }}>{slide.subtitle}</p>
+                    </div>
+                );
+            }
+            if (slide.type === 'intro') {
+                return (
+                    <div style={{ padding: '50px', maxWidth: '600px', margin: '0 auto' }}>
+                        <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '30px', textAlign: 'center' }}>{slide.title}</h2>
+                        {slide.items.map((item, i) => (
+                            <div key={i} style={{ padding: '16px 20px', background: '#fef3c7', borderRadius: '10px', marginBottom: '12px', color: '#92400e', fontSize: '1.1rem' }}>⚙️ {item}</div>
+                        ))}
+                    </div>
+                );
+            }
+            if (slide.type === 'category') {
+                return (
+                    <div style={{ padding: '40px' }}>
+                        <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '8px', textAlign: 'center' }}>{slide.title}</h2>
+                        <p style={{ color: '#6b7280', marginBottom: '30px', textAlign: 'center' }}>{slide.subtitle}</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', maxWidth: '700px', margin: '0 auto' }}>
+                            {slide.items.map((item, i) => (
+                                <div key={i} style={{ padding: '24px 16px', background: '#f9fafb', borderRadius: '12px', textAlign: 'center', border: '1px solid #e5e7eb' }}>
+                                    <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>{item.icon}</div>
+                                    <div style={{ fontWeight: 700, color: '#1a1a2e', marginBottom: '6px' }}>{item.name}</div>
+                                    <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>{item.desc}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+            if (slide.type === 'concept') {
+                return (
+                    <div style={{ padding: '40px', maxWidth: '650px', margin: '0 auto' }}>
+                        <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '20px', textAlign: 'center' }}>{slide.title}</h2>
+                        <div style={{ padding: '20px', background: '#eff6ff', borderRadius: '12px', marginBottom: '24px', color: '#1e40af', fontSize: '1.05rem', lineHeight: 1.6 }}>{slide.desc}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                            {slide.visual.map((step, i) => (
+                                <React.Fragment key={i}>
+                                    <div style={{ padding: '12px 16px', background: '#1a1a2e', color: '#22c55e', borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'monospace' }}>{step}</div>
+                                    {i < slide.visual.length - 1 && <span style={{ color: '#9ca3af', fontSize: '1.2rem' }}>→</span>}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+            if (slide.type === 'sql') {
+                return (
+                    <div style={{ padding: '40px', maxWidth: '700px', margin: '0 auto' }}>
+                        <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '30px', textAlign: 'center' }}>{slide.title}</h2>
+                        {slide.commands.map((item, i) => (
+                            <div key={i} style={{ background: '#f9fafb', borderRadius: '10px', marginBottom: '12px', overflow: 'hidden' }}>
+                                <pre style={{ padding: '14px 18px', background: '#1a1a2e', margin: 0, fontFamily: 'monospace', fontSize: '0.9rem' }}>
+                                    <code style={{ color: '#22c55e' }}>{item.cmd}</code>
+                                </pre>
+                                <div style={{ padding: '10px 18px', color: '#6b7280', fontSize: '0.9rem' }}>{item.desc}</div>
+                            </div>
+                        ))}
+                    </div>
+                );
+            }
+            if (slide.type === 'comparison') {
+                return (
+                    <div style={{ padding: '40px' }}>
+                        <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '30px', textAlign: 'center' }}>{slide.title}</h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', maxWidth: '650px', margin: '0 auto' }}>
+                            <div style={{ background: '#f0fdf4', borderRadius: '16px', padding: '24px', border: '2px solid #22c55e' }}>
+                                <h3 style={{ color: '#166534', marginBottom: '16px', textAlign: 'center' }}>{slide.left.name}</h3>
+                                {slide.left.items.map((p, i) => (<div key={i} style={{ padding: '10px 14px', background: '#dcfce7', borderRadius: '8px', marginBottom: '8px', color: '#166534' }}>✓ {p}</div>))}
+                            </div>
+                            <div style={{ background: '#fef2f2', borderRadius: '16px', padding: '24px', border: '2px solid #ef4444' }}>
+                                <h3 style={{ color: '#991b1b', marginBottom: '16px', textAlign: 'center' }}>{slide.right.name}</h3>
+                                {slide.right.items.map((p, i) => (<div key={i} style={{ padding: '10px 14px', background: '#fee2e2', borderRadius: '8px', marginBottom: '8px', color: '#991b1b' }}>⚠ {p}</div>))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+            if (slide.type === 'auto') {
+                return (
+                    <div style={{ padding: '40px', maxWidth: '600px', margin: '0 auto' }}>
+                        <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '12px', textAlign: 'center' }}>{slide.title}</h2>
+                        <p style={{ color: '#6b7280', marginBottom: '24px', textAlign: 'center' }}>{slide.desc}</p>
+                        <div style={{ background: '#f9fafb', borderRadius: '12px', overflow: 'hidden' }}>
+                            <div style={{ padding: '12px 16px', background: '#e5e7eb', fontWeight: 600, color: '#374151' }}>postgresql.conf</div>
+                            {slide.params.map((p, i) => (
+                                <div key={i} style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div><code style={{ color: '#3b82f6' }}>{p.name}</code> = <code style={{ color: '#22c55e' }}>{p.value}</code></div>
+                                    <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{p.desc}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+            if (slide.type === 'schedule') {
+                return (
+                    <div style={{ padding: '40px', maxWidth: '550px', margin: '0 auto' }}>
+                        <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '30px', textAlign: 'center' }}>{slide.title}</h2>
+                        {slide.items.map((item, i) => (
+                            <div key={i} style={{ display: 'flex', gap: '16px', padding: '14px 18px', background: '#f9fafb', borderRadius: '10px', marginBottom: '10px', alignItems: 'center' }}>
+                                <span style={{ padding: '6px 12px', background: '#3b82f6', color: '#fff', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, minWidth: '90px', textAlign: 'center' }}>{item.freq}</span>
+                                <span style={{ color: '#374151' }}>{item.task}</span>
+                            </div>
+                        ))}
+                    </div>
+                );
+            }
+            if (slide.type === 'tips') {
+                return (
+                    <div style={{ padding: '40px', maxWidth: '550px', margin: '0 auto' }}>
+                        <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '30px', textAlign: 'center' }}>{slide.title}</h2>
+                        {slide.items.map((item, i) => (
+                            <div key={i} style={{ padding: '14px 18px', background: '#f0fdf4', borderRadius: '10px', marginBottom: '10px', color: '#166534', fontSize: '1rem' }}>{item}</div>
+                        ))}
+                    </div>
+                );
+            }
+            if (slide.type === 'summary') {
+                return (
+                    <div style={{ padding: '50px', maxWidth: '550px', margin: '0 auto' }}>
+                        <h2 style={{ fontSize: '2rem', color: '#1a1a2e', marginBottom: '30px', textAlign: 'center' }}>{slide.title}</h2>
+                        {slide.items.map((item, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', background: 'linear-gradient(135deg, #fef3c7, #fef9c3)', borderRadius: '10px', marginBottom: '12px' }}>
+                                <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f59e0b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem' }}>{i+1}</span>
+                                <span style={{ color: '#92400e', fontWeight: 500 }}>{item}</span>
+                            </div>
+                        ))}
+                    </div>
+                );
+            }
+            return null;
+        }
+
+        function MaintenanceSlideshow() {
+            const [current, setCurrent] = useState(0);
+            const next = () => setCurrent(c => Math.min(c + 1, slides.length - 1));
+            const prev = () => setCurrent(c => Math.max(c - 1, 0));
+            useEffect(() => { const h = (e) => { if (e.key === 'ArrowRight' || e.key === ' ') next(); if (e.key === 'ArrowLeft') prev(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, []);
+            return (
+                <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: '100%', maxWidth: '900px' }}><Slide slide={slides[current]} /></div>
+                    </div>
+                    <div style={{ padding: '20px 40px', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
+                        <button onClick={prev} disabled={current === 0} style={{ padding: '12px 24px', background: current === 0 ? '#e5e7eb' : '#1a1a2e', color: current === 0 ? '#9ca3af' : '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: current === 0 ? 'default' : 'pointer' }}>← Previous</button>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                            {slides.map((_, i) => (<button key={i} onClick={() => setCurrent(i)} style={{ width: i === current ? '20px' : '8px', height: '8px', borderRadius: '4px', background: i === current ? '#f59e0b' : '#d1d5db', border: 'none', cursor: 'pointer' }} />))}
+                        </div>
+                        <button onClick={next} disabled={current === slides.length - 1} style={{ padding: '12px 24px', background: current === slides.length - 1 ? '#e5e7eb' : '#f59e0b', color: current === slides.length - 1 ? '#9ca3af' : '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: current === slides.length - 1 ? 'default' : 'pointer' }}>Next →</button>
+                    </div>
+                    <div style={{ position: 'fixed', bottom: '80px', right: '40px', padding: '8px 16px', background: '#1a1a2e', color: '#fff', borderRadius: '20px', fontSize: '0.85rem' }}>{current + 1} / {slides.length}</div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<MaintenanceSlideshow />);
+    </script>
+</body>
+</html>

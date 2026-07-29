@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL Cursors Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 50%, #86a8e7 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #ff7e5f;
+            padding-bottom: 20px;
+        }
+
+        .quiz-title {
+            color: #2d3748;
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .quiz-subtitle {
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .progress-container {
+            margin-bottom: 30px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .question-counter {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        .score-display {
+            font-weight: 600;
+            color: #ff7e5f;
+            font-size: 1.1em;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff7e5f, #feb47b, #86a8e7);
+            transition: width 0.3s ease;
+        }
+
+        .question-container {
+            margin-bottom: 30px;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            color: #2d3748;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border-left: 5px solid #ff7e5f;
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .options-container {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-button {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px 20px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+            color: #4a5568;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-button:hover {
+            border-color: #ff7e5f;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 126, 95, 0.15);
+        }
+
+        .option-button.selected {
+            border-color: #ff7e5f;
+            background: #fff5f3;
+        }
+
+        .option-button.correct {
+            border-color: #38a169;
+            background: #f0fff4;
+            color: #22543d;
+        }
+
+        .option-button.incorrect {
+            border-color: #e53e3e;
+            background: #fff5f5;
+            color: #742a2a;
+        }
+
+        .option-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-letter {
+            font-weight: 700;
+            color: #ff7e5f;
+            margin-right: 12px;
+        }
+
+        .controls-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff7e5f, #feb47b);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 126, 95, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .hint-container {
+            background: #fffbeb;
+            border: 1px solid #f6cc3e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #744210;
+            display: none;
+        }
+
+        .hint-container.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #22543d;
+            display: none;
+        }
+
+        .explanation.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .explanation h4 {
+            color: #22543d;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .explanation p {
+            line-height: 1.6;
+        }
+
+        .results-container {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .final-score {
+            font-size: 3em;
+            font-weight: 700;
+            color: #ff7e5f;
+            margin-bottom: 20px;
+        }
+
+        .results-message {
+            font-size: 1.3em;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .performance-breakdown {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .performance-item:last-child {
+            border-bottom: none;
+        }
+
+        .restart-btn {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .quiz-container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .quiz-title {
+                font-size: 1.8em;
+            }
+
+            .question-text {
+                font-size: 1.2em;
+                padding: 15px;
+            }
+
+            .option-button {
+                padding: 15px;
+                font-size: 1em;
+            }
+
+            .controls-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .difficulty-easy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .difficulty-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .difficulty-hard {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 class="quiz-title">PostgreSQL Cursors</h1>
+            <p class="quiz-subtitle">Master row-by-row data processing and cursor operations</p>
+        </div>
+
+        <div id="quiz-content">
+            <div class="progress-container">
+                <div class="progress-info">
+                    <span class="question-counter" id="question-counter">Question 1 of 20</span>
+                    <span class="score-display" id="score-display">Score: 0/20</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <div class="question-container">
+                <div class="question-text" id="question-text">Loading question...</div>
+                <div class="options-container" id="options-container"></div>
+                <div class="hint-container" id="hint-container"></div>
+                <div class="explanation" id="explanation"></div>
+            </div>
+
+            <div class="controls-container">
+                <button class="btn btn-secondary" id="hint-btn" onclick="showHint()">
+                    💡 Show Hint
+                </button>
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>
+                    Next Question →
+                </button>
+            </div>
+        </div>
+
+        <div class="results-container" id="results-container">
+            <div class="final-score" id="final-score">0/20</div>
+            <div class="results-message" id="results-message"></div>
+            <div class="performance-breakdown">
+                <div class="performance-item">
+                    <span>Correct Answers:</span>
+                    <span id="correct-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Incorrect Answers:</span>
+                    <span id="incorrect-count">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Accuracy:</span>
+                    <span id="accuracy-percent">0%</span>
+                </div>
+            </div>
+            <button class="btn btn-primary restart-btn" onclick="restartQuiz()">
+                🔄 Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What is the primary purpose of a cursor in PostgreSQL?",
+                options: [
+                    "To speed up database queries by caching results",
+                    "To process result sets row by row instead of all at once",
+                    "To create temporary tables for complex operations",
+                    "To manage database connections and transactions"
+                ],
+                correctAnswer: 1,
+                hint: "Think about how cursors differ from regular SELECT statements in terms of data processing.",
+                explanation: "A cursor allows you to traverse and process a result set one row at a time, maintaining a position in the result set. This is different from standard SELECT statements that return all rows simultaneously.",
+                difficulty: "easy"
+            },
+            {
+                question: "What command do you use to retrieve the next row from a cursor?",
+                options: [
+                    "GET FROM cursor_name",
+                    "FETCH cursor_name", 
+                    "SELECT FROM cursor_name",
+                    "RETRIEVE cursor_name"
+                ],
+                correctAnswer: 1,
+                hint: "This command literally means to go and get the next row from the cursor.",
+                explanation: "FETCH is the standard SQL command used to retrieve rows from a cursor. You can FETCH one row at a time or multiple rows, and you can specify direction (NEXT, PRIOR, FIRST, LAST, etc.).",
+                difficulty: "easy"
+            },
+            {
+                question: "Cursors must be declared and used within a transaction block (BEGIN...COMMIT).",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Think about the lifecycle and scope of cursors in PostgreSQL.",
+                explanation: "True. Cursors exist within the scope of a transaction. They are automatically closed when the transaction ends with COMMIT or ROLLBACK.",
+                difficulty: "easy"
+            },
+            {
+                question: "What capability does the SCROLL option provide when declaring a cursor?",
+                options: [
+                    "It allows the cursor to process multiple tables simultaneously",
+                    "It enables backward navigation and absolute positioning in the result set",
+                    "It automatically closes the cursor when all rows are processed", 
+                    "It improves the performance of cursor operations"
+                ],
+                correctAnswer: 1,
+                hint: "Think about navigation directions and positioning capabilities.",
+                explanation: "The SCROLL option makes a cursor scrollable, allowing you to move backward (FETCH PRIOR), jump to specific positions (FETCH ABSOLUTE n), and navigate in multiple directions, not just forward.",
+                difficulty: "medium"
+            },
+            {
+                question: "Which cursor attribute should you check to determine if the last FETCH operation successfully retrieved a row?",
+                options: [
+                    "%ISOPEN",
+                    "%ROWCOUNT",
+                    "%FOUND",
+                    "%STATUS"
+                ],
+                correctAnswer: 2,
+                hint: "Think about what you need to know after attempting to fetch a row.",
+                explanation: "The %FOUND attribute returns TRUE if the last FETCH operation retrieved a row, and FALSE if no row was found. This is commonly used in loop exit conditions.",
+                difficulty: "medium"
+            },
+            {
+                question: "What is the standard pattern for processing all rows in a cursor using PL/pgSQL?",
+                options: [
+                    "WHILE cursor_name%FOUND LOOP",
+                    "FOR row_var IN cursor_name LOOP",
+                    "LOOP ... FETCH cursor_name ... EXIT WHEN NOT FOUND",
+                    "Both B and C are correct"
+                ],
+                correctAnswer: 3,
+                hint: "There are two common approaches for cursor loops in PL/pgSQL.",
+                explanation: "You can use either a manual loop with FETCH and EXIT WHEN NOT FOUND, or the simplified cursor FOR loop syntax that automatically handles opening, fetching, and closing the cursor.",
+                difficulty: "medium"
+            },
+            {
+                question: "In which scenario would cursors be most appropriate compared to set-based SQL operations?",
+                options: [
+                    "When calculating simple aggregates like SUM or COUNT",
+                    "When updating multiple rows with the same value",
+                    "When applying complex row-by-row business logic that cannot be expressed in SQL",
+                    "When joining multiple tables for reporting"
+                ],
+                correctAnswer: 2,
+                hint: "Consider when standard SQL set operations are insufficient.",
+                explanation: "Cursors are most appropriate when you need to apply complex procedural logic to each row individually, especially when the logic cannot be efficiently expressed using standard SQL set-based operations.",
+                difficulty: "hard"
+            },
+            {
+                question: "What is the purpose of the FOR UPDATE clause when declaring a cursor?",
+                options: [
+                    "It automatically updates all rows in the result set",
+                    "It locks the rows for exclusive access and allows updates via WHERE CURRENT OF",
+                    "It creates an updatable view from the cursor results",
+                    "It enables automatic commit after each row update"
+                ],
+                correctAnswer: 1,
+                hint: "Think about row locking and the ability to modify rows through the cursor.",
+                explanation: "FOR UPDATE locks the selected rows for exclusive access and enables you to update or delete the current row using WHERE CURRENT OF cursor_name syntax.",
+                difficulty: "medium"
+            },
+            {
+                question: "When using a cursor FOR loop, PostgreSQL automatically handles opening and closing the cursor.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider the convenience features of cursor FOR loops.",
+                explanation: "True. Cursor FOR loops automatically open the cursor at the beginning of the loop and close it at the end, simplifying cursor management and reducing the risk of resource leaks.",
+                difficulty: "easy"
+            },
+            {
+                question: "What occurs if you explicitly declare and open a cursor but forget to close it?",
+                options: [
+                    "The cursor remains open indefinitely and causes a memory leak",
+                    "PostgreSQL automatically closes it when the function ends",
+                    "The cursor is automatically closed when the transaction ends",
+                    "An error is raised immediately"
+                ],
+                correctAnswer: 2,
+                hint: "Think about the relationship between cursor lifetime and transaction scope.",
+                explanation: "PostgreSQL automatically closes all open cursors when the transaction ends (COMMIT or ROLLBACK), preventing permanent resource leaks, though it's still best practice to explicitly close cursors.",
+                difficulty: "medium"
+            },
+            {
+                question: "How do you create a cursor that accepts parameters?",
+                options: [
+                    "DECLARE cursor_name(param_name datatype) CURSOR FOR SELECT...",
+                    "DECLARE cursor_name CURSOR(param_name datatype) FOR SELECT...",
+                    "DECLARE cursor_name CURSOR FOR SELECT... WHERE column = param_name",
+                    "DECLARE cursor_name CURSOR WITH PARAMETERS(param_name datatype) FOR SELECT..."
+                ],
+                correctAnswer: 1,
+                hint: "The parameter list comes right after the CURSOR keyword.",
+                explanation: "Parameterized cursors use the syntax CURSOR(parameter_list) where parameters are declared with their data types and can be referenced in the cursor's SELECT statement.",
+                difficulty: "medium"
+            },
+            {
+                question: "What is the primary purpose of REF CURSOR (cursor variables) in PostgreSQL?",
+                options: [
+                    "To improve cursor performance through reference optimization",
+                    "To create cursors that can be opened for different queries dynamically",
+                    "To reference cursors declared in other functions",
+                    "To create read-only cursors that cannot modify data"
+                ],
+                correctAnswer: 1,
+                hint: "Think about dynamic SQL and runtime flexibility.",
+                explanation: "REF CURSOR (REFCURSOR) allows you to create cursor variables that can be opened for different queries at runtime, providing flexibility for dynamic SQL operations.",
+                difficulty: "hard"
+            },
+            {
+                question: "The MOVE command changes the cursor position without fetching data into variables.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Think about the difference between positioning and retrieving data.",
+                explanation: "True. MOVE changes the cursor position (forward, backward, to specific positions) without actually retrieving data into variables, unlike FETCH which both moves and retrieves.",
+                difficulty: "easy"
+            },
+            {
+                question: "In this code, what occurs when the FETCH statement cannot retrieve any more rows?<br><div class='code-block'>LOOP<br>    FETCH customer_cursor INTO customer_rec;<br>    -- Process customer_rec<br>    EXIT WHEN NOT FOUND;<br>END LOOP;</div>",
+                options: [
+                    "An exception is raised automatically",
+                    "The FOUND variable becomes FALSE and the loop exits",
+                    "The cursor automatically closes itself",
+                    "The customer_rec variable is set to NULL"
+                ],
+                correctAnswer: 1,
+                hint: "Think about how PostgreSQL indicates when no more data is available.",
+                explanation: "When FETCH cannot retrieve a row, it sets the FOUND system variable to FALSE. The EXIT WHEN NOT FOUND condition then evaluates to TRUE, causing the loop to exit.",
+                difficulty: "medium"
+            },
+            {
+                question: "What is the primary performance concern when using cursors compared to set-based operations?",
+                options: [
+                    "Cursors use more disk space for temporary storage",
+                    "Cursors process data row-by-row, missing out on SQL optimization benefits",
+                    "Cursors cannot use database indexes effectively",
+                    "Cursors require more memory allocation per operation"
+                ],
+                correctAnswer: 1,
+                hint: "Think about how the database optimizer works with different approaches.",
+                explanation: "Cursors process data one row at a time, which prevents the database optimizer from applying set-based optimizations. This typically results in slower performance compared to equivalent set-based SQL operations.",
+                difficulty: "hard"
+            },
+            {
+                question: "What is the correct approach for using nested cursors?",
+                options: [
+                    "You cannot nest cursors in PostgreSQL",
+                    "Declare both cursors at the top, then open inner cursor inside outer cursor loop",
+                    "Use cursor FOR loops exclusively for nesting",
+                    "Inner cursors automatically inherit the outer cursor's transaction"
+                ],
+                correctAnswer: 1,
+                hint: "Think about cursor declaration placement and loop structure.",
+                explanation: "For nested cursors, declare all cursors in the declaration section, then open the inner cursor inside the outer cursor's loop. Each cursor maintains its own position and state.",
+                difficulty: "medium"
+            },
+            {
+                question: "Using WHERE clauses to limit cursor result sets improves performance.",
+                options: ["True", "False"],
+                correctAnswer: 0,
+                hint: "Consider the impact of processing fewer rows.",
+                explanation: "True. Limiting the cursor result set with WHERE clauses reduces the number of rows to process, decreasing memory usage and processing time, leading to better overall performance.",
+                difficulty: "easy"
+            },
+            {
+                question: "What does the WHERE CURRENT OF clause accomplish in this UPDATE statement?<br><div class='code-block'>UPDATE payment<br>SET amount = amount * 0.90<br>WHERE CURRENT OF payment_cursor;</div>",
+                options: [
+                    "It updates all rows in the payment table",
+                    "It updates only the row currently positioned by the cursor",
+                    "It updates the most recently inserted payment row",
+                    "It creates a new cursor for the update operation"
+                ],
+                correctAnswer: 1,
+                hint: "Think about what \"CURRENT OF\" refers to in cursor context.",
+                explanation: "WHERE CURRENT OF updates only the row that the cursor is currently positioned on. This allows precise row-by-row updates based on cursor position and requires the cursor to be declared with FOR UPDATE.",
+                difficulty: "medium"
+            },
+            {
+                question: "What is the recommended approach for handling exceptions in cursor operations?",
+                options: [
+                    "Let PostgreSQL automatically handle all cursor cleanup",
+                    "Use EXCEPTION blocks to ensure cursors are closed even when errors occur",
+                    "Always use cursor FOR loops to avoid exception handling",
+                    "Restart the transaction if any cursor error occurs"
+                ],
+                correctAnswer: 1,
+                hint: "Think about resource management in error conditions.",
+                explanation: "Use EXCEPTION blocks to check if cursors are open (%ISOPEN) and close them properly when errors occur. This prevents resource leaks and ensures clean error handling.",
+                difficulty: "hard"
+            },
+            {
+                question: "When would set-based SQL operations be clearly preferable to cursor-based processing?",
+                options: [
+                    "When processing customer records one by one for personalized emails",
+                    "When applying a 10% discount to all orders over $100",
+                    "When generating complex reports with conditional formatting per row",
+                    "When implementing multi-step business workflows"
+                ],
+                correctAnswer: 1,
+                hint: "Consider operations that can affect many rows with the same logic.",
+                explanation: "Set-based operations excel when applying uniform changes to multiple rows. A simple UPDATE with WHERE clause is much more efficient than processing each row individually with a cursor for this type of operation.",
+                difficulty: "medium"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswer = null;
+        let quizCompleted = false;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            const question = quizData[currentQuestion];
+            const questionCounter = document.getElementById('question-counter');
+            const scoreDisplay = document.getElementById('score-display');
+            const progressFill = document.getElementById('progress-fill');
+            const questionText = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const hintContainer = document.getElementById('hint-container');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Update progress
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+            scoreDisplay.textContent = `Score: ${score}/${quizData.length}`;
+            progressFill.style.width = `${((currentQuestion + 1) / quizData.length) * 100}%`;
+
+            // Load question
+            const difficultyClass = `difficulty-${question.difficulty}`;
+            const difficultyBadge = `<span class="difficulty-badge ${difficultyClass}">${question.difficulty.toUpperCase()}</span>`;
+            questionText.innerHTML = question.question + difficultyBadge;
+
+            // Load options
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}.</span>${option}`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+
+            // Reset controls
+            selectedAnswer = null;
+            hintContainer.classList.remove('show');
+            explanation.classList.remove('show');
+            nextBtn.disabled = true;
+            hintBtn.style.display = 'block';
+
+            if (currentQuestion === quizData.length - 1) {
+                nextBtn.textContent = 'Show Results';
+            }
+        }
+
+        function selectAnswer(answerIndex) {
+            if (selectedAnswer !== null) return;
+
+            selectedAnswer = answerIndex;
+            const question = quizData[currentQuestion];
+            const options = document.querySelectorAll('.option-button');
+            const explanation = document.getElementById('explanation');
+            const nextBtn = document.getElementById('next-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            // Disable all options
+            options.forEach(option => option.classList.add('disabled'));
+
+            // Show correct/incorrect styling
+            options[question.correctAnswer].classList.add('correct');
+            if (answerIndex !== question.correctAnswer) {
+                options[answerIndex].classList.add('incorrect');
+            } else {
+                score++;
+                document.getElementById('score-display').textContent = `Score: ${score}/${quizData.length}`;
+            }
+
+            // Show explanation
+            explanation.innerHTML = `
+                <h4>🎯 Explanation</h4>
+                <p><strong>Correct Answer:</strong> ${question.explanation}</p>
+            `;
+            explanation.classList.add('show');
+
+            // Enable next button and hide hint button
+            nextBtn.disabled = false;
+            hintBtn.style.display = 'none';
+        }
+
+        function showHint() {
+            const question = quizData[currentQuestion];
+            const hintContainer = document.getElementById('hint-container');
+            hintContainer.innerHTML = `<strong>💡 Hint:</strong> ${question.hint}`;
+            hintContainer.classList.add('show');
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+            const finalScore = document.getElementById('final-score');
+            const resultsMessage = document.getElementById('results-message');
+            const correctCount = document.getElementById('correct-count');
+            const incorrectCount = document.getElementById('incorrect-count');
+            const accuracyPercent = document.getElementById('accuracy-percent');
+
+            quizContent.style.display = 'none';
+            resultsContainer.classList.add('show');
+
+            const accuracy = Math.round((score / quizData.length) * 100);
+            
+            finalScore.textContent = `${score}/${quizData.length}`;
+            correctCount.textContent = score;
+            incorrectCount.textContent = quizData.length - score;
+            accuracyPercent.textContent = `${accuracy}%`;
+
+            let message = '';
+            if (accuracy >= 90) {
+                message = '🏆 Exceptional! You have mastered cursors and understand when to use row-by-row processing effectively!';
+            } else if (accuracy >= 80) {
+                message = '🌟 Great work! You understand cursor concepts well and can apply them appropriately.';
+            } else if (accuracy >= 70) {
+                message = '📖 Good progress! You grasp the basics but should review advanced cursor operations and performance considerations.';
+            } else if (accuracy >= 60) {
+                message: '🔄 Keep practicing! Focus on cursor lifecycle, FETCH operations, and when to use cursors vs set-based operations.';
+            } else {
+                message = '📚 Review cursor fundamentals! Focus on basic cursor operations, loops, and the differences from set-based SQL.';
+            }
+
+            resultsMessage.textContent = message;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            selectedAnswer = null;
+            quizCompleted = false;
+
+            const quizContent = document.getElementById('quiz-content');
+            const resultsContainer = document.getElementById('results-container');
+
+            resultsContainer.classList.remove('show');
+            quizContent.style.display = 'block';
+
+            loadQuestion();
+        }
+
+        // Initialize quiz
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>

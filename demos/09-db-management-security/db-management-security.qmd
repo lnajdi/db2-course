@@ -1,0 +1,328 @@
+---
+title: "PostgreSQL Security & User Management - Live Demo"
+subtitle: "A comprehensive guide to Users, Roles, and Database Security"
+author: "Database Course - Live Demo Session"
+format: 
+  html:
+    theme: default
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-overflow: wrap
+    highlight-style: github
+    code-block-bg: true
+    code-block-border-left: "#31BAE9"
+    number-sections: true
+---
+
+# Introduction to Database Security
+
+Database security is about controlling **who can access what** in your database. PostgreSQL uses a layered security model:
+
+1.  **Authentication** - Who are you? (Identity verification)
+2.  **Authorization** - What can you do? (Permission checking)
+3.  **Access Control** - Where can you go? (Object-level security)
+4.  **Row-Level Security** - Which data can you see? (Fine-grained control)
+
+---
+
+# Users vs Roles: The Difference
+
+In PostgreSQL, the concepts of "user" and "role" are almost synonymous. The only real difference is that a `USER` is a `ROLE` with the `LOGIN` privilege by default.
+
+```{sql}
+-- Create a role (cannot login by default)
+CREATE ROLE sales_team;
+
+-- Create a user (a role that can login)
+CREATE USER john_doe WITH PASSWORD 'secure_password';
+
+-- This is equivalent to:
+CREATE ROLE jane_doe WITH LOGIN PASSWORD 'another_secure_password';
+```
+
+Let's see the existing roles in our database.
+
+```{sql}
+-- View existing roles
+SELECT rolname, rolsuper, rolcreatedb, rolcanlogin 
+FROM pg_roles 
+ORDER BY rolname;
+```
+
+You can also use the `\du` command in `psql`.
+
+---
+
+# Creating and Managing Users and Roles
+
+## Creating Users
+
+Let's create a few users for our application.
+
+```{sql}
+-- Create users with different privileges
+CREATE USER app_user WITH PASSWORD 'app_secret_123';
+CREATE USER read_only_user WITH PASSWORD 'readonly_456';
+CREATE USER admin_user WITH PASSWORD 'admin_789' CREATEDB;
+```
+
+## Role Attributes
+
+Roles can have many attributes that define their permissions.
+
+```{sql}
+-- Create a role with several attributes
+CREATE ROLE app_admin WITH
+    LOGIN                    -- Can login to database
+    PASSWORD 'secure_pass'   -- Authentication password
+    CREATEDB                 -- Can create databases
+    CREATEROLE               -- Can create other roles
+    REPLICATION              -- Can initiate replication
+    --SUPERUSER              -- Has all privileges (dangerous!)
+    VALID UNTIL '2025-12-31'; -- Account expiration
+```
+
+## Modifying Roles
+
+We can alter roles after they are created.
+
+```{sql}
+-- Change password
+ALTER ROLE app_admin PASSWORD 'new_secure_password';
+
+-- Add privileges
+ALTER ROLE app_admin CREATEDB CREATEROLE;
+
+-- Remove privileges
+ALTER ROLE app_admin NOCREATEDB;
+```
+
+---
+
+# Role Hierarchy and Privilege Inheritance
+
+A powerful feature in PostgreSQL is that you can grant roles to other roles, creating a hierarchy.
+
+## Create Role Groups
+
+Let's create roles for different departments and functions.
+
+```{sql}
+-- Create department roles
+CREATE ROLE sales_dept;
+CREATE ROLE finance_dept;
+CREATE ROLE hr_dept;
+
+-- Create specific function roles
+CREATE ROLE data_reader;
+CREATE ROLE data_writer;
+CREATE ROLE report_generator;
+```
+
+## Granting Roles
+
+Now, let's build the hierarchy.
+
+```{sql}
+-- Grant roles to other roles (inheritance)
+GRANT data_reader TO sales_dept;
+GRANT data_reader TO finance_dept;
+GRANT data_writer TO finance_dept;
+GRANT report_generator TO hr_dept;
+```
+
+## Assigning Users to Roles
+
+Finally, we can add our users to these role groups.
+
+```{sql}
+-- Create users and assign to departments
+CREATE USER alice WITH PASSWORD 'alice_pass';
+CREATE USER bob WITH PASSWORD 'bob_pass';
+
+GRANT sales_dept TO alice;
+GRANT finance_dept TO bob;
+```
+
+Now, `alice` inherits permissions from `sales_dept`, which in turn inherits from `data_reader`. `bob` gets permissions from `finance_dept`, which includes both `data_reader` and `data_writer`.
+
+---
+
+# Managing Privileges
+
+Privileges can be managed at different levels of the database.
+
+## Database-Level Privileges
+
+First, a role needs to be able to connect to a database.
+
+```{sql}
+-- Allow connection to database
+GRANT CONNECT ON DATABASE pagila TO sales_dept;
+GRANT CONNECT ON DATABASE pagila TO finance_dept;
+
+-- Allow creating schemas
+GRANT CREATE ON DATABASE pagila TO admin_user;
+
+-- Revoke access
+-- REVOKE CONNECT ON DATABASE pagila FROM former_employee;
+```
+
+## Schema-Level Privileges
+
+Inside a database, you can control access to schemas.
+
+```{sql}
+-- Create schemas for different departments
+CREATE SCHEMA IF NOT EXISTS sales;
+CREATE SCHEMA IF NOT EXISTS finance;
+CREATE SCHEMA IF NOT EXISTS hr;
+
+-- Grant schema usage
+GRANT USAGE ON SCHEMA sales TO sales_dept;
+GRANT USAGE ON SCHEMA finance TO finance_dept;
+GRANT USAGE ON SCHEMA hr TO hr_dept;
+
+-- Grant creation privileges
+GRANT CREATE ON SCHEMA sales TO sales_dept;
+
+-- Allow cross-department read access
+GRANT USAGE ON SCHEMA public TO sales_dept, finance_dept, hr_dept;
+```
+
+## Table-Level Privileges
+
+This is where we grant `SELECT`, `INSERT`, `UPDATE`, `DELETE` permissions.
+
+```{sql}
+-- Grant different levels of access to existing tables
+GRANT SELECT ON film TO data_reader;
+GRANT SELECT, INSERT, UPDATE ON customer TO sales_dept;
+GRANT SELECT ON customer TO finance_dept; -- Read-only
+GRANT SELECT, INSERT, UPDATE ON payment TO finance_dept;
+```
+
+## Column-Level Security
+
+You can even restrict access to specific columns. This is useful for sensitive data.
+
+```{sql}
+-- Let's imagine the customer table has sensitive data
+-- Let's give sales_dept access to only non-sensitive columns
+-- Note: We already granted full SELECT on customer to finance_dept, so this won't restrict them.
+-- We would need to revoke the broader privilege first.
+
+REVOKE SELECT ON customer FROM sales_dept;
+
+GRANT SELECT (customer_id, first_name, last_name, email, active) ON customer TO sales_dept;
+
+-- The finance_dept can still see everything
+SELECT customer_id, first_name, last_name, email, create_date FROM customer LIMIT 5;
+```
+
+Now, if a member of `sales_dept` tries to select `create_date`, they will get an error.
+
+---
+
+# Row-Level Security (RLS)
+
+Row-Level Security allows you to control which *rows* a user can see in a table.
+
+## Enable RLS on a Table
+
+Let's use the `film` table. We want actors to only see the films they are in. First, let's create some actor roles.
+
+```{sql}
+-- Enable RLS on the film_actor table
+ALTER TABLE film_actor ENABLE ROW LEVEL SECURITY;
+
+-- Create a user for a specific actor (e.g., PENELOPE GUINESS, actor_id = 1)
+CREATE USER penelope_guiness WITH PASSWORD 'penelope_pass';
+GRANT CONNECT ON DATABASE pagila TO penelope_guiness;
+GRANT USAGE ON SCHEMA public TO penelope_guiness;
+GRANT SELECT ON film TO penelope_guiness;
+GRANT SELECT ON film_actor TO penelope_guiness;
+```
+
+## Create an RLS Policy
+
+The policy defines the rules for accessing rows.
+
+```{sql}
+-- Create a policy for actors to see only their film entries
+CREATE POLICY actor_film_policy ON film_actor
+    FOR SELECT
+    TO penelope_guiness
+    USING (actor_id = 1); -- Penelope's actor_id is 1
+```
+
+Now, when `penelope_guiness` queries the `film_actor` table, she will only see rows where `actor_id` is 1.
+
+---
+
+# Default Privileges
+
+It's tedious to set privileges every time a new object is created. `ALTER DEFAULT PRIVILEGES` helps automate this.
+
+```{sql}
+-- For any future tables created by admin_user in the public schema,
+-- automatically grant SELECT to the data_reader role.
+ALTER DEFAULT PRIVILEGES 
+    FOR ROLE admin_user
+    IN SCHEMA public
+    GRANT SELECT ON TABLES TO data_reader;
+
+-- Now if admin_user creates a new table, data_reader can select from it.
+-- CREATE TABLE new_log_table (log_id serial, log_text text);
+-- This table would be selectable by data_reader.
+```
+
+---
+
+# Auditing and Monitoring
+
+Here are some useful queries to check security settings.
+
+## Checking Privileges
+
+```{sql}
+-- Check current privileges for a role
+SELECT 
+    table_schema,
+    table_name,
+    privilege_type,
+    grantee
+FROM information_schema.table_privileges
+WHERE grantee = 'sales_dept';
+```
+
+## Checking Role Memberships
+
+```{sql}
+-- See role memberships
+SELECT 
+    r.rolname AS role_name,
+    m.rolname AS member_name
+FROM pg_roles r
+JOIN pg_auth_members am ON r.oid = am.roleid
+JOIN pg_roles m ON am.member = m.oid
+WHERE r.rolname IN ('sales_dept', 'finance_dept')
+ORDER BY r.rolname, m.rolname;
+```
+
+## Monitoring Active Connections
+
+```{sql}
+-- See active connections
+SELECT 
+    pid,
+    usename,
+    application_name,
+    client_addr,
+    backend_start,
+    state,
+    query
+FROM pg_stat_activity
+WHERE state = 'active';
+```
