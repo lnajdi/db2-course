@@ -29,6 +29,9 @@ pgdata/
 #adventure works db
 data/adventureworks
 
+# Large replicable sample dataset (81MB, exceeds GitHub's recommended size)
+demos/setup/data/adventureworks/adventureworks-data.sql
+
 # Build output / generated (regenerable via `quarto render`)
 _site/
 .quarto/
