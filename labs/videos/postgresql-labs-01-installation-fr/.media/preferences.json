@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "preferences": {
+    "destination": {
+      "value": "youtube",
+      "confirmed_in": [
+        "postgresql-labs-01-installation-fr"
+      ],
+      "updated_at": "2026-08-01T19:02:18.848Z"
+    },
+    "aspect": {
+      "value": "1920x1080",
+      "confirmed_in": [
+        "postgresql-labs-01-installation-fr"
+      ],
+      "updated_at": "2026-08-01T19:02:18.962Z"
+    },
+    "language": {
+      "value": "fr",
+      "confirmed_in": [
+        "postgresql-labs-01-installation-fr"
+      ],
+      "updated_at": "2026-08-01T19:02:19.073Z"
+    },
+    "flow": {
+      "value": "automation",
+      "confirmed_in": [
+        "postgresql-labs-01-installation-fr"
+      ],
+      "updated_at": "2026-08-01T19:02:19.183Z"
+    },
+    "storyboard": {
+      "value": "yes",
+      "confirmed_in": [
+        "postgresql-labs-01-installation-fr"
+      ],
+      "updated_at": "2026-08-01T19:02:19.299Z"
+    },
+    "style_preset.faceless-explainer": {
+      "value": "code-editorial",
+      "confirmed_in": [
+        "postgresql-labs-01-installation-fr"
+      ],
+      "updated_at": "2026-08-01T19:05:09.172Z"
+    }
+  },
+  "sightings": {}
+}

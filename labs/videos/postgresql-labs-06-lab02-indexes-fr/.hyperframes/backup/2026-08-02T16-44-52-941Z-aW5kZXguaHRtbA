@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>PostgreSQL labs 05 - Lab 01 Views</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Literata"; src: local("Literata"); font-weight: 400; }
+      @font-face { font-family: "Instrument Sans"; src: local("Instrument Sans"); font-weight: 400 700; }
+      @font-face { font-family: "Geist Mono"; src: local("Geist Mono"); font-weight: 400 700; }
+      * { box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #000; }
+      body { color: #182126; font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #f7f4ee; }
+      .clip { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+      .ground {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          #f7f4ee;
+        background-size: 72px 72px;
+      }
+      .stage {
+        position: absolute;
+        inset: 72px 84px 220px 84px;
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 48px;
+        align-items: stretch;
+      }
+      .single { grid-template-columns: 1fr; }
+      .kicker {
+        color: #0d4f68;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 24px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 22px;
+      }
+      h1 {
+        margin: 0;
+        max-width: 900px;
+        font-family: Literata, Georgia, serif;
+        font-size: 82px;
+        font-weight: 400;
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+      h2 {
+        margin: 0 0 26px;
+        font-family: Literata, Georgia, serif;
+        font-size: 58px;
+        font-weight: 400;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+      p { margin: 0; color: #4d5a60; font-size: 30px; line-height: 1.42; }
+      pre, code, .mono { font-family: "Geist Mono", Consolas, "Courier New", monospace; }
+      pre { margin: 0; white-space: pre-wrap; color: #f7f4ee; font-size: 25px; line-height: 1.42; }
+      .mini-note { margin-top: 22px; color: #5d686e; font-size: 24px; }
+      .panel {
+        border: 1px solid #d9dedf;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.84);
+        padding: 32px;
+        box-shadow: 0 1px 3px rgba(24, 33, 38, 0.08), 0 4px 16px rgba(24, 33, 38, 0.04);
+      }
+      .dark-panel {
+        border: 1px solid rgba(247, 244, 238, 0.16);
+        border-radius: 8px;
+        background: #151718;
+        color: #f7f4ee;
+        padding: 28px;
+      }
+      .titlebar {
+        display: flex;
+        justify-content: space-between;
+        margin: -28px -28px 22px;
+        padding: 16px 22px;
+        border-bottom: 1px solid rgba(247, 244, 238, 0.14);
+        border-radius: 8px 8px 0 0;
+        background: #202325;
+        color: #dce5e4;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 20px;
+      }
+      .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+      .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .item {
+        min-height: 118px;
+        border: 1px solid rgba(24, 33, 38, 0.12);
+        border-radius: 8px;
+        background: #fff;
+        padding: 20px;
+        color: #4d5a60;
+        font-size: 24px;
+        line-height: 1.25;
+      }
+      .item strong { display: block; margin-bottom: 8px; color: #182126; font-size: 30px; font-weight: 600; }
+      .pill {
+        display: inline-block;
+        border: 1px solid #a7c4ce;
+        border-radius: 999px;
+        background: #e8f1f4;
+        color: #0d4f68;
+        padding: 10px 18px;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+      }
+      .ok { border-color: rgba(23, 94, 74, 0.24); background: #e8f3ee; color: #175e4a; }
+      .warning { border-color: rgba(138, 101, 26, 0.24); background: #f8f0dc; color: #624a35; }
+      .caption-band {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 200px;
+        border-top: 1px dashed rgba(93, 104, 110, 0.35);
+        background: rgba(247, 244, 238, 0.72);
+        color: #687175;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .progress-wrap { position: absolute; left: 84px; right: 84px; top: 34px; height: 6px; border-radius: 999px; background: rgba(13, 79, 104, 0.12); overflow: hidden; }
+      #progress { display: block; width: 100%; height: 100%; border-radius: 999px; background: #0d4f68; transform-origin: left center; }
+      .roadmap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .step {
+        min-height: 158px;
+        border: 1px solid rgba(13, 79, 104, 0.18);
+        border-radius: 8px;
+        background: #f5fafb;
+        padding: 20px;
+        font-size: 24px;
+        line-height: 1.25;
+      }
+      .step b { display: block; color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-size: 22px; margin-bottom: 10px; }
+      .flow { display: grid; grid-template-columns: 1fr 72px 1fr 72px 1fr; align-items: center; gap: 12px; margin-top: 24px; }
+      .box {
+        min-height: 150px;
+        border: 1px solid rgba(13, 79, 104, 0.2);
+        border-radius: 8px;
+        background: #fff;
+        padding: 22px;
+        text-align: center;
+        display: grid;
+        place-items: center;
+        font-size: 25px;
+      }
+      .arrow { color: #0d4f68; font-family: Literata, Georgia, serif; font-size: 52px; text-align: center; }
+      .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+      .compare-card { min-height: 430px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 26px; }
+      .compare-card h3 { margin: 0 0 18px; color: #182126; font-size: 34px; font-weight: 700; }
+      .compare-card p { font-size: 25px; }
+      .tiny-table { margin-top: 18px; border: 1px solid #d9dedf; border-radius: 8px; overflow: hidden; font-family: "Geist Mono", Consolas, monospace; font-size: 19px; }
+      .row { display: grid; grid-template-columns: 1.2fr 0.8fr 0.9fr; }
+      .row span { padding: 10px 12px; border-right: 1px solid #d9dedf; border-bottom: 1px solid #d9dedf; }
+      .row span:last-child { border-right: 0; }
+      .head { background: #e8f1f4; color: #0d4f68; font-weight: 700; }
+      .sql-key { color: #9fd3c8; }
+      .sql-name { color: #e8d978; }
+      .sql-string { color: #e8a55a; }
+      .method { display: grid; gap: 14px; }
+      .method .item { min-height: 78px; display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 14px; padding: 16px; }
+      .num { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; background: #e8f1f4; color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-uzop" id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="252">
+      <div data-hf-id="hf-o5tb" class="progress-wrap" data-layout-ignore=""><span data-hf-id="hf-0x13" id="progress"></span></div>
+
+      <section data-hf-id="hf-3n5b" id="frame-01" class="clip" data-start="0" data-duration="24" data-track-index="0">
+        <div data-hf-id="hf-ygft" class="ground"></div>
+        <div data-hf-id="hf-tan6" class="stage">
+          <div data-hf-id="hf-yeow">
+            <div data-hf-id="hf-r7c6" class="kicker">05/08 · Lab 01</div>
+            <h1 data-hf-id="hf-27ui">Views et vues matérialisées</h1>
+            <p data-hf-id="hf-1civ" class="mini-note">Objectif: comprendre la carte du lab avant d'écrire les solutions.</p>
+          </div>
+          <div data-hf-id="hf-owjm" class="panel">
+            <h2 data-hf-id="hf-f4cz">Avant de commencer</h2>
+            <div data-hf-id="hf-kxq8" class="grid">
+              <div data-hf-id="hf-fubx" class="item"><strong data-hf-id="hf-hf78">Base prête</strong><span data-hf-id="hf-24ug" class="mono">pagila</span></div>
+              <div data-hf-id="hf-boza" class="item"><strong data-hf-id="hf-nwxd">Utilisateur</strong><span data-hf-id="hf-gmn4" class="mono">karim</span> ou prénom</div>
+              <div data-hf-id="hf-otz0" class="item"><strong data-hf-id="hf-pm6t">Client SQL</strong>pgAdmin, DBeaver, VS Code ou psql</div>
+              <div data-hf-id="hf-bhx1" class="item"><strong data-hf-id="hf-pvg8">Pas une correction</strong>concepts et roadmap</div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-o9x1" class="caption-band" data-layout-allow-caption-zone="">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-21ei" id="frame-02" class="clip" data-start="24" data-duration="34" data-track-index="1">
+        <div data-hf-id="hf-p66l" class="ground"></div>
+        <div data-hf-id="hf-knwe" class="stage single">
+          <div data-hf-id="hf-y7yw">
+            <div data-hf-id="hf-1cz7" class="kicker">Roadmap du lab</div>
+            <h2 data-hf-id="hf-ffdi">Six familles, un livrable</h2>
+            <div data-hf-id="hf-vcc8" class="roadmap">
+              <div data-hf-id="hf-s75w" class="step"><b data-hf-id="hf-t4n0">1</b>Vues simples<br data-hf-id="hf-x5px"><span data-hf-id="hf-vtw5" class="mono">customer_info</span></div>
+              <div data-hf-id="hf-cqir" class="step"><b data-hf-id="hf-rxpx">2</b>Vues modifiables<br data-hf-id="hf-rsrt"><span data-hf-id="hf-1j9t" class="mono">UPDATE</span> possible</div>
+              <div data-hf-id="hf-2e7w" class="step"><b data-hf-id="hf-sc0y">3</b>Sécurité<br data-hf-id="hf-szow"><span data-hf-id="hf-x7fd" class="mono">WITH CHECK OPTION</span></div>
+              <div data-hf-id="hf-zwhl" class="step"><b data-hf-id="hf-ubk3">4</b>Vues multi-tables<br data-hf-id="hf-sldv">jointures Pagila</div>
+              <div data-hf-id="hf-91xa" class="step"><b data-hf-id="hf-upv4">5</b>Matérialisées<br data-hf-id="hf-qluq"><span data-hf-id="hf-rn2m" class="mono">film_stats</span></div>
+              <div data-hf-id="hf-45e2" class="step"><b data-hf-id="hf-tiy1">6</b>Refresh + performance<br data-hf-id="hf-q7jp"><span data-hf-id="hf-j58q" class="mono">solutions.sql</span></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-bip5" class="caption-band" data-layout-allow-caption-zone="">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-2tnr" id="frame-03" class="clip" data-start="58" data-duration="32" data-track-index="0">
+        <div data-hf-id="hf-qd3o" class="ground"></div>
+        <div data-hf-id="hf-xa86" class="stage">
+          <div data-hf-id="hf-x11t">
+            <div data-hf-id="hf-etbv" class="kicker">Vue normale</div>
+            <h2 data-hf-id="hf-irwb">Une requête enregistrée sous un nom</h2>
+            <p data-hf-id="hf-vjku">On lit la vue comme une table virtuelle, mais les lignes ne sont pas stockées dans la vue.</p>
+            <p data-hf-id="hf-x4d6" class="mini-note"><span data-hf-id="hf-i7k3" class="pill warning">à retenir</span> PostgreSQL recalcule le résultat quand on interroge la vue.</p>
+          </div>
+          <div data-hf-id="hf-25jd" class="dark-panel">
+            <div data-hf-id="hf-t179" class="titlebar"><span data-hf-id="hf-9esd">Lab-01-Views.sql</span><span data-hf-id="hf-yxqf">concept</span></div>
+            <pre data-hf-id="hf-i20c"><span data-hf-id="hf-881i" class="sql-key">CREATE VIEW</span> <span data-hf-id="hf-05lm" class="sql-name">customer_info</span> <span data-hf-id="hf-g7rt" class="sql-key">AS</span>
+<span data-hf-id="hf-lwa1" class="sql-key">SELECT</span> ...
+<span data-hf-id="hf-0hrd" class="sql-key">FROM</span> customer
+<span data-hf-id="hf-rz2t" class="sql-key">JOIN</span> address ...
+
+<span data-hf-id="hf-ryxp" class="sql-key">SELECT</span> *
+<span data-hf-id="hf-489p" class="sql-key">FROM</span> <span data-hf-id="hf-ewse" class="sql-name">customer_info</span>
+<span data-hf-id="hf-i41c" class="sql-key">LIMIT</span> 5;</pre>
+          </div>
+        </div>
+        <div data-hf-id="hf-cpm8" class="caption-band" data-layout-allow-caption-zone="">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-i4mr" id="frame-04" class="clip" data-start="90" data-duration="34" data-track-index="1">
+        <div data-hf-id="hf-pysn" class="ground"></div>
+        <div data-hf-id="hf-9lnm" class="stage single">
+          <div data-hf-id="hf-xfcu">
+            <div data-hf-id="hf-k63j" class="kicker">Pourquoi créer une vue ?</div>
+            <h2 data-hf-id="hf-yrvj">Rendre une lecture plus simple et plus sûre</h2>
+            <div data-hf-id="hf-cm2s" class="grid-3">
+              <div data-hf-id="hf-gxly" class="panel">
+                <span data-hf-id="hf-04oc" class="pill">simplifier</span>
+                <h2 data-hf-id="hf-0j4c" style="font-size:40px;">Requête longue</h2>
+                <p data-hf-id="hf-g9ly">Donner un nom à une requête avec jointures.</p>
+                <p data-hf-id="hf-cma5" class="mini-note mono">customer_info</p>
+              </div>
+              <div data-hf-id="hf-hbwz" class="panel">
+                <span data-hf-id="hf-hhwx" class="pill warning">sécuriser</span>
+                <h2 data-hf-id="hf-1qnd" style="font-size:40px;">Colonnes utiles</h2>
+                <p data-hf-id="hf-ctv0">Exposer seulement ce qu'un rôle doit voir.</p>
+                <p data-hf-id="hf-av73" class="mini-note mono">public_customer_list</p>
+              </div>
+              <div data-hf-id="hf-hq80" class="panel">
+                <span data-hf-id="hf-bg0o" class="pill ok">stabiliser</span>
+                <h2 data-hf-id="hf-a844" style="font-size:40px;">Nom métier</h2>
+                <p data-hf-id="hf-47eu">Créer une présentation stable des films.</p>
+                <p data-hf-id="hf-eh9i" class="mini-note mono">film_catalog</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-cbb7" class="caption-band" data-layout-allow-caption-zone="">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-14rh" id="frame-05" class="clip" data-start="124" data-duration="30" data-track-index="0">
+        <div data-hf-id="hf-r5pq" class="ground"></div>
+        <div data-hf-id="hf-xoj7" class="stage">
+          <div data-hf-id="hf-w8fr">
+            <div data-hf-id="hf-cw95" class="kicker">Modèle mental</div>
+            <h2 data-hf-id="hf-xycb">La source reste dans les tables Pagila</h2>
+            <p data-hf-id="hf-3mox">La vue ne remplace pas les tables. Elle donne une porte d'entrée plus lisible vers une requête.</p>
+          </div>
+          <div data-hf-id="hf-ey2t" class="panel">
+            <div data-hf-id="hf-ck2w" class="flow">
+              <div data-hf-id="hf-d74r" class="box"><span data-hf-id="hf-0jgn" class="mono">customer<br data-hf-id="hf-regs">address<br data-hf-id="hf-r05r">city</span></div>
+              <div data-hf-id="hf-drib" class="arrow">→</div>
+              <div data-hf-id="hf-jvrv" class="box"><span data-hf-id="hf-yyi8" class="mono">SELECT ... JOIN ...</span></div>
+              <div data-hf-id="hf-yhhf" class="arrow">→</div>
+              <div data-hf-id="hf-jhgu" class="box"><span data-hf-id="hf-ta5m" class="mono">CREATE VIEW<br data-hf-id="hf-p0mm">customer_info</span></div>
+            </div>
+            <div data-hf-id="hf-9nb2" class="dark-panel" style="margin-top:26px;">
+              <div data-hf-id="hf-hdop" class="titlebar"><span data-hf-id="hf-nkzg">lecture ensuite</span><span data-hf-id="hf-3241">plus simple</span></div>
+              <pre data-hf-id="hf-nf7c"><span data-hf-id="hf-t5us" class="sql-key">SELECT</span> * <span data-hf-id="hf-5f6s" class="sql-key">FROM</span> <span data-hf-id="hf-fb3f" class="sql-name">customer_info</span> <span data-hf-id="hf-jutk" class="sql-key">LIMIT</span> 5;</pre>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-69sy" class="caption-band" data-layout-allow-caption-zone="">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-5kjs" id="frame-06" class="clip" data-start="154" data-duration="30" data-track-index="1">
+        <div data-hf-id="hf-qrep" class="ground"></div>
+        <div data-hf-id="hf-y2u8" class="stage">
+          <div data-hf-id="hf-wmqs">
+            <div data-hf-id="hf-k809" class="kicker">Vues modifiables</div>
+            <h2 data-hf-id="hf-sdh6">Lecture seule ou modification ?</h2>
+            <p data-hf-id="hf-ql1a">Le lab ne demande pas seulement de lire: il montre aussi quand une vue peut accepter une modification.</p>
+          </div>
+          <div data-hf-id="hf-fcdu" class="panel">
+            <div data-hf-id="hf-krut" class="compare">
+              <div data-hf-id="hf-kf9o" class="compare-card">
+                <span data-hf-id="hf-u98o" class="pill ok">parfois modifiable</span>
+                <h3 data-hf-id="hf-8tbi">Vue simple</h3>
+                <p data-hf-id="hf-dmuh">Une seule table, colonnes directes, filtre simple.</p>
+                <p data-hf-id="hf-eq96" class="mini-note mono">store_1_active_customers</p>
+              </div>
+              <div data-hf-id="hf-jxwk" class="compare-card">
+                <span data-hf-id="hf-nn08" class="pill warning">souvent lecture seule</span>
+                <h3 data-hf-id="hf-4ssf">Vue complexe</h3>
+                <p data-hf-id="hf-0ohg">Jointures, agrégats, `GROUP BY` ou calculs lourds.</p>
+                <p data-hf-id="hf-sr0r" class="mini-note mono">rental_details</p>
+              </div>
+            </div>
+            <p data-hf-id="hf-s3qo" class="mini-note"><span data-hf-id="hf-kvr1" class="pill">WITH CHECK OPTION</span> empêche une modification qui sort la ligne de la vue.</p>
+          </div>
+        </div>
+        <div data-hf-id="hf-5vhx" class="caption-band" data-layout-allow-caption-zone="">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-p9ht" id="frame-07" class="clip" data-start="184" data-duration="38" data-track-index="0">
+        <div data-hf-id="hf-rybs" class="ground"></div>
+        <div data-hf-id="hf-vap1" class="stage">
+          <div data-hf-id="hf-vftp">
+            <div data-hf-id="hf-43fo" class="kicker">Vue matérialisée</div>
+            <h2 data-hf-id="hf-5aps">Stockée, rapide, mais à rafraîchir</h2>
+            <p data-hf-id="hf-uiew">Une vue matérialisée garde un résultat physique. C'est utile pour les statistiques et rapports.</p>
+            <p data-hf-id="hf-ca7z" class="mini-note"><span data-hf-id="hf-si3f" class="pill warning">compromis</span> le résultat peut devenir ancien.</p>
+          </div>
+          <div data-hf-id="hf-fqov" class="panel">
+            <div data-hf-id="hf-1nix" class="compare">
+              <div data-hf-id="hf-iqzh" class="compare-card">
+                <span data-hf-id="hf-aez2" class="pill">vue normale</span>
+                <h3 data-hf-id="hf-ra4r">Recalculée</h3>
+                <p data-hf-id="hf-shx9">Toujours actuelle, mais la requête repart des tables.</p>
+                <div data-hf-id="hf-g3vt" class="tiny-table">
+                  <div data-hf-id="hf-w11e" class="row head"><span data-hf-id="hf-4cv1">lecture</span><span data-hf-id="hf-f8ig">stockage</span><span data-hf-id="hf-ldt3">fraîcheur</span></div>
+                  <div data-hf-id="hf-thy4" class="row"><span data-hf-id="hf-l7r5">calcul</span><span data-hf-id="hf-0tu0">non</span><span data-hf-id="hf-34t0">actuelle</span></div>
+                </div>
+              </div>
+              <div data-hf-id="hf-j5ai" class="compare-card">
+                <span data-hf-id="hf-06b1" class="pill ok">matérialisée</span>
+                <h3 data-hf-id="hf-kym2">Pré-calculée</h3>
+                <p data-hf-id="hf-ia8x">Lecture plus rapide, mais refresh nécessaire.</p>
+                <div data-hf-id="hf-s3od" class="tiny-table">
+                  <div data-hf-id="hf-8d5y" class="row head"><span data-hf-id="hf-ld81">lecture</span><span data-hf-id="hf-mbzk">stockage</span><span data-hf-id="hf-hww7">fraîcheur</span></div>
+                  <div data-hf-id="hf-lt04" class="row"><span data-hf-id="hf-kolc">rapide</span><span data-hf-id="hf-np1o">oui</span><span data-hf-id="hf-lhyo">refresh</span></div>
+                </div>
+              </div>
+            </div>
+            <div data-hf-id="hf-d34g" class="dark-panel" style="margin-top:20px;">
+              <pre data-hf-id="hf-9az3"><span data-hf-id="hf-0d0h" class="sql-key">CREATE MATERIALIZED VIEW</span> <span data-hf-id="hf-zkuv" class="sql-name">film_stats</span> <span data-hf-id="hf-wy0d" class="sql-key">AS</span> ...
+<span data-hf-id="hf-eueo" class="sql-key">REFRESH MATERIALIZED VIEW</span> <span data-hf-id="hf-r61j" class="sql-name">film_stats</span>;</pre>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-72f0" class="caption-band" data-layout-allow-caption-zone="">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-p506" id="frame-08" class="clip" data-start="222" data-duration="30" data-track-index="1">
+        <div data-hf-id="hf-rk0r" class="ground"></div>
+        <div data-hf-id="hf-vp02" class="stage">
+          <div data-hf-id="hf-vu4q">
+            <div data-hf-id="hf-aonl" class="kicker">Méthode de travail</div>
+            <h2 data-hf-id="hf-voms">Avancer section par section</h2>
+            <p data-hf-id="hf-cnuf">Le bon rythme: comprendre, exécuter, tester, puis seulement passer à l'exercice suivant.</p>
+            <p data-hf-id="hf-vnma" class="mini-note">Prochain épisode: démarrer l'exercice 1 en pratique.</p>
+          </div>
+          <div data-hf-id="hf-g4zw" class="panel">
+            <div data-hf-id="hf-iw7v" class="method">
+              <div data-hf-id="hf-f2ip" class="item"><span data-hf-id="hf-kud6" class="num">1</span><span data-hf-id="hf-s6uu">Ouvrir <span data-hf-id="hf-8a9k" class="mono">Lab-01-Views.sql</span></span></div>
+              <div data-hf-id="hf-g9fs" class="item"><span data-hf-id="hf-l8o7" class="num">2</span><span data-hf-id="hf-5vw9">Exécuter une section du lab</span></div>
+              <div data-hf-id="hf-fv4r" class="item"><span data-hf-id="hf-lmz8" class="num">3</span><span data-hf-id="hf-6dat">Tester avec <span data-hf-id="hf-0edm" class="mono">SELECT ... LIMIT 5</span></span></div>
+              <div data-hf-id="hf-dvlm" class="item"><span data-hf-id="hf-m1a9" class="num">4</span><span data-hf-id="hf-jzrs">Lire les erreurs sans tout effacer</span></div>
+              <div data-hf-id="hf-dhal" class="item"><span data-hf-id="hf-mfla" class="num">5</span><span data-hf-id="hf-cn2f">Garder le cleanup pour la fin</span></div>
+            </div>
+            <p data-hf-id="hf-dc9r" class="mini-note"><span data-hf-id="hf-tiut" class="pill ok">livrable</span> <span data-hf-id="hf-5z4e" class="mono">solutions.sql</span> commenté.</p>
+          </div>
+        </div>
+        <div data-hf-id="hf-6o3z" class="caption-band" data-layout-allow-caption-zone="">zone réservée aux sous-titres</div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#progress", { scaleX: 0 }, { scaleX: 1, duration: 252, ease: "none" }, 0);
+      window.__timelines.main = tl;
+    </script>
+  </body>
+</html>

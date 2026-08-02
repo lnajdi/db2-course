@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Preview - PostgreSQL labs 05</title>
+    <style>
+      @font-face { font-family: "Literata"; src: local("Literata"); }
+      @font-face { font-family: "Instrument Sans"; src: local("Instrument Sans"); }
+      @font-face { font-family: "Geist Mono"; src: local("Geist Mono"); }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #f7f4ee; color: #182126; font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif; }
+      header { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #d9dedf; background: rgba(247, 244, 238, 0.94); padding: 18px 32px; }
+      h1 { margin: 0; font-family: Literata, Georgia, serif; font-size: 34px; font-weight: 400; }
+      main { display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 24px; padding: 32px; }
+      article { min-height: 320px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 28px; box-shadow: 0 1px 3px rgba(24, 33, 38, 0.08), 0 4px 16px rgba(24, 33, 38, 0.04); }
+      .kicker { color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; }
+      h2 { margin: 12px 0 16px; font-family: Literata, Georgia, serif; font-size: 34px; font-weight: 400; }
+      p, li { font-size: 18px; line-height: 1.45; }
+      pre { overflow-x: auto; border-radius: 8px; background: #151718; color: #f7f4ee; padding: 18px; font-family: "Geist Mono", Consolas, monospace; font-size: 16px; line-height: 1.45; }
+    </style>
+  </head>
+  <body>
+    <header><h1>PostgreSQL labs 05 - Lab 01 Views</h1></header>
+    <main>
+      <article><div class="kicker">0-24s</div><h2>Objectif</h2><p>Présenter la roadmap du Lab 01 et distinguer vue normale / vue matérialisée sans corriger le lab.</p></article>
+      <article><div class="kicker">24-58s</div><h2>Roadmap</h2><p>Vues simples, updatable views, CHECK OPTION, vues multi-tables, matérialisées, refresh/performance, `solutions.sql`.</p></article>
+      <article><div class="kicker">58-90s</div><h2>Vue normale</h2><pre>CREATE VIEW customer_info AS
+SELECT ...
+
+SELECT * FROM customer_info LIMIT 5;</pre><p>Requête enregistrée, résultat recalculé à la lecture.</p></article>
+      <article><div class="kicker">90-124s</div><h2>Pourquoi</h2><p>Simplifier une requête longue, cacher des colonnes sensibles, stabiliser une présentation de données.</p></article>
+      <article><div class="kicker">124-154s</div><h2>Modèle mental</h2><p>Tables Pagila -> SELECT -> CREATE VIEW -> SELECT sur la vue.</p></article>
+      <article><div class="kicker">154-184s</div><h2>CHECK OPTION</h2><p>Une vue simple peut être modifiable; une vue avec jointures/agrégats est souvent en lecture seule.</p></article>
+      <article><div class="kicker">184-222s</div><h2>Matérialisée</h2><pre>CREATE MATERIALIZED VIEW film_stats AS ...
+REFRESH MATERIALIZED VIEW film_stats;</pre><p>Stockée, rapide, mais à rafraîchir.</p></article>
+      <article><div class="kicker">222-252s</div><h2>Méthode</h2><p>Ouvrir `Lab-01-Views.sql`, exécuter une section, tester, noter les erreurs, cleanup à la fin.</p></article>
+    </main>
+  </body>
+</html>

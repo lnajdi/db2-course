@@ -1,0 +1,37 @@
+- generic [ref=e1]:
+  - generic [active] [ref=e3]:
+    - iframe [ref=e4]:
+      - main [ref=f1e20]:
+        - generic [ref=f1e21]:
+          - generic [ref=f1e22]: 01/08 · PRÉREQUIS
+          - text: 3 POINTS
+        - heading "Avant de lancer l’installateur" [level=1] [ref=f1e23]: Avantde lancerl’installateur
+        - region "Trois prérequis" [ref=f1e24]:
+          - generic [ref=f1e25]:
+            - article [ref=f1e26]:
+              - text: "01"
+              - heading "Droits administrateur" [level=3] [ref=f1e27]
+              - paragraph [ref=f1e28]: Windows doit autoriser l’installation du service.
+            - article [ref=f1e29]:
+              - text: "02"
+              - heading "Connexion Internet" [level=3] [ref=f1e30]
+              - paragraph [ref=f1e31]: Pour télécharger l’installateur officiel.
+            - article [ref=f1e32]:
+              - text: "03"
+              - heading "Mot de passe" [level=3] [ref=f1e33]
+              - paragraph [ref=f1e34]: Préparez un endroit sûr pour le conserver.
+        - generic [ref=f1e35]: PRÊT QUAND… · CES TROIS POINTS SONT VALIDÉS
+    - generic [ref=e5]:
+      - button "Pause" [ref=e19] [cursor=pointer]:
+        - generic [ref=e7]:
+          - img
+        - generic [ref=e8]:
+          - img
+      - generic [ref=e10]: 0:33 / 3:31
+      - generic [ref=e11]:
+        - generic:
+          - slider "Volume"
+        - button "Mute" [ref=e18] [cursor=pointer]:
+          - img
+      - button "Playback speed" [ref=e14] [cursor=pointer]: 1x
+  - generic [ref=e15]: postgresql-labs-01-installation-fr — hyperframes play

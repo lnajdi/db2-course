@@ -1,0 +1,15 @@
+Topic: Lab 04 - PL/pgSQL et curseurs
+
+Sources:
+- ../lab04-intro-plpgsql-cursors/README.md
+- ../lab04-intro-plpgsql-cursors/Lab-04-intro-plpgsql-cursors.sql
+
+Purpose:
+This faceless explainer introduces the mental models needed before completing the lab. It is not a correction and does not fill blanks from the exercise file.
+
+Source facts used:
+- The lab prerequisites are PostgreSQL running locally, Pagila loaded, a SQL client ready, and a simple `DO $$ BEGIN RAISE NOTICE 'Ready!'; END $$;` block working.
+- The README introduces PL/pgSQL as PostgreSQL's procedural language with variables, control structures, exception handling, cursors, functions and procedures.
+- The lab structure covers PL/pgSQL basics, query-result loops, cursor basics, parameterized cursors, advanced cursor scenarios, exception handling, and a real-world business scenario.
+- The SQL exercises use Pagila tables and names including `customer`, `rental`, `payment`, `film`, `category`, `store`, `address`, `city`, and `country`.
+- The video should show only short anchors: `DO $$`, `DECLARE`, `BEGIN ... END`, `RAISE NOTICE`, `SELECT ... INTO`, `FOR rec IN SELECT`, `CURSOR FOR`, `OPEN / FETCH / CLOSE`, and `EXCEPTION`.

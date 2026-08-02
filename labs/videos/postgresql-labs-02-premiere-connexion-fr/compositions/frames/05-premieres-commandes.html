@@ -1,0 +1,25 @@
+<template>
+  <style>
+    #root{position:relative;width:1920px;height:1080px;overflow:hidden;container-type:size;color:#182126}#root *{box-sizing:border-box}.clip{position:absolute;inset:0;background:#F7F4EE}.kicker{position:absolute;left:80px;top:58px;font:500 24px/1 monospace;letter-spacing:.16em}.kicker span{color:#0D4F68;font-family:serif;font-size:34px;margin-right:10px}.title{position:absolute;left:80px;top:92px;font:400 76px/1 serif;letter-spacing:-.03em}
+    .term{position:absolute;left:80px;top:206px;width:1140px;height:628px;background:#151718;border:1px solid rgba(247,244,238,.16);border-radius:10px;overflow:hidden}.bar{height:58px;background:#202325;color:#F7F4EE;font:500 22px/58px monospace;padding:0 24px}.body{padding:28px 34px;color:#F7F4EE;font:400 29px/1.48 monospace}.cmd{color:#E8F1F4}.out{color:#5DB8A6}.table{color:#D9DEDF}.muted{color:#788388}
+    .receipts{position:absolute;right:94px;top:206px;width:560px;display:grid;gap:18px}.receipt{padding:26px 30px;border:1px solid rgba(24,33,38,.14);background:#fff;border-radius:10px}.receipt strong{display:block;font:500 31px/1.1 sans-serif;margin-bottom:10px}.receipt span{font:500 24px/1.35 monospace;color:#5D686E}.note{background:#F2ECE5;border-color:rgba(98,74,53,.22)}
+  </style>
+  <div id="root" data-hf-id="hf0205root" data-composition-id="05-premieres-commandes" data-start="0" data-duration="38" data-width="1920" data-height="1080">
+    <div id="f05-ground" class="clip" data-hf-id="hf0205clip" data-start="0" data-duration="38" data-track-index="0"></div>
+    <div class="kicker" data-hf-id="hf0205kicker"><span data-hf-id="hf0205spike">✱</span>VÉRIFIER</div><h1 class="title" data-hf-id="hf0205title">Trois commandes utiles</h1>
+    <section class="term" data-hf-id="hf0205term"><div class="bar" data-hf-id="hf0205bar">SQL Shell (psql)</div><pre class="body" data-hf-id="hf0205body"><span data-hf-id="hf-kzv8" class="cmd">postgres=# SELECT version();</span>
+<span data-hf-id="hf-3ol2" class="out">PostgreSQL server répond</span>
+
+<span data-hf-id="hf-v3b6" class="cmd">postgres=# \conninfo</span>
+<span data-hf-id="hf-7u3y" class="out">You are connected to database "postgres"</span>
+<span data-hf-id="hf-pp84" class="muted">user "postgres" · host "localhost" · port "5432"</span>
+
+<span data-hf-id="hf-zago" class="cmd">postgres=# \l</span>
+<span data-hf-id="hf-2o5i" class="table">Name       Owner      Encoding</span>
+<span data-hf-id="hf-ylwi" class="table">postgres   postgres   UTF8</span>
+<span data-hf-id="hf-a07r" class="table">template0  postgres   UTF8</span>
+<span data-hf-id="hf-q0cq" class="table">template1  postgres   UTF8</span></pre></section>
+    <aside class="receipts" data-hf-id="hf0205receipts"><div class="receipt" data-hf-id="hf0205r1"><strong data-hf-id="hf0205r1t">Serveur</strong><span data-hf-id="hf0205r1s">SELECT version();</span></div><div class="receipt" data-hf-id="hf0205r2"><strong data-hf-id="hf0205r2t">Session</strong><span data-hf-id="hf0205r2s">\conninfo</span></div><div class="receipt" data-hf-id="hf0205r3"><strong data-hf-id="hf0205r3t">Bases visibles</strong><span data-hf-id="hf0205r3s">\l</span></div><div class="receipt note" data-hf-id="hf0205r4"><strong data-hf-id="hf0205r4t">Objectif</strong><span data-hf-id="hf0205r4s">vérification, pas encore SQL</span></div></aside>
+  </div>
+  <script>window.__timelines=window.__timelines||{};window.__timelines["05-premieres-commandes"]=gsap.timeline({paused:true}).to({}, {duration:38}, 0);</script>
+</template>

@@ -1,0 +1,1896 @@
+{
+  "tts_provider": "external",
+  "voice_id": "teacher-wav-final",
+  "timing_source": "script-aligned",
+  "bgm": null,
+  "bgm_pending": false,
+  "bgm_provider": null,
+  "bgm_pid": null,
+  "bgm_log": null,
+  "bgm_mode": null,
+  "bgm_target_duration_s": null,
+  "bgm_seed_duration_s": null,
+  "voices": [
+    {
+      "frame": 1,
+      "path": ".media/audio/voice/voice_002_scene_01.wav",
+      "duration_s": 22.73,
+      "words": [
+        {
+          "text": "À",
+          "start": 0,
+          "end": 0.636
+        },
+        {
+          "text": "la",
+          "start": 0.758,
+          "end": 1.394
+        },
+        {
+          "text": "fin",
+          "start": 1.515,
+          "end": 2.152
+        },
+        {
+          "text": "de",
+          "start": 2.273,
+          "end": 2.909
+        },
+        {
+          "text": "cette",
+          "start": 3.031,
+          "end": 3.667
+        },
+        {
+          "text": "vidéo,",
+          "start": 3.788,
+          "end": 4.425
+        },
+        {
+          "text": "votre",
+          "start": 4.546,
+          "end": 5.182
+        },
+        {
+          "text": "poste",
+          "start": 5.304,
+          "end": 5.94
+        },
+        {
+          "text": "Windows",
+          "start": 6.061,
+          "end": 6.698
+        },
+        {
+          "text": "sera",
+          "start": 6.819,
+          "end": 7.455
+        },
+        {
+          "text": "prêt",
+          "start": 7.577,
+          "end": 8.213
+        },
+        {
+          "text": "pour",
+          "start": 8.334,
+          "end": 8.971
+        },
+        {
+          "text": "les",
+          "start": 9.092,
+          "end": 9.728
+        },
+        {
+          "text": "TP",
+          "start": 9.85,
+          "end": 10.486
+        },
+        {
+          "text": ":",
+          "start": 10.607,
+          "end": 11.244
+        },
+        {
+          "text": "PostgreSQL",
+          "start": 11.365,
+          "end": 12.001
+        },
+        {
+          "text": "Server,",
+          "start": 12.123,
+          "end": 12.759
+        },
+        {
+          "text": "pgAdmin",
+          "start": 12.88,
+          "end": 13.517
+        },
+        {
+          "text": "4",
+          "start": 13.638,
+          "end": 14.274
+        },
+        {
+          "text": "et",
+          "start": 14.396,
+          "end": 15.032
+        },
+        {
+          "text": "les",
+          "start": 15.153,
+          "end": 15.79
+        },
+        {
+          "text": "outils",
+          "start": 15.911,
+          "end": 16.547
+        },
+        {
+          "text": "en",
+          "start": 16.669,
+          "end": 17.305
+        },
+        {
+          "text": "ligne",
+          "start": 17.426,
+          "end": 18.063
+        },
+        {
+          "text": "de",
+          "start": 18.184,
+          "end": 18.82
+        },
+        {
+          "text": "commande,",
+          "start": 18.942,
+          "end": 19.578
+        },
+        {
+          "text": "notamment",
+          "start": 19.699,
+          "end": 20.336
+        },
+        {
+          "text": "psql,",
+          "start": 20.457,
+          "end": 21.093
+        },
+        {
+          "text": "seront",
+          "start": 21.215,
+          "end": 21.851
+        },
+        {
+          "text": "installés.",
+          "start": 21.972,
+          "end": 22.609
+        }
+      ]
+    },
+    {
+      "frame": 2,
+      "path": ".media/audio/voice/voice_002_scene_02.wav",
+      "duration_s": 29.69,
+      "words": [
+        {
+          "text": "Avant",
+          "start": 0,
+          "end": 0.567
+        },
+        {
+          "text": "de",
+          "start": 0.675,
+          "end": 1.242
+        },
+        {
+          "text": "commencer,",
+          "start": 1.35,
+          "end": 1.916
+        },
+        {
+          "text": "vérifiez",
+          "start": 2.024,
+          "end": 2.591
+        },
+        {
+          "text": "trois",
+          "start": 2.699,
+          "end": 3.266
+        },
+        {
+          "text": "prérequis.",
+          "start": 3.374,
+          "end": 3.941
+        },
+        {
+          "text": "Utilisez",
+          "start": 4.049,
+          "end": 4.615
+        },
+        {
+          "text": "un",
+          "start": 4.723,
+          "end": 5.29
+        },
+        {
+          "text": "compte",
+          "start": 5.398,
+          "end": 5.965
+        },
+        {
+          "text": "autorisé",
+          "start": 6.073,
+          "end": 6.64
+        },
+        {
+          "text": "à",
+          "start": 6.748,
+          "end": 7.315
+        },
+        {
+          "text": "installer",
+          "start": 7.423,
+          "end": 7.989
+        },
+        {
+          "text": "un",
+          "start": 8.097,
+          "end": 8.664
+        },
+        {
+          "text": "service",
+          "start": 8.772,
+          "end": 9.339
+        },
+        {
+          "text": "Windows,",
+          "start": 9.447,
+          "end": 10.014
+        },
+        {
+          "text": "gardez",
+          "start": 10.122,
+          "end": 10.688
+        },
+        {
+          "text": "une",
+          "start": 10.796,
+          "end": 11.363
+        },
+        {
+          "text": "connexion",
+          "start": 11.471,
+          "end": 12.038
+        },
+        {
+          "text": "Internet",
+          "start": 12.146,
+          "end": 12.713
+        },
+        {
+          "text": "stable",
+          "start": 12.821,
+          "end": 13.387
+        },
+        {
+          "text": "et",
+          "start": 13.495,
+          "end": 14.062
+        },
+        {
+          "text": "préparez",
+          "start": 14.17,
+          "end": 14.737
+        },
+        {
+          "text": "un",
+          "start": 14.845,
+          "end": 15.412
+        },
+        {
+          "text": "gestionnaire",
+          "start": 15.52,
+          "end": 16.087
+        },
+        {
+          "text": "de",
+          "start": 16.195,
+          "end": 16.761
+        },
+        {
+          "text": "mots",
+          "start": 16.869,
+          "end": 17.436
+        },
+        {
+          "text": "de",
+          "start": 17.544,
+          "end": 18.111
+        },
+        {
+          "text": "passe,",
+          "start": 18.219,
+          "end": 18.786
+        },
+        {
+          "text": "ou",
+          "start": 18.894,
+          "end": 19.46
+        },
+        {
+          "text": "une",
+          "start": 19.568,
+          "end": 20.135
+        },
+        {
+          "text": "note",
+          "start": 20.243,
+          "end": 20.81
+        },
+        {
+          "text": "privée.",
+          "start": 20.918,
+          "end": 21.485
+        },
+        {
+          "text": "Le",
+          "start": 21.593,
+          "end": 22.16
+        },
+        {
+          "text": "mot",
+          "start": 22.268,
+          "end": 22.834
+        },
+        {
+          "text": "de",
+          "start": 22.942,
+          "end": 23.509
+        },
+        {
+          "text": "passe",
+          "start": 23.617,
+          "end": 24.184
+        },
+        {
+          "text": "postgres",
+          "start": 24.292,
+          "end": 24.859
+        },
+        {
+          "text": "ne",
+          "start": 24.967,
+          "end": 25.533
+        },
+        {
+          "text": "sera",
+          "start": 25.641,
+          "end": 26.208
+        },
+        {
+          "text": "pas",
+          "start": 26.316,
+          "end": 26.883
+        },
+        {
+          "text": "affiché",
+          "start": 26.991,
+          "end": 27.558
+        },
+        {
+          "text": "une",
+          "start": 27.666,
+          "end": 28.232
+        },
+        {
+          "text": "seconde",
+          "start": 28.34,
+          "end": 28.907
+        },
+        {
+          "text": "fois.",
+          "start": 29.015,
+          "end": 29.582
+        }
+      ]
+    },
+    {
+      "frame": 3,
+      "path": ".media/audio/voice/voice_002_scene_03.wav",
+      "duration_s": 33.63,
+      "words": [
+        {
+          "text": "Ouvrez",
+          "start": 0,
+          "end": 0.614
+        },
+        {
+          "text": "la",
+          "start": 0.731,
+          "end": 1.345
+        },
+        {
+          "text": "page",
+          "start": 1.462,
+          "end": 2.076
+        },
+        {
+          "text": "officielle",
+          "start": 2.193,
+          "end": 2.807
+        },
+        {
+          "text": "postgresql.org,",
+          "start": 2.924,
+          "end": 3.538
+        },
+        {
+          "text": "puis",
+          "start": 3.655,
+          "end": 4.27
+        },
+        {
+          "text": "la",
+          "start": 4.387,
+          "end": 5.001
+        },
+        {
+          "text": "rubrique",
+          "start": 5.118,
+          "end": 5.732
+        },
+        {
+          "text": "Download,",
+          "start": 5.849,
+          "end": 6.463
+        },
+        {
+          "text": "Windows.",
+          "start": 6.58,
+          "end": 7.194
+        },
+        {
+          "text": "Choisissez",
+          "start": 7.311,
+          "end": 7.925
+        },
+        {
+          "text": "Interactive",
+          "start": 8.042,
+          "end": 8.656
+        },
+        {
+          "text": "installer",
+          "start": 8.773,
+          "end": 9.387
+        },
+        {
+          "text": "by",
+          "start": 9.504,
+          "end": 10.118
+        },
+        {
+          "text": "EDB",
+          "start": 10.235,
+          "end": 10.849
+        },
+        {
+          "text": ":",
+          "start": 10.966,
+          "end": 11.58
+        },
+        {
+          "text": "c’est",
+          "start": 11.697,
+          "end": 12.312
+        },
+        {
+          "text": "l’assistant",
+          "start": 12.428,
+          "end": 13.043
+        },
+        {
+          "text": "graphique",
+          "start": 13.16,
+          "end": 13.774
+        },
+        {
+          "text": "utilisé",
+          "start": 13.891,
+          "end": 14.505
+        },
+        {
+          "text": "dans",
+          "start": 14.622,
+          "end": 15.236
+        },
+        {
+          "text": "cette",
+          "start": 15.353,
+          "end": 15.967
+        },
+        {
+          "text": "vidéo.",
+          "start": 16.084,
+          "end": 16.698
+        },
+        {
+          "text": "Téléchargez",
+          "start": 16.815,
+          "end": 17.429
+        },
+        {
+          "text": "la",
+          "start": 17.546,
+          "end": 18.16
+        },
+        {
+          "text": "dernière",
+          "start": 18.277,
+          "end": 18.891
+        },
+        {
+          "text": "version",
+          "start": 19.008,
+          "end": 19.622
+        },
+        {
+          "text": "stable",
+          "start": 19.739,
+          "end": 20.353
+        },
+        {
+          "text": "et",
+          "start": 20.47,
+          "end": 21.085
+        },
+        {
+          "text": "prise",
+          "start": 21.202,
+          "end": 21.816
+        },
+        {
+          "text": "en",
+          "start": 21.933,
+          "end": 22.547
+        },
+        {
+          "text": "charge",
+          "start": 22.664,
+          "end": 23.278
+        },
+        {
+          "text": "pour",
+          "start": 23.395,
+          "end": 24.009
+        },
+        {
+          "text": "Windows",
+          "start": 24.126,
+          "end": 24.74
+        },
+        {
+          "text": "x86-64.",
+          "start": 24.857,
+          "end": 25.471
+        },
+        {
+          "text": "Évitez",
+          "start": 25.588,
+          "end": 26.202
+        },
+        {
+          "text": "les",
+          "start": 26.319,
+          "end": 26.933
+        },
+        {
+          "text": "versions",
+          "start": 27.05,
+          "end": 27.664
+        },
+        {
+          "text": "de",
+          "start": 27.781,
+          "end": 28.395
+        },
+        {
+          "text": "test.",
+          "start": 28.512,
+          "end": 29.127
+        },
+        {
+          "text": "Pausez",
+          "start": 29.243,
+          "end": 29.858
+        },
+        {
+          "text": "ici",
+          "start": 29.975,
+          "end": 30.589
+        },
+        {
+          "text": "pour",
+          "start": 30.706,
+          "end": 31.32
+        },
+        {
+          "text": "terminer",
+          "start": 31.437,
+          "end": 32.051
+        },
+        {
+          "text": "le",
+          "start": 32.168,
+          "end": 32.782
+        },
+        {
+          "text": "téléchargement.",
+          "start": 32.899,
+          "end": 33.513
+        }
+      ]
+    },
+    {
+      "frame": 4,
+      "path": ".media/audio/voice/voice_002_scene_04.wav",
+      "duration_s": 38.65,
+      "words": [
+        {
+          "text": "Exécutez",
+          "start": 0,
+          "end": 0.499
+        },
+        {
+          "text": "le",
+          "start": 0.595,
+          "end": 1.094
+        },
+        {
+          "text": "fichier",
+          "start": 1.189,
+          "end": 1.689
+        },
+        {
+          "text": "en",
+          "start": 1.784,
+          "end": 2.283
+        },
+        {
+          "text": "tant",
+          "start": 2.378,
+          "end": 2.878
+        },
+        {
+          "text": "qu’administrateur",
+          "start": 2.973,
+          "end": 3.473
+        },
+        {
+          "text": "et",
+          "start": 3.568,
+          "end": 4.067
+        },
+        {
+          "text": "acceptez",
+          "start": 4.162,
+          "end": 4.662
+        },
+        {
+          "text": "la",
+          "start": 4.757,
+          "end": 5.256
+        },
+        {
+          "text": "demande",
+          "start": 5.352,
+          "end": 5.851
+        },
+        {
+          "text": "de",
+          "start": 5.946,
+          "end": 6.446
+        },
+        {
+          "text": "Windows.",
+          "start": 6.541,
+          "end": 7.04
+        },
+        {
+          "text": "Conservez",
+          "start": 7.135,
+          "end": 7.635
+        },
+        {
+          "text": "les",
+          "start": 7.73,
+          "end": 8.229
+        },
+        {
+          "text": "dossiers",
+          "start": 8.325,
+          "end": 8.824
+        },
+        {
+          "text": "proposés",
+          "start": 8.919,
+          "end": 9.419
+        },
+        {
+          "text": ":",
+          "start": 9.514,
+          "end": 10.013
+        },
+        {
+          "text": "cela",
+          "start": 10.108,
+          "end": 10.608
+        },
+        {
+          "text": "évite",
+          "start": 10.703,
+          "end": 11.203
+        },
+        {
+          "text": "les",
+          "start": 11.298,
+          "end": 11.797
+        },
+        {
+          "text": "problèmes",
+          "start": 11.892,
+          "end": 12.392
+        },
+        {
+          "text": "de",
+          "start": 12.487,
+          "end": 12.986
+        },
+        {
+          "text": "droits",
+          "start": 13.082,
+          "end": 13.581
+        },
+        {
+          "text": "et",
+          "start": 13.676,
+          "end": 14.176
+        },
+        {
+          "text": "simplifie",
+          "start": 14.271,
+          "end": 14.77
+        },
+        {
+          "text": "les",
+          "start": 14.865,
+          "end": 15.365
+        },
+        {
+          "text": "prochains",
+          "start": 15.46,
+          "end": 15.959
+        },
+        {
+          "text": "TP.",
+          "start": 16.055,
+          "end": 16.554
+        },
+        {
+          "text": "Dans",
+          "start": 16.649,
+          "end": 17.149
+        },
+        {
+          "text": "Select",
+          "start": 17.244,
+          "end": 17.743
+        },
+        {
+          "text": "Components,",
+          "start": 17.838,
+          "end": 18.338
+        },
+        {
+          "text": "gardez",
+          "start": 18.433,
+          "end": 18.933
+        },
+        {
+          "text": "PostgreSQL",
+          "start": 19.028,
+          "end": 19.527
+        },
+        {
+          "text": "Server,",
+          "start": 19.622,
+          "end": 20.122
+        },
+        {
+          "text": "qui",
+          "start": 20.217,
+          "end": 20.716
+        },
+        {
+          "text": "exécute",
+          "start": 20.812,
+          "end": 21.311
+        },
+        {
+          "text": "la",
+          "start": 21.406,
+          "end": 21.906
+        },
+        {
+          "text": "base",
+          "start": 22.001,
+          "end": 22.5
+        },
+        {
+          "text": "de",
+          "start": 22.595,
+          "end": 23.095
+        },
+        {
+          "text": "données;",
+          "start": 23.19,
+          "end": 23.689
+        },
+        {
+          "text": "pgAdmin",
+          "start": 23.785,
+          "end": 24.284
+        },
+        {
+          "text": "4,",
+          "start": 24.379,
+          "end": 24.879
+        },
+        {
+          "text": "l’interface",
+          "start": 24.974,
+          "end": 25.473
+        },
+        {
+          "text": "graphique;",
+          "start": 25.568,
+          "end": 26.068
+        },
+        {
+          "text": "et",
+          "start": 26.163,
+          "end": 26.663
+        },
+        {
+          "text": "Command",
+          "start": 26.758,
+          "end": 27.257
+        },
+        {
+          "text": "Line",
+          "start": 27.352,
+          "end": 27.852
+        },
+        {
+          "text": "Tools,",
+          "start": 27.947,
+          "end": 28.446
+        },
+        {
+          "text": "qui",
+          "start": 28.542,
+          "end": 29.041
+        },
+        {
+          "text": "contient",
+          "start": 29.136,
+          "end": 29.636
+        },
+        {
+          "text": "notamment",
+          "start": 29.731,
+          "end": 30.23
+        },
+        {
+          "text": "psql.",
+          "start": 30.325,
+          "end": 30.825
+        },
+        {
+          "text": "Stack",
+          "start": 30.92,
+          "end": 31.419
+        },
+        {
+          "text": "Builder",
+          "start": 31.515,
+          "end": 32.014
+        },
+        {
+          "text": "ajoute",
+          "start": 32.109,
+          "end": 32.609
+        },
+        {
+          "text": "des",
+          "start": 32.704,
+          "end": 33.203
+        },
+        {
+          "text": "pilotes",
+          "start": 33.298,
+          "end": 33.798
+        },
+        {
+          "text": "et",
+          "start": 33.893,
+          "end": 34.393
+        },
+        {
+          "text": "extensions;",
+          "start": 34.488,
+          "end": 34.987
+        },
+        {
+          "text": "il",
+          "start": 35.082,
+          "end": 35.582
+        },
+        {
+          "text": "reste",
+          "start": 35.677,
+          "end": 36.176
+        },
+        {
+          "text": "optionnel",
+          "start": 36.272,
+          "end": 36.771
+        },
+        {
+          "text": "pour",
+          "start": 36.866,
+          "end": 37.366
+        },
+        {
+          "text": "le",
+          "start": 37.461,
+          "end": 37.96
+        },
+        {
+          "text": "moment.",
+          "start": 38.055,
+          "end": 38.555
+        }
+      ]
+    },
+    {
+      "frame": 5,
+      "path": ".media/audio/voice/voice_002_scene_05.wav",
+      "duration_s": 41.05,
+      "words": [
+        {
+          "text": "Sur",
+          "start": 0,
+          "end": 0.507
+        },
+        {
+          "text": "l’écran",
+          "start": 0.604,
+          "end": 1.111
+        },
+        {
+          "text": "Password,",
+          "start": 1.207,
+          "end": 1.714
+        },
+        {
+          "text": "créez",
+          "start": 1.811,
+          "end": 2.318
+        },
+        {
+          "text": "un",
+          "start": 2.415,
+          "end": 2.922
+        },
+        {
+          "text": "mot",
+          "start": 3.018,
+          "end": 3.525
+        },
+        {
+          "text": "de",
+          "start": 3.622,
+          "end": 4.129
+        },
+        {
+          "text": "passe",
+          "start": 4.226,
+          "end": 4.733
+        },
+        {
+          "text": "solide",
+          "start": 4.829,
+          "end": 5.337
+        },
+        {
+          "text": "pour",
+          "start": 5.433,
+          "end": 5.94
+        },
+        {
+          "text": "le",
+          "start": 6.037,
+          "end": 6.544
+        },
+        {
+          "text": "superutilisateur",
+          "start": 6.64,
+          "end": 7.148
+        },
+        {
+          "text": "postgres,",
+          "start": 7.244,
+          "end": 7.751
+        },
+        {
+          "text": "saisissez-le",
+          "start": 7.848,
+          "end": 8.355
+        },
+        {
+          "text": "deux",
+          "start": 8.451,
+          "end": 8.959
+        },
+        {
+          "text": "fois",
+          "start": 9.055,
+          "end": 9.562
+        },
+        {
+          "text": "et",
+          "start": 9.659,
+          "end": 10.166
+        },
+        {
+          "text": "conservez-le.",
+          "start": 10.262,
+          "end": 10.77
+        },
+        {
+          "text": "Il",
+          "start": 10.866,
+          "end": 11.373
+        },
+        {
+          "text": "protège",
+          "start": 11.47,
+          "end": 11.977
+        },
+        {
+          "text": "le",
+          "start": 12.074,
+          "end": 12.581
+        },
+        {
+          "text": "compte",
+          "start": 12.677,
+          "end": 13.184
+        },
+        {
+          "text": "d’administration",
+          "start": 13.281,
+          "end": 13.788
+        },
+        {
+          "text": "et",
+          "start": 13.885,
+          "end": 14.392
+        },
+        {
+          "text": "sera",
+          "start": 14.488,
+          "end": 14.995
+        },
+        {
+          "text": "demandé",
+          "start": 15.092,
+          "end": 15.599
+        },
+        {
+          "text": "lors",
+          "start": 15.696,
+          "end": 16.203
+        },
+        {
+          "text": "de",
+          "start": 16.299,
+          "end": 16.806
+        },
+        {
+          "text": "la",
+          "start": 16.903,
+          "end": 17.41
+        },
+        {
+          "text": "première",
+          "start": 17.507,
+          "end": 18.014
+        },
+        {
+          "text": "connexion.",
+          "start": 18.11,
+          "end": 18.617
+        },
+        {
+          "text": "Pausez",
+          "start": 18.714,
+          "end": 19.221
+        },
+        {
+          "text": "ici",
+          "start": 19.318,
+          "end": 19.825
+        },
+        {
+          "text": "avant",
+          "start": 19.921,
+          "end": 20.428
+        },
+        {
+          "text": "de",
+          "start": 20.525,
+          "end": 21.032
+        },
+        {
+          "text": "continuer.",
+          "start": 21.129,
+          "end": 21.636
+        },
+        {
+          "text": "Gardez",
+          "start": 21.732,
+          "end": 22.239
+        },
+        {
+          "text": "ensuite",
+          "start": 22.336,
+          "end": 22.843
+        },
+        {
+          "text": "le",
+          "start": 22.94,
+          "end": 23.447
+        },
+        {
+          "text": "port",
+          "start": 23.543,
+          "end": 24.05
+        },
+        {
+          "text": "5432",
+          "start": 24.147,
+          "end": 24.654
+        },
+        {
+          "text": ":",
+          "start": 24.751,
+          "end": 25.258
+        },
+        {
+          "text": "c’est",
+          "start": 25.354,
+          "end": 25.861
+        },
+        {
+          "text": "le",
+          "start": 25.958,
+          "end": 26.465
+        },
+        {
+          "text": "port",
+          "start": 26.562,
+          "end": 27.069
+        },
+        {
+          "text": "PostgreSQL",
+          "start": 27.165,
+          "end": 27.673
+        },
+        {
+          "text": "par",
+          "start": 27.769,
+          "end": 28.276
+        },
+        {
+          "text": "défaut.",
+          "start": 28.373,
+          "end": 28.88
+        },
+        {
+          "text": "Conservez",
+          "start": 28.976,
+          "end": 29.484
+        },
+        {
+          "text": "aussi",
+          "start": 29.58,
+          "end": 30.087
+        },
+        {
+          "text": "la",
+          "start": 30.184,
+          "end": 30.691
+        },
+        {
+          "text": "locale",
+          "start": 30.787,
+          "end": 31.295
+        },
+        {
+          "text": "proposée",
+          "start": 31.391,
+          "end": 31.898
+        },
+        {
+          "text": "par",
+          "start": 31.995,
+          "end": 32.502
+        },
+        {
+          "text": "Windows;",
+          "start": 32.599,
+          "end": 33.106
+        },
+        {
+          "text": "elle",
+          "start": 33.202,
+          "end": 33.709
+        },
+        {
+          "text": "définit",
+          "start": 33.806,
+          "end": 34.313
+        },
+        {
+          "text": "notamment",
+          "start": 34.41,
+          "end": 34.917
+        },
+        {
+          "text": "les",
+          "start": 35.013,
+          "end": 35.52
+        },
+        {
+          "text": "règles",
+          "start": 35.617,
+          "end": 36.124
+        },
+        {
+          "text": "de",
+          "start": 36.221,
+          "end": 36.728
+        },
+        {
+          "text": "tri",
+          "start": 36.824,
+          "end": 37.331
+        },
+        {
+          "text": "et",
+          "start": 37.428,
+          "end": 37.935
+        },
+        {
+          "text": "de",
+          "start": 38.032,
+          "end": 38.539
+        },
+        {
+          "text": "formatage",
+          "start": 38.635,
+          "end": 39.142
+        },
+        {
+          "text": "du",
+          "start": 39.239,
+          "end": 39.746
+        },
+        {
+          "text": "nouveau",
+          "start": 39.843,
+          "end": 40.35
+        },
+        {
+          "text": "cluster.",
+          "start": 40.446,
+          "end": 40.953
+        }
+      ]
+    },
+    {
+      "frame": 6,
+      "path": ".media/audio/voice/voice_002_scene_06.wav",
+      "duration_s": 37.88,
+      "words": [
+        {
+          "text": "Avant",
+          "start": 0,
+          "end": 0.513
+        },
+        {
+          "text": "l’installation,",
+          "start": 0.611,
+          "end": 1.124
+        },
+        {
+          "text": "relisez",
+          "start": 1.222,
+          "end": 1.735
+        },
+        {
+          "text": "le",
+          "start": 1.833,
+          "end": 2.346
+        },
+        {
+          "text": "résumé",
+          "start": 2.444,
+          "end": 2.957
+        },
+        {
+          "text": ":",
+          "start": 3.055,
+          "end": 3.568
+        },
+        {
+          "text": "composants,",
+          "start": 3.666,
+          "end": 4.179
+        },
+        {
+          "text": "dossiers,",
+          "start": 4.277,
+          "end": 4.79
+        },
+        {
+          "text": "port",
+          "start": 4.888,
+          "end": 5.401
+        },
+        {
+          "text": "et",
+          "start": 5.499,
+          "end": 6.012
+        },
+        {
+          "text": "locale.",
+          "start": 6.11,
+          "end": 6.623
+        },
+        {
+          "text": "Utilisez",
+          "start": 6.721,
+          "end": 7.234
+        },
+        {
+          "text": "Back",
+          "start": 7.332,
+          "end": 7.845
+        },
+        {
+          "text": "si",
+          "start": 7.943,
+          "end": 8.456
+        },
+        {
+          "text": "une",
+          "start": 8.554,
+          "end": 9.067
+        },
+        {
+          "text": "valeur",
+          "start": 9.165,
+          "end": 9.678
+        },
+        {
+          "text": "est",
+          "start": 9.775,
+          "end": 10.289
+        },
+        {
+          "text": "incorrecte;",
+          "start": 10.386,
+          "end": 10.9
+        },
+        {
+          "text": "sinon,",
+          "start": 10.997,
+          "end": 11.511
+        },
+        {
+          "text": "cliquez",
+          "start": 11.608,
+          "end": 12.122
+        },
+        {
+          "text": "sur",
+          "start": 12.219,
+          "end": 12.733
+        },
+        {
+          "text": "Next.",
+          "start": 12.83,
+          "end": 13.344
+        },
+        {
+          "text": "L’assistant",
+          "start": 13.441,
+          "end": 13.955
+        },
+        {
+          "text": "copie",
+          "start": 14.052,
+          "end": 14.565
+        },
+        {
+          "text": "les",
+          "start": 14.663,
+          "end": 15.176
+        },
+        {
+          "text": "fichiers,",
+          "start": 15.274,
+          "end": 15.787
+        },
+        {
+          "text": "initialise",
+          "start": 15.885,
+          "end": 16.398
+        },
+        {
+          "text": "le",
+          "start": 16.496,
+          "end": 17.009
+        },
+        {
+          "text": "cluster",
+          "start": 17.107,
+          "end": 17.62
+        },
+        {
+          "text": "et",
+          "start": 17.718,
+          "end": 18.231
+        },
+        {
+          "text": "démarre",
+          "start": 18.329,
+          "end": 18.842
+        },
+        {
+          "text": "PostgreSQL",
+          "start": 18.94,
+          "end": 19.453
+        },
+        {
+          "text": "comme",
+          "start": 19.551,
+          "end": 20.064
+        },
+        {
+          "text": "service",
+          "start": 20.162,
+          "end": 20.675
+        },
+        {
+          "text": "Windows.",
+          "start": 20.773,
+          "end": 21.286
+        },
+        {
+          "text": "Attendez",
+          "start": 21.384,
+          "end": 21.897
+        },
+        {
+          "text": "le",
+          "start": 21.995,
+          "end": 22.508
+        },
+        {
+          "text": "message",
+          "start": 22.606,
+          "end": 23.119
+        },
+        {
+          "text": "de",
+          "start": 23.217,
+          "end": 23.73
+        },
+        {
+          "text": "réussite.",
+          "start": 23.828,
+          "end": 24.341
+        },
+        {
+          "text": "Sur",
+          "start": 24.439,
+          "end": 24.952
+        },
+        {
+          "text": "le",
+          "start": 25.05,
+          "end": 25.563
+        },
+        {
+          "text": "dernier",
+          "start": 25.661,
+          "end": 26.174
+        },
+        {
+          "text": "écran,",
+          "start": 26.272,
+          "end": 26.785
+        },
+        {
+          "text": "décochez",
+          "start": 26.883,
+          "end": 27.396
+        },
+        {
+          "text": "Launch",
+          "start": 27.494,
+          "end": 28.007
+        },
+        {
+          "text": "Stack",
+          "start": 28.105,
+          "end": 28.618
+        },
+        {
+          "text": "Builder",
+          "start": 28.715,
+          "end": 29.229
+        },
+        {
+          "text": "at",
+          "start": 29.326,
+          "end": 29.84
+        },
+        {
+          "text": "exit,",
+          "start": 29.937,
+          "end": 30.451
+        },
+        {
+          "text": "puis",
+          "start": 30.548,
+          "end": 31.062
+        },
+        {
+          "text": "cliquez",
+          "start": 31.159,
+          "end": 31.673
+        },
+        {
+          "text": "sur",
+          "start": 31.77,
+          "end": 32.284
+        },
+        {
+          "text": "Finish.",
+          "start": 32.381,
+          "end": 32.895
+        },
+        {
+          "text": "Vous",
+          "start": 32.992,
+          "end": 33.505
+        },
+        {
+          "text": "pourrez",
+          "start": 33.603,
+          "end": 34.116
+        },
+        {
+          "text": "toujours",
+          "start": 34.214,
+          "end": 34.727
+        },
+        {
+          "text": "ouvrir",
+          "start": 34.825,
+          "end": 35.338
+        },
+        {
+          "text": "Stack",
+          "start": 35.436,
+          "end": 35.949
+        },
+        {
+          "text": "Builder",
+          "start": 36.047,
+          "end": 36.56
+        },
+        {
+          "text": "plus",
+          "start": 36.658,
+          "end": 37.171
+        },
+        {
+          "text": "tard.",
+          "start": 37.269,
+          "end": 37.782
+        }
+      ]
+    },
+    {
+      "frame": 7,
+      "path": ".media/audio/voice/voice_002_scene_07.wav",
+      "duration_s": 7.65,
+      "words": [
+        {
+          "text": "L’installation",
+          "start": 0,
+          "end": 0.126
+        },
+        {
+          "text": "est",
+          "start": 0.15,
+          "end": 0.276
+        },
+        {
+          "text": "terminée",
+          "start": 0.3,
+          "end": 0.426
+        },
+        {
+          "text": "lorsque",
+          "start": 0.45,
+          "end": 0.576
+        },
+        {
+          "text": "SQL",
+          "start": 0.6,
+          "end": 0.726
+        },
+        {
+          "text": "Shell,",
+          "start": 0.75,
+          "end": 0.876
+        },
+        {
+          "text": "psql,",
+          "start": 0.9,
+          "end": 1.026
+        },
+        {
+          "text": "et",
+          "start": 1.05,
+          "end": 1.176
+        },
+        {
+          "text": "pgAdmin",
+          "start": 1.2,
+          "end": 1.326
+        },
+        {
+          "text": "4",
+          "start": 1.35,
+          "end": 1.476
+        },
+        {
+          "text": "apparaissent",
+          "start": 1.5,
+          "end": 1.626
+        },
+        {
+          "text": "dans",
+          "start": 1.65,
+          "end": 1.776
+        },
+        {
+          "text": "le",
+          "start": 1.8,
+          "end": 1.926
+        },
+        {
+          "text": "menu",
+          "start": 1.95,
+          "end": 2.076
+        },
+        {
+          "text": "Démarrer.",
+          "start": 2.1,
+          "end": 2.226
+        },
+        {
+          "text": "Si",
+          "start": 2.25,
+          "end": 2.376
+        },
+        {
+          "text": "la",
+          "start": 2.4,
+          "end": 2.526
+        },
+        {
+          "text": "commande",
+          "start": 2.55,
+          "end": 2.676
+        },
+        {
+          "text": "psql",
+          "start": 2.7,
+          "end": 2.826
+        },
+        {
+          "text": "n’est",
+          "start": 2.85,
+          "end": 2.976
+        },
+        {
+          "text": "pas",
+          "start": 3,
+          "end": 3.126
+        },
+        {
+          "text": "reconnue",
+          "start": 3.15,
+          "end": 3.276
+        },
+        {
+          "text": "dans",
+          "start": 3.3,
+          "end": 3.426
+        },
+        {
+          "text": "un",
+          "start": 3.45,
+          "end": 3.576
+        },
+        {
+          "text": "terminal",
+          "start": 3.6,
+          "end": 3.726
+        },
+        {
+          "text": "ordinaire,",
+          "start": 3.75,
+          "end": 3.876
+        },
+        {
+          "text": "ce",
+          "start": 3.9,
+          "end": 4.026
+        },
+        {
+          "text": "n’est",
+          "start": 4.05,
+          "end": 4.176
+        },
+        {
+          "text": "pas",
+          "start": 4.2,
+          "end": 4.326
+        },
+        {
+          "text": "un",
+          "start": 4.35,
+          "end": 4.476
+        },
+        {
+          "text": "échec",
+          "start": 4.5,
+          "end": 4.626
+        },
+        {
+          "text": ":",
+          "start": 4.65,
+          "end": 4.776
+        },
+        {
+          "text": "l’installateur",
+          "start": 4.8,
+          "end": 4.926
+        },
+        {
+          "text": "ne",
+          "start": 4.95,
+          "end": 5.076
+        },
+        {
+          "text": "modifie",
+          "start": 5.1,
+          "end": 5.226
+        },
+        {
+          "text": "pas",
+          "start": 5.25,
+          "end": 5.376
+        },
+        {
+          "text": "automatiquement",
+          "start": 5.4,
+          "end": 5.526
+        },
+        {
+          "text": "le",
+          "start": 5.55,
+          "end": 5.676
+        },
+        {
+          "text": "PATH.",
+          "start": 5.7,
+          "end": 5.826
+        },
+        {
+          "text": "Dans",
+          "start": 5.85,
+          "end": 5.976
+        },
+        {
+          "text": "l’épisode",
+          "start": 6,
+          "end": 6.126
+        },
+        {
+          "text": "suivant,",
+          "start": 6.15,
+          "end": 6.276
+        },
+        {
+          "text": "nous",
+          "start": 6.3,
+          "end": 6.426
+        },
+        {
+          "text": "utiliserons",
+          "start": 6.45,
+          "end": 6.576
+        },
+        {
+          "text": "SQL",
+          "start": 6.6,
+          "end": 6.726
+        },
+        {
+          "text": "Shell",
+          "start": 6.75,
+          "end": 6.876
+        },
+        {
+          "text": "pour",
+          "start": 6.9,
+          "end": 7.026
+        },
+        {
+          "text": "effectuer",
+          "start": 7.05,
+          "end": 7.176
+        },
+        {
+          "text": "la",
+          "start": 7.2,
+          "end": 7.326
+        },
+        {
+          "text": "première",
+          "start": 7.35,
+          "end": 7.476
+        },
+        {
+          "text": "connexion.",
+          "start": 7.5,
+          "end": 7.626
+        }
+      ]
+    }
+  ],
+  "sfx": [],
+  "total_duration_s": 211.28
+}

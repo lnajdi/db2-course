@@ -1,0 +1,12 @@
+{
+  "name": "postgresql-labs-01-installation-fr",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes@0.7.88 preview",
+    "captions": "node tools/build-captions.mjs",
+    "check": "npx --yes hyperframes@0.7.88 check",
+    "render": "npx --yes hyperframes@0.7.88 render",
+    "publish": "npx --yes hyperframes@0.7.88 publish"
+  }
+}

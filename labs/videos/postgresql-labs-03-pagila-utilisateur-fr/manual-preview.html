@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Preview - PostgreSQL labs 03</title>
+    <style>
+      @font-face { font-family: "Literata"; src: local("Literata"); }
+      @font-face { font-family: "Instrument Sans"; src: local("Instrument Sans"); }
+      @font-face { font-family: "Geist Mono"; src: local("Geist Mono"); }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #f7f4ee;
+        color: #182126;
+        font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 1px solid #d9dedf;
+        background: rgba(247, 244, 238, 0.94);
+        padding: 18px 32px;
+      }
+      h1 {
+        margin: 0;
+        font-family: Literata, Georgia, serif;
+        font-size: 34px;
+        font-weight: 400;
+      }
+      main {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+        gap: 24px;
+        padding: 32px;
+      }
+      article {
+        min-height: 360px;
+        border: 1px solid #d9dedf;
+        border-radius: 8px;
+        background: #fff;
+        padding: 28px;
+        box-shadow: 0 1px 3px rgba(24, 33, 38, 0.08), 0 4px 16px rgba(24, 33, 38, 0.04);
+      }
+      .kicker {
+        color: #0d4f68;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 15px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      h2 {
+        margin: 12px 0 16px;
+        font-family: Literata, Georgia, serif;
+        font-size: 34px;
+        font-weight: 400;
+      }
+      p, li {
+        font-size: 18px;
+        line-height: 1.45;
+      }
+      pre {
+        overflow-x: auto;
+        border-radius: 8px;
+        background: #151718;
+        color: #f7f4ee;
+        padding: 18px;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 16px;
+        line-height: 1.45;
+      }
+      .warn {
+        border-radius: 999px;
+        background: #f8f0dc;
+        color: #624a35;
+        display: inline-block;
+        padding: 8px 12px;
+        font-family: "Geist Mono", Consolas, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>PostgreSQL labs 03 - Pagila et utilisateur personnel</h1>
+    </header>
+    <main>
+      <article>
+        <div class="kicker">0-24s</div>
+        <h2>Objectif</h2>
+        <p>Base `pagila` prête, fichiers officiels importés dans le bon ordre, utilisateur personnel pour travailler sans rester connecté comme `postgres`.</p>
+      </article>
+      <article>
+        <div class="kicker">24-72s</div>
+        <h2>Dossier et fichiers</h2>
+        <p>`C:\Pagila_Project` contient les deux fichiers SQL officiels, sauvegardés avec leurs noms exacts.</p>
+        <pre>https://github.com/devrimgunduz/pagila
+https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-schema.sql
+https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-data.sql</pre>
+        <p class="warn">clic droit -> enregistrer sous · ne pas modifier</p>
+      </article>
+      <article>
+        <div class="kicker">72-102s</div>
+        <h2>Créer la base</h2>
+        <pre>CREATE DATABASE pagila;
+\c pagila</pre>
+        <p>`postgres` sert au setup et à l'administration.</p>
+      </article>
+      <article>
+        <div class="kicker">102-142s</div>
+        <h2>Importer le schéma</h2>
+        <pre>\i 'C:/Pagila_Project/pagila-schema.sql'</pre>
+        <p>Le schéma crée les tables, les clés et les contraintes. Slashs `/` dans `psql`.</p>
+      </article>
+      <article>
+        <div class="kicker">142-178s</div>
+        <h2>Importer les données</h2>
+        <pre>\i 'C:/Pagila_Project/pagila-data.sql'
+INSERT 0 1
+COPY 1000
+pagila=#</pre>
+        <p>Les données remplissent les tables existantes. Attendre le retour de `pagila=#`.</p>
+      </article>
+      <article>
+        <div class="kicker">178-220s</div>
+        <h2>Utilisateur personnel</h2>
+        <pre>CREATE ROLE karim WITH LOGIN PASSWORD 'votre_mot_de_passe';
+GRANT ALL PRIVILEGES ON DATABASE pagila TO karim;
+GRANT ALL ON SCHEMA public TO karim;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO karim;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO karim;</pre>
+        <p>`karim` est un exemple; utiliser son prénom en minuscules. Mot de passe privé.</p>
+      </article>
+      <article>
+        <div class="kicker">220-252s</div>
+        <h2>Connexion CMD</h2>
+        <pre>psql -h localhost -p 5432 -U karim -d pagila</pre>
+        <p>`-h` hôte, `-p` port, `-U` utilisateur, `-d` base. Si `psql` n'est pas reconnu: revoir PATH ou utiliser SQL Shell.</p>
+      </article>
+      <article>
+        <div class="kicker">252-276s</div>
+        <h2>Méta-commandes psql</h2>
+        <pre>\dt      -- liste les tables
+\d film  -- décrit une table
+\du      -- liste les rôles
+\c pagila -- change de base
+\q       -- quitte psql</pre>
+        <p>Ce n'est pas du SQL et il n'y a pas de point-virgule.</p>
+      </article>
+      <article>
+        <div class="kicker">276-296s</div>
+        <h2>Vérifier et dépanner</h2>
+        <pre>\dt
+SELECT COUNT(*) FROM film;</pre>
+        <p>Si le schéma contient `OWNER TO student`, retélécharger le fichier officiel au lieu de l'éditer.</p>
+      </article>
+    </main>
+  </body>
+</html>

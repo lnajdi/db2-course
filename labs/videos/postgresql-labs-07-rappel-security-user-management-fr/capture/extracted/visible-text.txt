@@ -1,0 +1,26 @@
+Source brief:
+
+Create a French faceless explainer for beginners before lab03-PostgreSQL-Security-UserManagement.
+The video should mainly recall and confirm course understanding of core concepts before students start the lab.
+
+Target project: postgresql-labs-07-rappel-security-user-management-fr
+Source files:
+- ../lab03-PostgreSQL-Security-UserManagement/README.md
+- ../lab03-PostgreSQL-Security-UserManagement/lab03-PostgreSQL-Security-UserManagement.sql
+
+Duration: about 260s
+Format: 1920x1080, YouTube, embedded French captions, no music, external final teacher voice.
+Visible title: Rappel - Roles, Schemas et Securite PostgreSQL.
+
+Concepts extracted from the source lab:
+- PostgreSQL role: database identity that can own objects and receive privileges.
+- PostgreSQL user: role with LOGIN that can connect.
+- Privileges: CONNECT, USAGE, SELECT, INSERT, CREATE, plus object-specific rights.
+- PostgreSQL denies access unless a required permission exists.
+- Least privilege: grant only what is needed.
+- Schemas organize objects and form security boundaries.
+- USAGE on a schema is not CREATE on that schema.
+- Inserting into SERIAL-backed tables may require sequence privileges.
+- Row-Level Security filters rows after normal table privileges allow object access.
+- The lab names app_user, analyst_user, view_reader, analyst_role, app_data, tasks, and user_tasks_policy.
+- Verification is part of the lab: test as the limited user, read permission errors, inspect pg_roles, pg_auth_members, information_schema, pg_tables and pg_policies.

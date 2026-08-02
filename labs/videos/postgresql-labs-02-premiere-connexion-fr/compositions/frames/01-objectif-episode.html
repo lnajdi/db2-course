@@ -1,0 +1,25 @@
+<template>
+  <style>
+    #root{position:relative;width:1920px;height:1080px;overflow:hidden;container-type:size;color:#182126}
+    #root *{box-sizing:border-box}.clip{position:absolute;inset:0;background:#F7F4EE;overflow:hidden}
+    .grid{position:absolute;inset:0;opacity:.42;background-image:linear-gradient(rgba(24,33,38,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(24,33,38,.045) 1px,transparent 1px);background-size:48px 48px}
+    .wash{position:absolute;left:0;top:0;width:62%;height:100%;background:#F0F2F1}
+    .copy{position:absolute;left:80px;top:168px;width:840px}.kicker{font:500 28px/1 monospace;letter-spacing:.16em;text-transform:uppercase;margin-bottom:44px}.spike{color:#0D4F68;font:400 38px/0 serif;margin-right:14px}
+    h1{font:400 116px/.98 serif;letter-spacing:-.035em;margin:0}.lede{margin-top:34px;color:#5D686E;font:430 36px/1.28 sans-serif;width:720px}
+    .checklist{position:absolute;right:110px;top:172px;width:690px;display:grid;gap:18px}.item{display:grid;grid-template-columns:78px 1fr;align-items:center;min-height:112px;padding:24px 30px;border:1px solid rgba(24,33,38,.14);border-radius:12px;background:#fff;box-shadow:0 1px 3px rgba(24,33,38,.08),0 4px 16px rgba(24,33,38,.04)}
+    .num{font:500 24px/1 monospace;color:#0D4F68;letter-spacing:.08em}.text{font:500 39px/1.1 sans-serif;letter-spacing:-.02em}.prompt{position:absolute;left:80px;top:790px;padding-top:22px;border-top:1px solid rgba(24,33,38,.16);font:500 34px/1.1 monospace;color:#151718}
+  </style>
+  <div id="root" data-hf-id="hf0201root" data-composition-id="01-objectif-episode" data-start="0" data-duration="22" data-width="1920" data-height="1080">
+    <div id="f01-ground" class="clip" data-hf-id="hf0201clip" data-start="0" data-duration="22" data-track-index="0"><div class="wash" data-hf-id="hf0201wash"></div><div class="grid" data-hf-id="hf0201grid"></div></div>
+    <section class="copy" data-hf-id="hf0201copy"><div class="kicker" data-hf-id="hf0201kicker"><span class="spike" data-hf-id="hf0201spike">✱</span>02/08 · CONNEXION</div><h1 data-hf-id="hf0201title">Première connexion locale</h1><p class="lede" data-hf-id="hf0201lede">Un parcours court pour ouvrir SQL Shell, vérifier la session et quitter proprement.</p></section>
+    <div class="checklist" data-hf-id="hf0201list">
+      <div class="item" data-hf-id="hf0201i1"><span class="num" data-hf-id="hf0201n1">01</span><span class="text" data-hf-id="hf0201t1">Ouvrir SQL Shell</span></div>
+      <div class="item" data-hf-id="hf0201i2"><span class="num" data-hf-id="hf0201n2">02</span><span class="text" data-hf-id="hf0201t2">Répondre aux prompts</span></div>
+      <div class="item" data-hf-id="hf0201i3"><span class="num" data-hf-id="hf0201n3">03</span><span class="text" data-hf-id="hf0201t3">Reconnaître l'invite</span></div>
+      <div class="item" data-hf-id="hf0201i4"><span class="num" data-hf-id="hf0201n4">04</span><span class="text" data-hf-id="hf0201t4">Vérifier la connexion</span></div>
+      <div class="item" data-hf-id="hf0201i5"><span class="num" data-hf-id="hf0201n5">05</span><span class="text" data-hf-id="hf0201t5">Quitter avec \q</span></div>
+    </div>
+    <div class="prompt" data-hf-id="hf0201prompt">repère attendu · postgres=#</div>
+  </div>
+  <script>window.__timelines=window.__timelines||{};window.__timelines["01-objectif-episode"]=gsap.timeline({paused:true}).to({}, {duration:22}, 0);</script>
+</template>

@@ -1,0 +1,69 @@
+Structure de cette leçon : Fonctions et procédures en PL/pgSQL
+1. Introduction
+Définition des fonctions et procédures comme blocs de code réutilisables stockés dans la base de données.
+Principe : écrire une fois et réutiliser avec différentes entrées.
+2. Différence entre fonction et procédure
+Une fonction calcule et retourne une valeur.
+Une procédure exécute une action.
+Fonction appelée avec SELECT.
+Procédure appelée avec CALL.
+3. Cas d’utilisation et avantages
+Calculs, validations et recherches avec les fonctions.
+Mises à jour, remboursements et traitements avec les procédures.
+Réutilisation du code, maintenance simplifiée, performance et sécurité.
+4. Création des fonctions
+Syntaxe CREATE OR REPLACE FUNCTION.
+Type de retour avec RETURNS.
+Utilisation de RETURN.
+Premier exemple : say_hello().
+5. Paramètres et types de données
+Passage de valeurs à une fonction.
+Fonctions avec un ou plusieurs paramètres.
+Respect des types : TEXT, INTEGER, NUMERIC, etc.
+Conversion avec CAST ou ::.
+6. Fonctions de calcul
+Addition de nombres.
+Calcul d’une taxe.
+Calcul de réductions avec IF, ELSIF et ELSE.
+Utilisation d’une fonction dans une requête SQL réelle.
+7. Variables dans les fonctions
+Déclaration avec DECLARE.
+Affectation avec :=.
+Appel d’une fonction depuis une autre fonction.
+Portée, durée de vie et isolation des variables.
+8. Fonctions retournant une table
+Utilisation de RETURNS TABLE.
+Retour de plusieurs lignes avec RETURN QUERY.
+Appel avec SELECT * FROM fonction(...).
+9. Gestion des fonctions
+Afficher les fonctions existantes.
+Examiner une fonction avec \df.
+Supprimer une fonction avec DROP FUNCTION.
+10. Création des procédures
+Syntaxe CREATE OR REPLACE PROCEDURE.
+Absence de RETURNS.
+Appel avec CALL.
+Procédures pour mettre à jour une facture ou augmenter les salaires.
+11. Comparaison détaillée
+Élément	Fonction	Procédure
+Appel	SELECT	CALL
+Retourne une valeur	Oui	Pas directement
+Utilisable dans une requête	Oui	Non
+Objectif	Calculer	Effectuer une action
+Gestion des transactions	Limitée	COMMIT et ROLLBACK possibles
+
+Cette distinction est explicitement résumée dans la leçon.
+
+12. Validation et gestion des erreurs
+Vérification des valeurs NULL.
+Prévention de la division par zéro.
+Utilisation de :
+RAISE NOTICE;
+RAISE WARNING;
+RAISE EXCEPTION.
+Création de fonctions de validation retournant BOOLEAN.
+13. Quand utiliser les fonctions et procédures
+Logique métier complexe et réutilisable.
+Validation cohérente des données.
+Opérations composées de plusieurs étapes.
+Maintien de l’intégrité des données.

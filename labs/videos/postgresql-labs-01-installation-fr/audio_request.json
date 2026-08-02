@@ -1,0 +1,37 @@
+{
+  "provider": "auto",
+  "speed": 1,
+  "lines": [
+    {
+      "id": "01",
+      "text": "À la fin de cette vidéo, votre poste Windows sera prêt pour les TP : PostgreSQL Server, pgAdmin 4 et les outils en ligne de commande, notamment psql, seront installés."
+    },
+    {
+      "id": "02",
+      "text": "Avant de commencer, vérifiez trois prérequis. Utilisez un compte autorisé à installer un service Windows, gardez une connexion Internet stable et préparez un gestionnaire de mots de passe, ou une note privée. Le mot de passe postgres ne sera pas affiché une seconde fois."
+    },
+    {
+      "id": "03",
+      "text": "Ouvrez la page officielle postgresql.org, puis la rubrique Download, Windows. Choisissez Interactive installer by EDB : c’est l’assistant graphique utilisé dans cette vidéo. Téléchargez la dernière version stable et prise en charge pour Windows x86-64. Évitez les versions de test. Pausez ici pour terminer le téléchargement."
+    },
+    {
+      "id": "04",
+      "text": "Exécutez le fichier en tant qu’administrateur et acceptez la demande de Windows. Conservez les dossiers proposés : cela évite les problèmes de droits et simplifie les prochains TP. Dans Select Components, gardez PostgreSQL Server, qui exécute la base de données; pgAdmin 4, l’interface graphique; et Command Line Tools, qui contient notamment psql. Stack Builder ajoute des pilotes et extensions; il reste optionnel pour le moment."
+    },
+    {
+      "id": "05",
+      "text": "Sur l’écran Password, créez un mot de passe solide pour le superutilisateur postgres, saisissez-le deux fois et conservez-le. Il protège le compte d’administration et sera demandé lors de la première connexion. Pausez ici avant de continuer. Gardez ensuite le port 5432 : c’est le port PostgreSQL par défaut. Conservez aussi la locale proposée par Windows; elle définit notamment les règles de tri et de formatage du nouveau cluster."
+    },
+    {
+      "id": "06",
+      "text": "Avant l’installation, relisez le résumé : composants, dossiers, port et locale. Utilisez Back si une valeur est incorrecte; sinon, cliquez sur Next. L’assistant copie les fichiers, initialise le cluster et démarre PostgreSQL comme service Windows. Attendez le message de réussite. Sur le dernier écran, décochez Launch Stack Builder at exit, puis cliquez sur Finish. Vous pourrez toujours ouvrir Stack Builder plus tard."
+    },
+    {
+      "id": "07",
+      "text": "L’installation est terminée lorsque SQL Shell, psql, et pgAdmin 4 apparaissent dans le menu Démarrer. Si la commande psql n’est pas reconnue dans un terminal ordinaire, ce n’est pas un échec : l’installateur ne modifie pas automatiquement le PATH. Dans l’épisode suivant, nous utiliserons SQL Shell pour effectuer la première connexion."
+    }
+  ],
+  "bgm": {
+    "mode": "none"
+  }
+}

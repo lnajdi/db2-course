@@ -1,0 +1,29 @@
+Source files:
+
+- ../lab02-indexes/README.md
+- ../lab02-indexes/Lab-02-indexes.sql
+
+Episode intent:
+
+Create a French faceless explainer introduction for the PostgreSQL indexing lab. Use the visible title "Lab 02 - Indexes" because the folder and SQL file identify the lab as lab02-indexes, even though the README heading says "Lab 03: Database Indexes".
+
+Important source facts:
+
+- Prerequisites: PostgreSQL running locally, Pagila loaded, SQL client ready, permission to create indexes.
+- Main practice loop: inspect tables, inspect existing indexes, run EXPLAIN ANALYZE, create targeted indexes, rerun the same query, compare execution plans and timings.
+- Concepts: sequential scan, index scan, B-tree index, function-based index, date index, composite index, index maintenance and cleanup.
+- Short SQL excerpts allowed for teaching:
+  - EXPLAIN ANALYZE
+  - CREATE INDEX idx_film_title ON film(title);
+  - CREATE INDEX idx_category_upper_name ON category (UPPER(name));
+  - CREATE INDEX idx_rental_date ON rental (rental_date);
+  - CREATE INDEX idx_customer_last_name ON customer(last_name);
+  - CREATE INDEX idx_customer_name ON customer(first_name, last_name);
+  - DROP INDEX IF EXISTS ...
+- Example predicate: film.title = 'ACADEMY DINOSAUR'
+
+Non-goals:
+
+- Do not provide the full lab correction.
+- Do not reveal complete answers beyond short teaching excerpts.
+- Do not use real captures, logos, or music.

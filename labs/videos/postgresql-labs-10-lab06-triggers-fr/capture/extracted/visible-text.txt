@@ -1,0 +1,41 @@
+Sources:
+- ../lab06-triggers/README.md
+- ../lab06-triggers/lab06-triggers.sql
+
+Video: PostgreSQL Labs 10 - Lab 06 Declencheurs.
+
+Visible kicker: 10 - Lab 06
+Visible title: Lab 06 - Declencheurs
+
+The README says Lab 10 and the SQL footer says END OF LAB 10, but the folder and SQL filename identify the assignment as Lab 06. The video must use Lab 06.
+
+This video introduces the lab as a concept and roadmap. It explains automatic database reactions, PostgreSQL's two-part trigger model, timing, event, level, NEW, OLD, TG_OP, return values, audit, validation, debugging, safe transaction testing, and performance caution.
+
+Allowed visible SQL anchors:
+CREATE OR REPLACE FUNCTION
+RETURNS TRIGGER
+RETURN NEW
+RETURN OLD
+RETURN NULL
+CREATE TRIGGER
+BEFORE
+AFTER
+INSERT
+UPDATE
+DELETE
+FOR EACH ROW
+FOR EACH STATEMENT
+EXECUTE FUNCTION
+RAISE NOTICE
+RAISE EXCEPTION
+BEGIN
+ROLLBACK
+
+Visible table names aligned with the lab:
+employee
+employee_salary_audit
+customer
+customer_email_audit
+film
+
+Do not reveal full trigger solutions, TODO answers, sample implementation blocks from README, cleanup blocks, long audit code, or commented SOLUTION FOR EXERCISE sections.

@@ -1,0 +1,31 @@
+- generic [ref=e1]:
+  - generic [active] [ref=e3]:
+    - iframe [ref=e4]:
+      - generic [ref=f1e5]:
+        - region "Promesse de la leçon" [ref=f1e6]:
+          - generic [ref=f1e7]: ✱01/08 · INSTALLATION
+          - heading "Bien démarrer les TP" [level=1] [ref=f1e8]:
+            - generic [ref=f1e9]: Bien
+            - generic [ref=f1e10]: démarrer les TP
+          - paragraph [ref=f1e11]: Poste Windows
+        - generic "Composants installés" [ref=f1e12]:
+          - article [ref=f1e13]: 01 · DATABASE PostgreSQL Server
+          - article [ref=f1e14]: 02 · INTERFACE pgAdmin 4
+          - article [ref=f1e15]: 03 · TERMINAL Command Line Tools
+        - generic [ref=f1e16]:
+          - text: TERMINÉ QUAND
+          - strong [ref=f1e17]: 3 composants installés
+    - generic [ref=e5]:
+      - button "Pause" [ref=e19] [cursor=pointer]:
+        - generic [ref=e7]:
+          - img
+        - generic [ref=e8]:
+          - img
+      - generic [ref=e10]: 0:01 / 3:31
+      - generic [ref=e11]:
+        - generic:
+          - slider "Volume"
+        - button "Mute" [ref=e18] [cursor=pointer]:
+          - img
+      - button "Playback speed" [ref=e14] [cursor=pointer]: 1x
+  - generic [ref=e15]: postgresql-labs-01-installation-fr — hyperframes play

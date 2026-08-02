@@ -1,0 +1,311 @@
+## Structure de cette leçon : **Administration d’une base PostgreSQL**
+
+### 1. Introduction au rôle du DBA
+
+* Définition du **Database Administrator**.
+* Responsabilités principales :
+
+  * disponibilité ;
+  * sécurité ;
+  * performance ;
+  * sauvegarde des données.
+* Analogie entre l’administration d’une base et l’entretien régulier d’une voiture. 
+
+### 2. Les quatre piliers de l’administration
+
+1. Sauvegarde et récupération.
+2. Surveillance des performances.
+3. Maintenance régulière.
+4. Planification de capacité. 
+
+### 3. Présentation de la base Pagila
+
+* Base PostgreSQL d’exemple représentant un magasin de location de DVD.
+* Présentation des principales tables :
+
+  * `film`;
+  * `customer`;
+  * `rental`;
+  * `actor`.
+
+### 4. Installation et configuration
+
+* Installation de PostgreSQL sous Windows ou Linux.
+* Téléchargement du schéma et des données Pagila.
+* Création de la base.
+* Chargement des fichiers SQL.
+* Connexion avec `psql`.
+* Vérification des tables et des données.
+
+### 5. Gestion des utilisateurs et des rôles
+
+* Création d’un utilisateur en lecture seule.
+* Création d’un utilisateur applicatif.
+* Création d’un administrateur.
+* Attribution des permissions avec `GRANT`.
+* Vérification des rôles avec `\du`.
+* Vérification des permissions avec `\dp`.
+
+### 6. Sauvegarde et récupération
+
+#### Sauvegarde logique
+
+* Utilisation de `pg_dump`.
+* Format personnalisé avec `-F c`.
+* Sauvegarde du schéma uniquement.
+* Sauvegarde des données uniquement.
+* Sauvegarde de tables spécifiques.
+
+#### Restauration logique
+
+* Création d’une nouvelle base.
+* Utilisation de `pg_restore`.
+
+#### Automatisation
+
+* Script PowerShell de sauvegarde quotidienne.
+* Conservation des sauvegardes pendant sept jours.
+
+#### Sauvegarde physique
+
+* Copie directe du répertoire de données.
+* Arrêt et redémarrage du service PostgreSQL.
+* Comparaison entre sauvegarde logique et physique.
+
+#### Sauvegarde hors ligne et en ligne
+
+* Disponibilité du serveur.
+* Complexité.
+* Cas d’utilisation.
+
+#### Récupération à un instant précis
+
+* Présentation du **Point-in-Time Recovery**.
+* Utilisation des fichiers WAL.
+* Restauration d’une sauvegarde de base puis rejeu des journaux WAL. 
+
+### 7. Surveillance de la base
+
+* Détection des problèmes avant les utilisateurs.
+* Surveillance :
+
+  * des requêtes lentes ;
+  * des connexions ;
+  * de l’espace disque ;
+  * des verrous ;
+  * des entrées-sorties.
+
+### 8. Vues système importantes
+
+* `pg_stat_activity`
+* `pg_stat_user_tables`
+* `pg_stat_user_indexes`
+* `pg_statio_user_tables`
+* `pg_locks`
+
+### 9. Surveillance des connexions
+
+* Comptage des connexions par état.
+* Différence entre :
+
+  * `active`;
+  * `idle`;
+  * `idle in transaction`;
+  * `idle in transaction (aborted)`.
+* Identification des connexions problématiques.
+* Affichage des détails d’une session.
+
+### 10. Requêtes longues et interruption
+
+* Identification des requêtes actives depuis plus d’une minute.
+* Utilisation de :
+
+  * `pg_cancel_backend()` pour annuler une requête ;
+  * `pg_terminate_backend()` pour fermer une connexion.
+
+### 11. Surveillance de l’espace
+
+* Taille des tables.
+* Taille des index.
+* Taille d’une base.
+* Comparaison des bases.
+* Vérification de l’espace disque sous Windows.
+
+### 12. Cache et index
+
+* Calcul du taux de réussite du cache.
+* Interprétation du pourcentage obtenu.
+* Comparaison des scans séquentiels et des scans d’index.
+* Détection des index inutilisés.
+* Identification des index potentiellement manquants.
+
+### 13. Surveillance des verrous
+
+* Identification des requêtes en attente.
+* Détection des processus bloqués.
+* Identification de la requête qui bloque les autres.
+
+### 14. Outils de supervision
+
+* Script PowerShell de contrôle rapide.
+* Outils graphiques et extensions :
+
+  * pgAdmin ;
+  * `pg_stat_statements` ;
+  * Prometheus et Grafana.
+* Activation de `pg_stat_statements`.
+* Identification des requêtes les plus lentes.
+
+### 15. Optimisation des performances
+
+* Utilisation de `EXPLAIN ANALYZE`.
+* Observation du plan d’exécution.
+* Création d’index.
+* Comparaison entre `Seq Scan` et `Index Scan`.
+
+### 16. Maintenance PostgreSQL
+
+* Présentation de MVCC.
+* Création de nouvelles versions lors des mises à jour.
+* Apparition de lignes mortes après les modifications et suppressions.
+* Risque de bloat.
+
+### 17. Opérations principales de maintenance
+
+* `VACUUM` : nettoyer les lignes mortes.
+* `ANALYZE` : actualiser les statistiques.
+* `REINDEX` : reconstruire les index.
+* `pg_repack` : récupérer de l’espace avec moins de blocage. 
+
+### 18. VACUUM et autovacuum
+
+* Exécution de `VACUUM`.
+* Combinaison `VACUUM ANALYZE`.
+* Maintenance d’une table précise.
+* Situations nécessitant une intervention manuelle.
+* Tables ayant beaucoup de mises à jour ou suppressions.
+
+### 19. ANALYZE
+
+* Mise à jour des statistiques du planificateur.
+* Analyse de toutes les tables.
+* Analyse d’une table ou de colonnes spécifiques.
+* Exécution recommandée après :
+
+  * une modification massive des données ;
+  * la création d’un index ;
+  * un changement important de contenu.
+
+### 20. Gestion du bloat
+
+* Définition du bloat.
+* Mesure du nombre de lignes vivantes et mortes.
+* Calcul du pourcentage de lignes mortes.
+* Simulation du bloat.
+* Nettoyage avec `VACUUM ANALYZE`.
+* Utilisation éventuelle de `VACUUM FULL`.
+
+### 21. Reconstruction des index
+
+* `REINDEX INDEX`
+* `REINDEX TABLE`
+* `REINDEX DATABASE`
+* Reconstruction concurrente.
+* Vérification de la taille et de l’utilisation des index.
+
+### 22. Automatisation de la maintenance
+
+* Script PowerShell pour plusieurs tables.
+* Planification avec Windows Task Scheduler.
+* Planification sous Linux avec `cron`.
+* Création d’un calendrier de maintenance.
+
+### 23. Contrôle de santé
+
+* Nombre de tables.
+* Taille de la base.
+* Nombre de lignes mortes.
+* Taux de cache.
+* Nombre de connexions.
+* Regroupement des indicateurs dans une seule requête.
+
+### 24. Planification de capacité
+
+* Suivi de la croissance de la base.
+* Anticipation du manque d’espace.
+* Prévision du nombre futur d’utilisateurs.
+* Préparation des mises à niveau matérielles. 
+
+### 25. Historique de croissance
+
+* Création d’un schéma `monitoring`.
+* Création d’une table d’historique des tailles.
+* Enregistrement régulier de la taille des tables.
+* Analyse de la croissance sur trente jours.
+
+### 26. Prévision des besoins
+
+* Calcul de la croissance quotidienne.
+* Projection annuelle.
+* Identification des tables qui grandissent le plus rapidement.
+* Alertes lorsque le disque atteint 80 %.
+* Planification de trois à six mois de capacité.
+* Archivage des anciennes données.
+
+### 27. Dépannage
+
+* Requêtes lentes.
+* Limite de connexions atteinte.
+* Disque plein.
+* Conflits de verrous.
+* Tables gonflées.
+* Solutions rapides pour chaque problème.
+
+### 28. Exercice pratique
+
+* Exécution d’une requête de contrôle de santé.
+* Analyse :
+
+  * du nombre de connexions ;
+  * de la taille de la base ;
+  * des lignes mortes ;
+  * du taux de cache.
+* Vérification d’un taux de cache supérieur à 95 %.
+
+### 29. Glossaire
+
+* WAL.
+* Dead tuples.
+* Autovacuum.
+* Cache hit ratio.
+* `pg_dump`.
+* `pg_basebackup`.
+* MVCC.
+
+### 30. Checklist du DBA
+
+| Tâche                  | Fréquence    |
+| ---------------------- | ------------ |
+| Sauvegarde             | Quotidienne  |
+| Surveillance           | Continue     |
+| VACUUM                 | Hebdomadaire |
+| Vérification du disque | Quotidienne  |
+| Test de restauration   | Mensuel      |
+| Revue de capacité      | Mensuelle    |
+
+Cette organisation est résumée dans la checklist finale de la leçon. 
+
+### 31. Actions à réaliser
+
+* Mettre en place des sauvegardes automatiques.
+* Tester régulièrement les restaurations.
+* Créer un script ou un tableau de bord.
+* Configurer des alertes de stockage.
+* Documenter les procédures de récupération.
+* Examiner régulièrement les requêtes lentes.
+* Suivre la croissance de la base.
+* Simuler des scénarios de panne.
+
+### Progression pédagogique globale
+
+**Comprendre le rôle du DBA → Installer l’environnement → Gérer les utilisateurs → Sauvegarder et restaurer → Surveiller la base → Optimiser les requêtes → Effectuer la maintenance → Prévoir la croissance → Diagnostiquer les incidents → Automatiser les tâches administratives.**

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>PostgreSQL labs 04 - Clients graphiques</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Literata"; src: local("Literata"); font-weight: 400; }
+      @font-face { font-family: "Instrument Sans"; src: local("Instrument Sans"); font-weight: 400 700; }
+      @font-face { font-family: "Geist Mono"; src: local("Geist Mono"); font-weight: 400 700; }
+      * { box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #000; }
+      body { color: #182126; font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #f7f4ee; }
+      .clip { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+      .ground {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          #f7f4ee;
+        background-size: 72px 72px;
+      }
+      .stage {
+        position: absolute;
+        inset: 72px 84px 220px 84px;
+        display: grid;
+        grid-template-columns: 0.92fr 1.08fr;
+        gap: 48px;
+        align-items: stretch;
+      }
+      .single { grid-template-columns: 1fr; }
+      .kicker {
+        color: #0d4f68;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 24px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 22px;
+      }
+      h1 {
+        margin: 0;
+        max-width: 900px;
+        font-family: Literata, Georgia, serif;
+        font-size: 82px;
+        font-weight: 400;
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+      h2 {
+        margin: 0 0 26px;
+        font-family: Literata, Georgia, serif;
+        font-size: 58px;
+        font-weight: 400;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+      p { margin: 0; color: #4d5a60; font-size: 30px; line-height: 1.42; }
+      pre, code, .mono { font-family: "Geist Mono", Consolas, "Courier New", monospace; }
+      pre { margin: 0; white-space: pre-wrap; color: #f7f4ee; font-size: 27px; line-height: 1.42; }
+      .mini-note { margin-top: 22px; color: #5d686e; font-size: 24px; }
+      .panel {
+        border: 1px solid #d9dedf;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.84);
+        padding: 32px;
+        box-shadow: 0 1px 3px rgba(24, 33, 38, 0.08), 0 4px 16px rgba(24, 33, 38, 0.04);
+      }
+      .dark-panel {
+        border: 1px solid rgba(247, 244, 238, 0.16);
+        border-radius: 8px;
+        background: #151718;
+        color: #f7f4ee;
+        padding: 28px;
+      }
+      .terminal-title, .app-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: -28px -28px 22px;
+        padding: 16px 22px;
+        border-bottom: 1px solid rgba(247, 244, 238, 0.14);
+        border-radius: 8px 8px 0 0;
+        background: #202325;
+        color: #dce5e4;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 20px;
+      }
+      .app-title { margin: -32px -32px 22px; background: #eef5f6; color: #0d4f68; border-bottom-color: #d9dedf; }
+      .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+      .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .item {
+        min-height: 122px;
+        border: 1px solid rgba(24, 33, 38, 0.12);
+        border-radius: 8px;
+        background: #fff;
+        padding: 22px;
+        color: #4d5a60;
+        font-size: 25px;
+        line-height: 1.25;
+      }
+      .item strong { display: block; margin-bottom: 8px; color: #182126; font-size: 31px; font-weight: 600; }
+      .pill {
+        display: inline-block;
+        border: 1px solid #a7c4ce;
+        border-radius: 999px;
+        background: #e8f1f4;
+        color: #0d4f68;
+        padding: 10px 18px;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+      }
+      .ok { border-color: rgba(23, 94, 74, 0.24); background: #e8f3ee; color: #175e4a; }
+      .warning { border-color: rgba(138, 101, 26, 0.24); background: #f8f0dc; color: #624a35; }
+      .caption-band {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 200px;
+        border-top: 1px dashed rgba(93, 104, 110, 0.35);
+        background: rgba(247, 244, 238, 0.72);
+        color: #687175;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .progress-wrap { position: absolute; left: 84px; right: 84px; top: 34px; height: 6px; border-radius: 999px; background: rgba(13, 79, 104, 0.12); overflow: hidden; }
+      #progress { display: block; width: 100%; height: 100%; border-radius: 999px; background: #0d4f68; transform-origin: left center; }
+      .settings-list { display: grid; gap: 14px; margin-top: 20px; }
+      .setting { display: grid; grid-template-columns: 210px 1fr; gap: 20px; align-items: center; border: 1px solid rgba(13, 79, 104, 0.18); border-radius: 8px; background: #f5fafb; padding: 16px 18px; font-size: 26px; }
+      .setting span:first-child { color: #5d686e; }
+      .setting span:last-child { color: #182126; font-family: "Geist Mono", Consolas, monospace; font-weight: 700; }
+      .network { position: relative; height: 590px; }
+      .server {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 330px;
+        height: 180px;
+        margin-left: -165px;
+        margin-top: -90px;
+        border: 2px solid #0d4f68;
+        border-radius: 8px;
+        background: #e8f1f4;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        color: #0d4f68;
+        font-size: 30px;
+        font-weight: 700;
+      }
+      .client {
+        position: absolute;
+        width: 230px;
+        border: 1px solid #d9dedf;
+        border-radius: 8px;
+        background: #fff;
+        padding: 20px;
+        text-align: center;
+        font-size: 28px;
+        box-shadow: 0 1px 3px rgba(24,33,38,0.08);
+      }
+      .client small { display: block; margin-top: 6px; color: #5d686e; font-family: "Geist Mono", Consolas, monospace; font-size: 18px; }
+      .c1 { left: 70px; top: 70px; } .c2 { right: 70px; top: 70px; } .c3 { left: 70px; bottom: 70px; } .c4 { right: 70px; bottom: 70px; }
+      .line { position: absolute; height: 2px; background: rgba(13,79,104,0.35); transform-origin: left center; }
+      .l1 { left: 300px; top: 174px; width: 350px; }
+      .l2 { right: 300px; top: 174px; width: 350px; }
+      .l3 { left: 300px; bottom: 174px; width: 350px; }
+      .l4 { right: 300px; bottom: 174px; width: 350px; }
+      .app-shell { display: grid; grid-template-columns: 230px 1fr; gap: 22px; height: 100%; }
+      .sidebar { border-right: 1px solid #d9dedf; padding-right: 20px; color: #4d5a60; font-size: 23px; line-height: 1.5; }
+      .sidebar .active { color: #0d4f68; font-weight: 700; }
+      .form { display: grid; gap: 12px; }
+      .field { display: grid; grid-template-columns: 190px 1fr; gap: 16px; align-items: center; font-size: 24px; }
+      .input { border: 1px solid #c6d6dc; border-radius: 6px; background: #fff; padding: 10px 12px; color: #182126; font-family: "Geist Mono", Consolas, monospace; font-size: 22px; }
+      .query-box { margin-top: 22px; border-radius: 8px; background: #151718; padding: 22px; }
+      .sql-key { color: #9fd3c8; } .sql-string { color: #e8a55a; } .success { color: #5db872; }
+      .table { margin-top: 20px; border: 1px solid #d9dedf; border-radius: 8px; overflow: hidden; font-family: "Geist Mono", Consolas, monospace; font-size: 20px; }
+      .row { display: grid; grid-template-columns: 1.4fr 0.7fr 0.9fr; }
+      .row span { padding: 10px 12px; border-right: 1px solid #d9dedf; border-bottom: 1px solid #d9dedf; }
+      .row span:last-child { border-right: 0; }
+      .head { background: #e8f1f4; color: #0d4f68; font-weight: 700; }
+      .decision { min-height: 300px; display: grid; align-content: start; gap: 14px; }
+      .trouble { display: grid; gap: 14px; }
+      .trouble .item { min-height: 74px; display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 14px; padding: 16px; }
+      .num { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; background: #e8f1f4; color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="300">
+      <div class="progress-wrap" data-layout-ignore><span id="progress"></span></div>
+
+      <section id="frame-01" class="clip" data-start="0" data-duration="24" data-track-index="0">
+        <div class="ground"></div>
+        <div class="stage">
+          <div>
+            <div class="kicker">04/08 · clients graphiques</div>
+            <h1>Après psql, passer aux clients GUI</h1>
+            <p class="mini-note">Nous avons déjà utilisé `psql` en console. Ici, on découvre des interfaces graphiques pour se connecter à `pagila`.</p>
+          </div>
+          <div class="panel">
+            <h2>À la fin</h2>
+            <div class="grid">
+              <div class="item"><strong>psql déjà vu</strong>client en console</div>
+              <div class="item"><strong>Un client GUI</strong>pgAdmin, DBeaver ou VS Code</div>
+              <div class="item"><strong>Connexion locale</strong><span class="mono">localhost:5432</span></div>
+              <div class="item"><strong>Base de TP</strong><span class="mono">pagila</span></div>
+              <div class="item"><strong>Compte quotidien</strong><span class="mono">karim</span>, pas <span class="mono">postgres</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-band" data-layout-allow-caption-zone>zone réservée aux sous-titres</div>
+      </section>
+
+      <section id="frame-02" class="clip" data-start="24" data-duration="30" data-track-index="1">
+        <div class="ground"></div>
+        <div class="stage">
+          <div>
+            <div class="kicker">Modèle mental</div>
+            <h2>Un client GUI suffit pour comprendre</h2>
+            <p>Un client graphique est seulement une interface pour parler au serveur PostgreSQL.</p>
+            <p class="mini-note">`psql` le fait en console; pgAdmin, DBeaver et VS Code le font avec des boutons, formulaires et grilles.</p>
+          </div>
+          <div class="panel">
+            <div class="network">
+              <div class="line l1"></div><div class="line l2"></div><div class="line l3"></div><div class="line l4"></div>
+              <div class="server">PostgreSQL<br><span class="mono">Server</span></div>
+              <div class="client c1">psql<small>déjà utilisé · console</small></div>
+              <div class="client c2">pgAdmin<small>official GUI</small></div>
+              <div class="client c3">DBeaver<small>data explorer</small></div>
+              <div class="client c4">VS Code<small>queries + code</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-band" data-layout-allow-caption-zone>zone réservée aux sous-titres</div>
+      </section>
+
+      <section id="frame-03" class="clip" data-start="54" data-duration="34" data-track-index="0">
+        <div class="ground"></div>
+        <div class="stage">
+          <div>
+            <div class="kicker">À réutiliser partout</div>
+            <h2>Les paramètres communs</h2>
+            <p>Dans chaque outil, recopiez les mêmes valeurs. Seul le logiciel autour change.</p>
+            <p class="mini-note"><span class="pill warning">karim = exemple</span> Remplacez-le par votre prénom en minuscules.</p>
+          </div>
+          <div class="panel">
+            <div class="settings-list">
+              <div class="setting"><span>Host</span><span>localhost</span></div>
+              <div class="setting"><span>Port</span><span>5432</span></div>
+              <div class="setting"><span>Database</span><span>pagila</span></div>
+              <div class="setting"><span>User</span><span>karim</span></div>
+              <div class="setting"><span>Password</span><span>mot de passe privé</span></div>
+            </div>
+            <p class="mini-note"><span class="pill ok">travail quotidien</span> utiliser le compte personnel, pas <span class="mono">postgres</span>.</p>
+          </div>
+        </div>
+        <div class="caption-band" data-layout-allow-caption-zone>zone réservée aux sous-titres</div>
+      </section>
+
+      <section id="frame-04" class="clip" data-start="88" data-duration="46" data-track-index="1">
+        <div class="ground"></div>
+        <div class="stage">
+          <div>
+            <div class="kicker">pgAdmin</div>
+            <h2>Enregistrer le serveur local</h2>
+            <p>Flux reconstruit: Register, Server, onglet Connection, puis Query Tool.</p>
+            <p class="mini-note">Téléchargement Windows: <span class="mono">pgadmin.org/download/pgadmin-4-windows</span></p>
+          </div>
+          <div class="panel">
+            <div class="app-title"><span>pgAdmin · Register Server</span><span>Pagila local</span></div>
+            <div class="app-shell">
+              <div class="sidebar">
+                <div class="active">General</div>
+                <div class="active">Connection</div>
+                <div>SSL</div>
+                <div>Advanced</div>
+                <p class="mini-note">Save → Query Tool</p>
+              </div>
+              <div>
+                <div class="form">
+                  <div class="field"><span>Name</span><div class="input">Pagila local</div></div>
+                  <div class="field"><span>Host</span><div class="input">localhost</div></div>
+                  <div class="field"><span>Port</span><div class="input">5432</div></div>
+                  <div class="field"><span>Database</span><div class="input">pagila</div></div>
+                  <div class="field"><span>Username</span><div class="input">karim</div></div>
+                  <div class="field"><span>Password</span><div class="input">••••••••</div></div>
+                </div>
+                <div class="query-box">
+                  <pre><span class="sql-key">SELECT</span> * <span class="sql-key">FROM</span> film <span class="sql-key">LIMIT</span> 10;</pre>
+                </div>
+                <div class="pill ok" style="margin-top:18px;">Query Tool · 10 lignes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-band" data-layout-allow-caption-zone>zone réservée aux sous-titres</div>
+      </section>
+
+      <section id="frame-05" class="clip" data-start="134" data-duration="44" data-track-index="0">
+        <div class="ground"></div>
+        <div class="stage">
+          <div>
+            <div class="kicker">DBeaver Community</div>
+            <h2>Explorer les tables Pagila</h2>
+            <p>Créer une connexion PostgreSQL, tester, finir, puis naviguer dans les tables.</p>
+            <p class="mini-note">Téléchargement Community: <span class="mono">dbeaver.io/download</span></p>
+          </div>
+          <div class="panel">
+            <div class="app-title"><span>DBeaver · New Database Connection</span><span>PostgreSQL</span></div>
+            <div class="app-shell">
+              <div class="sidebar">
+                <div class="active">pagila</div>
+                <div>▸ Schemas</div>
+                <div>  ▾ public</div>
+                <div>    ▾ Tables</div>
+                <div class="active">      film</div>
+                <p class="mini-note"><span class="pill ok">Test Connection</span></p>
+              </div>
+              <div>
+                <div class="form">
+                  <div class="field"><span>Server Host</span><div class="input">localhost</div></div>
+                  <div class="field"><span>Port</span><div class="input">5432</div></div>
+                  <div class="field"><span>Database</span><div class="input">pagila</div></div>
+                  <div class="field"><span>Username</span><div class="input">karim</div></div>
+                </div>
+                <p class="mini-note"><span class="pill">filtre</span> <span class="mono">rating = 'PG'</span></p>
+                <div class="table">
+                  <div class="row head"><span>title</span><span>rating</span><span>length</span></div>
+                  <div class="row"><span>Academy Dinosaur</span><span>PG</span><span>86</span></div>
+                  <div class="row"><span>Agent Truman</span><span>PG</span><span>169</span></div>
+                  <div class="row"><span>Alabama Devil</span><span>PG</span><span>114</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-band" data-layout-allow-caption-zone>zone réservée aux sous-titres</div>
+      </section>
+
+      <section id="frame-06" class="clip" data-start="178" data-duration="48" data-track-index="1">
+        <div class="ground"></div>
+        <div class="stage">
+          <div>
+            <div class="kicker">VS Code</div>
+            <h2>Requêtes SQL près du code</h2>
+            <p>Installer l'extension actuelle de Microsoft, puis ajouter une connexion PostgreSQL.</p>
+            <p class="mini-note"><span class="pill">id</span> <span class="mono">ms-ossdata.vscode-pgsql</span></p>
+          </div>
+          <div class="panel">
+            <div class="app-title"><span>Extensions · Microsoft</span><span>queries.sql</span></div>
+            <div class="app-shell">
+              <div class="sidebar">
+                <div class="active">PostgreSQL</div>
+                <div>Connections</div>
+                <div class="active">  pagila · localhost</div>
+                <div>Files</div>
+                <div class="active">  queries.sql</div>
+              </div>
+              <div>
+                <div class="item" style="min-height: 120px;">
+                  <strong>PostgreSQL for Visual Studio Code</strong>
+                  Extension Microsoft · <span class="mono">ms-ossdata.vscode-pgsql</span>
+                </div>
+                <div class="settings-list" style="grid-template-columns: repeat(2, 1fr);">
+                  <div class="setting" style="grid-template-columns: 1fr;"><span>localhost</span></div>
+                  <div class="setting" style="grid-template-columns: 1fr;"><span>5432</span></div>
+                  <div class="setting" style="grid-template-columns: 1fr;"><span>pagila</span></div>
+                  <div class="setting" style="grid-template-columns: 1fr;"><span>karim</span></div>
+                </div>
+                <div class="query-box">
+                  <pre><span class="sql-key">SELECT</span> title, rating
+<span class="sql-key">FROM</span> film
+<span class="sql-key">WHERE</span> rating = <span class="sql-string">'PG'</span>
+<span class="sql-key">LIMIT</span> 5;</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-band" data-layout-allow-caption-zone>zone réservée aux sous-titres</div>
+      </section>
+
+      <section id="frame-07" class="clip" data-start="226" data-duration="30" data-track-index="0">
+        <div class="ground"></div>
+        <div class="stage single">
+          <div>
+            <div class="kicker">Choisir l'outil</div>
+            <h2>Le bon client dépend du travail</h2>
+            <div class="grid-3">
+              <div class="panel decision">
+                <span class="pill ok">pgAdmin</span>
+                <h2 style="font-size:42px;">Officiel et sûr</h2>
+                <p>Bon choix par défaut pour administrer et vérifier.</p>
+              </div>
+              <div class="panel decision">
+                <span class="pill">DBeaver</span>
+                <h2 style="font-size:42px;">Explorer et exporter</h2>
+                <p>Confortable pour parcourir les données et filtrer.</p>
+              </div>
+              <div class="panel decision">
+                <span class="pill">VS Code</span>
+                <h2 style="font-size:42px;">SQL près du code</h2>
+                <p>Pratique quand les requêtes font partie du projet.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-band" data-layout-allow-caption-zone>zone réservée aux sous-titres</div>
+      </section>
+
+      <section id="frame-08" class="clip" data-start="256" data-duration="28" data-track-index="1">
+        <div class="ground"></div>
+        <div class="stage">
+          <div>
+            <div class="kicker">Dépannage rapide</div>
+            <h2>Quand la connexion échoue</h2>
+            <p>Revenir aux paramètres simples avant de changer d'outil.</p>
+            <p class="mini-note">Test de référence, depuis l'épisode 03:</p>
+            <div class="dark-panel" style="margin-top:18px;">
+              <div class="terminal-title"><span>Command Prompt</span><span>sanity check</span></div>
+              <pre>psql -h localhost -p 5432 -U karim -d pagila</pre>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="trouble">
+              <div class="item"><span class="num">1</span><span>Service PostgreSQL arrêté</span></div>
+              <div class="item"><span class="num">2</span><span>Mauvais port: vérifier <span class="mono">5432</span></span></div>
+              <div class="item"><span class="num">3</span><span>Mauvaise base ou mauvais utilisateur</span></div>
+              <div class="item"><span class="num">4</span><span>Ancien mot de passe enregistré dans le client</span></div>
+              <div class="item"><span class="num">5</span><span>Invite SSL locale: suivre la consigne du cours</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-band" data-layout-allow-caption-zone>zone réservée aux sous-titres</div>
+      </section>
+
+      <section id="frame-09" class="clip" data-start="284" data-duration="16" data-track-index="0">
+        <div class="ground"></div>
+        <div class="stage">
+          <div>
+            <div class="kicker">Clôture</div>
+            <h2>Pagila est accessible visuellement</h2>
+            <p>Vous pouvez connecter le client, parcourir les tables et lancer une première requête.</p>
+            <p class="mini-note">Prochain épisode: premières vraies requêtes SQL sur Pagila.</p>
+          </div>
+          <div class="panel">
+            <div class="grid">
+              <div class="item"><strong>Connexion</strong><span class="mono">localhost:5432</span></div>
+              <div class="item"><strong>Base</strong><span class="mono">pagila</span></div>
+              <div class="item"><strong>Tables</strong><span class="mono">film, actor, customer...</span></div>
+              <div class="item"><strong>Requêtes</strong><span class="mono">SELECT ... FROM film;</span></div>
+            </div>
+            <p class="mini-note"><span class="pill ok">prêt pour le TP</span> garder <span class="mono">postgres</span> pour l'administration.</p>
+          </div>
+        </div>
+        <div class="caption-band" data-layout-allow-caption-zone>zone réservée aux sous-titres</div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#progress", { scaleX: 0 }, { scaleX: 1, duration: 300, ease: "none" }, 0);
+      window.__timelines.main = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>PostgreSQL labs 08 - Lab 04 PL/pgSQL et curseurs</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Literata"; src: local("Literata"); font-weight: 400; }
+      @font-face { font-family: "Instrument Sans"; src: local("Instrument Sans"); font-weight: 400 700; }
+      @font-face { font-family: "Geist Mono"; src: local("Geist Mono"); font-weight: 400 700; }
+      * { box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #000; }
+      body { color: #182126; font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #f7f4ee; }
+      .clip { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+      .ground {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          #f7f4ee;
+        background-size: 72px 72px;
+      }
+      .stage {
+        position: absolute;
+        inset: 72px 84px 220px 84px;
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 48px;
+        align-items: stretch;
+      }
+      .single { grid-template-columns: 1fr; }
+      .kicker {
+        color: #0d4f68;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 24px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 22px;
+      }
+      h1 {
+        margin: 0;
+        max-width: 980px;
+        font-family: Literata, Georgia, serif;
+        font-size: 82px;
+        font-weight: 400;
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+      h2 {
+        margin: 0 0 26px;
+        font-family: Literata, Georgia, serif;
+        font-size: 58px;
+        font-weight: 400;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+      h3 { margin: 0 0 14px; color: #182126; font-size: 31px; line-height: 1.15; }
+      p { margin: 0; color: #4d5a60; font-size: 30px; line-height: 1.42; }
+      pre, code, .mono { font-family: "Geist Mono", Consolas, "Courier New", monospace; }
+      pre { margin: 0; white-space: pre-wrap; color: #f7f4ee; font-size: 25px; line-height: 1.42; }
+      .mini-note { margin-top: 22px; color: #5d686e; font-size: 24px; }
+      .panel {
+        border: 1px solid #d9dedf;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.86);
+        padding: 32px;
+        box-shadow: 0 1px 3px rgba(24, 33, 38, 0.08), 0 4px 16px rgba(24, 33, 38, 0.04);
+      }
+      .dark-panel {
+        border: 1px solid rgba(247, 244, 238, 0.16);
+        border-radius: 8px;
+        background: #151718;
+        color: #f7f4ee;
+        padding: 28px;
+      }
+      .titlebar {
+        display: flex;
+        justify-content: space-between;
+        margin: -28px -28px 22px;
+        padding: 16px 22px;
+        border-bottom: 1px solid rgba(247, 244, 238, 0.14);
+        border-radius: 8px 8px 0 0;
+        background: #202325;
+        color: #dce5e4;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 20px;
+      }
+      .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+      .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+      .item {
+        min-height: 118px;
+        border: 1px solid rgba(24, 33, 38, 0.12);
+        border-radius: 8px;
+        background: #fff;
+        padding: 20px;
+        color: #4d5a60;
+        font-size: 24px;
+        line-height: 1.25;
+      }
+      .item strong { display: block; margin-bottom: 8px; color: #182126; font-size: 30px; font-weight: 600; }
+      .pill {
+        display: inline-block;
+        border: 1px solid #a7c4ce;
+        border-radius: 999px;
+        background: #e8f1f4;
+        color: #0d4f68;
+        padding: 10px 18px;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+      }
+      .ok { border-color: rgba(23, 94, 74, 0.24); background: #e8f3ee; color: #175e4a; }
+      .warning { border-color: rgba(138, 101, 26, 0.24); background: #f8f0dc; color: #624a35; }
+      .danger { border-color: rgba(165, 59, 53, 0.26); background: #f8eae8; color: #a53b35; }
+      .caption-band {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 200px;
+        border-top: 1px dashed rgba(93, 104, 110, 0.35);
+        background: rgba(247, 244, 238, 0.72);
+        color: #687175;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .progress-wrap { position: absolute; left: 84px; right: 84px; top: 34px; height: 6px; border-radius: 999px; background: rgba(13, 79, 104, 0.12); overflow: hidden; }
+      #progress { display: block; width: 100%; height: 100%; border-radius: 999px; background: #0d4f68; transform-origin: left center; }
+      .source-note { position: absolute; left: 84px; bottom: 206px; color: #5d686e; font-family: "Geist Mono", Consolas, monospace; font-size: 18px; }
+      .flow { display: grid; grid-template-columns: 1fr 70px 1fr; align-items: center; gap: 18px; margin-top: 28px; }
+      .box { min-height: 134px; border: 1px solid rgba(13, 79, 104, 0.2); border-radius: 8px; background: #fff; padding: 20px; display: grid; place-items: center; text-align: center; color: #4d5a60; font-size: 25px; line-height: 1.25; }
+      .arrow { color: #0d4f68; font-family: Literata, Georgia, serif; font-size: 54px; text-align: center; }
+      .stack { display: grid; gap: 16px; }
+      .layer { display: grid; grid-template-columns: 210px 1fr; gap: 16px; align-items: center; min-height: 82px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 18px; font-size: 25px; color: #4d5a60; }
+      .layer b { color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-size: 22px; }
+      .type-map { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 24px; }
+      .type-card { min-height: 300px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 26px; }
+      .type-card p { font-size: 25px; }
+      .sql-key { color: #9fd3c8; }
+      .sql-name { color: #e8d978; }
+      .sql-string { color: #e8a55a; }
+      .sql-comment { color: #8fa0a5; }
+      .method { display: grid; gap: 14px; }
+      .method .item { min-height: 78px; display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 14px; padding: 16px; }
+      .num { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; background: #e8f1f4; color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-weight: 700; }
+      .queue { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 24px; }
+      .row-card { height: 82px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; display: grid; place-items: center; color: #5d686e; font-family: "Geist Mono", Consolas, monospace; font-size: 21px; }
+      .active-row { border-color: #9ac2b4; background: #e8f3ee; color: #175e4a; font-weight: 700; }
+      .compare { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .compare-card { min-height: 412px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 24px; }
+      .compare-card p { font-size: 24px; line-height: 1.34; }
+      .exception-map { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 22px; }
+      .exception-card { min-height: 180px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 24px; }
+      .exception-card h3 { font-family: "Geist Mono", Consolas, monospace; color: #0d4f68; }
+      .table-names { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-08-root" id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="260">
+      <div data-hf-id="hf-08-progress-wrap" class="progress-wrap" data-layout-ignore=""><span data-hf-id="hf-08-progress" id="progress"></span></div>
+
+      <section style="z-index: 1" data-hf-id="hf-08-f01" id="frame-01" class="clip" data-start="0" data-duration="28" data-track-index="1">
+        <div data-hf-id="hf-08-f01-ground" class="ground"></div>
+        <div data-hf-id="hf-08-f01-stage" class="stage">
+          <div data-hf-id="hf-08-f01-copy">
+            <div data-hf-id="hf-08-f01-kicker" class="kicker">08/08 - Lab 04</div>
+            <h1 data-hf-id="hf-08-f01-title">Lab 04 - PL/pgSQL et curseurs</h1>
+            <p data-hf-id="hf-08-f01-note" class="mini-note">Objectif: comprendre le modele mental avant de completer les blocs.</p>
+          </div>
+          <div data-hf-id="hf-08-f01-panel" class="panel">
+            <h2 data-hf-id="hf-08-f01-panel-title">La bascule</h2>
+            <div data-hf-id="hf-08-f01-flow" class="flow">
+              <div class="box"><span><strong>SQL</strong> declarer le resultat voulu</span></div>
+              <div class="arrow">-></div>
+              <div class="box"><span><strong>PL/pgSQL</strong> piloter une suite d'instructions</span></div>
+            </div>
+            <p data-hf-id="hf-08-f01-p" class="mini-note">SQL reste le premier reflexe; PL/pgSQL ajoute variables, tests et boucles.</p>
+            <div data-hf-id="hf-08-f01-names" class="table-names">
+              <span class="pill">customer</span><span class="pill">rental</span><span class="pill">payment</span><span class="pill">film</span><span class="pill">category</span><span class="pill">store</span><span class="pill">address</span><span class="pill">city</span><span class="pill">country</span>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-08-f01-source" class="source-note">sources: README.md + Lab-04-intro-plpgsql-cursors.sql</div>
+        <div data-hf-id="hf-08-f01-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-08-f02" id="frame-02" class="clip" data-start="28" data-duration="30" data-track-index="1">
+        <div data-hf-id="hf-08-f02-ground" class="ground"></div>
+        <div data-hf-id="hf-08-f02-stage" class="stage">
+          <div data-hf-id="hf-08-f02-copy">
+            <div data-hf-id="hf-08-f02-kicker" class="kicker">Anatomie d'un bloc</div>
+            <h2 data-hf-id="hf-08-f02-title">Un DO block execute du code sans creer de fonction</h2>
+            <p data-hf-id="hf-08-f02-p">Le lab commence par cette structure minimale. Apprenez a voir ses zones avant de remplir les blancs.</p>
+          </div>
+          <div data-hf-id="hf-08-f02-code" class="dark-panel">
+            <div data-hf-id="hf-08-f02-bar" class="titlebar"><span>structure courte</span><span>debug inclus</span></div>
+            <pre data-hf-id="hf-08-f02-pre"><span class="sql-key">DO</span> $$
+<span class="sql-key">DECLARE</span>
+    <span class="sql-comment">-- variables optionnelles</span>
+<span class="sql-key">BEGIN</span>
+    <span class="sql-key">RAISE NOTICE</span> <span class="sql-string">'Ready!'</span>;
+<span class="sql-key">END</span> $$;</pre>
+            <div data-hf-id="hf-08-f02-stack" class="stack" style="margin-top:20px;">
+              <div class="layer"><b>DECLARE</b><span>preparer les variables</span></div>
+              <div class="layer"><b>BEGIN...END</b><span>executer les instructions</span></div>
+              <div class="layer"><b>NOTICE</b><span>observer ce qui se passe</span></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-08-f02-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-08-f03" id="frame-03" class="clip" data-start="58" data-duration="28" data-track-index="0">
+        <div data-hf-id="hf-08-f03-ground" class="ground"></div>
+        <div data-hf-id="hf-08-f03-stage" class="stage">
+          <div data-hf-id="hf-08-f03-copy">
+            <div data-hf-id="hf-08-f03-kicker" class="kicker">Variables et types</div>
+            <h2 data-hf-id="hf-08-f03-title">Une variable PL/pgSQL doit avoir un type</h2>
+            <p data-hf-id="hf-08-f03-p">Le lab compare les types choisis a la main et les types qui suivent une colonne de table.</p>
+            <p data-hf-id="hf-08-f03-note" class="mini-note"><span class="pill ok">%TYPE</span> aide a rester aligne avec le schema.</p>
+          </div>
+          <div data-hf-id="hf-08-f03-panel" class="panel">
+            <div data-hf-id="hf-08-f03-types" class="type-map">
+              <div class="type-card">
+                <span class="pill warning">fixe</span>
+                <h3>rental_count</h3>
+                <pre style="color:#182126;font-size:24px;">rental_count INTEGER;</pre>
+                <p class="mini-note">Vous choisissez explicitement le type.</p>
+              </div>
+              <div class="type-card">
+                <span class="pill ok">lie au schema</span>
+                <h3>cust_email</h3>
+                <pre style="color:#182126;font-size:24px;">customer.email%TYPE;</pre>
+                <p class="mini-note">La variable suit la colonne `customer.email`.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-08-f03-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-08-f04" id="frame-04" class="clip" data-start="86" data-duration="29" data-track-index="1">
+        <div data-hf-id="hf-08-f04-ground" class="ground"></div>
+        <div data-hf-id="hf-08-f04-stage" class="stage">
+          <div data-hf-id="hf-08-f04-copy">
+            <div data-hf-id="hf-08-f04-kicker" class="kicker">SELECT INTO + IF</div>
+            <h2 data-hf-id="hf-08-f04-title">La requete range des valeurs, le bloc decide</h2>
+            <p data-hf-id="hf-08-f04-p">Commencez par verifier la requete seule, puis seulement apres rangez son resultat dans des variables.</p>
+          </div>
+          <div data-hf-id="hf-08-f04-code" class="dark-panel">
+            <div data-hf-id="hf-08-f04-bar" class="titlebar"><span>ancres du lab</span><span>pas de solution</span></div>
+            <pre data-hf-id="hf-08-f04-pre"><span class="sql-key">SELECT</span> title, rental_rate
+<span class="sql-key">INTO</span> film_title, film_rate
+<span class="sql-key">FROM</span> film
+<span class="sql-key">WHERE</span> film_id = ...;
+
+<span class="sql-key">IF</span> film_rate &lt; ... <span class="sql-key">THEN</span>
+    rate_category := <span class="sql-string">'Budget'</span>;
+<span class="sql-key">ELSIF</span> ... <span class="sql-key">THEN</span>
+    rate_category := <span class="sql-string">'Standard'</span>;
+<span class="sql-key">ELSE</span>
+    rate_category := <span class="sql-string">'Premium'</span>;
+<span class="sql-key">END IF</span>;</pre>
+          </div>
+        </div>
+        <div data-hf-id="hf-08-f04-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-08-f05" id="frame-05" class="clip" data-start="115" data-duration="30" data-track-index="0">
+        <div data-hf-id="hf-08-f05-ground" class="ground"></div>
+        <div data-hf-id="hf-08-f05-stage" class="stage single">
+          <div data-hf-id="hf-08-f05-copy">
+            <div data-hf-id="hf-08-f05-kicker" class="kicker">Boucles</div>
+            <h2 data-hf-id="hf-08-f05-title">La progression: nombres, lignes, accumulation</h2>
+            <div data-hf-id="hf-08-f05-grid" class="grid-4">
+              <div class="item"><strong>FOR 1..10</strong>comprendre la syntaxe</div>
+              <div class="item"><strong>RECORD</strong>porter une ligne flexible</div>
+              <div class="item"><strong>payment</strong>compter et additionner</div>
+              <div class="item"><strong>customer</strong>classer selon une valeur</div>
+            </div>
+            <div data-hf-id="hf-08-f05-code" class="dark-panel" style="margin-top:26px;">
+              <div class="titlebar"><span>forme courte</span><span>query rows</span></div>
+              <pre><span class="sql-key">FOR</span> rec <span class="sql-key">IN SELECT</span> ... <span class="sql-key">FROM</span> category <span class="sql-key">LOOP</span>
+    <span class="sql-key">RAISE NOTICE</span> <span class="sql-string">'%'</span>, rec.name;
+<span class="sql-key">END LOOP</span>;</pre>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-08-f05-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-08-f06" id="frame-06" class="clip" data-start="145" data-duration="31" data-track-index="1">
+        <div data-hf-id="hf-08-f06-ground" class="ground"></div>
+        <div data-hf-id="hf-08-f06-stage" class="stage">
+          <div data-hf-id="hf-08-f06-copy">
+            <div data-hf-id="hf-08-f06-kicker" class="kicker">Pourquoi un curseur ?</div>
+            <h2 data-hf-id="hf-08-f06-title">Un pointeur avance dans un resultat</h2>
+            <p data-hf-id="hf-08-f06-p">Un curseur sert quand chaque ligne peut changer la suite du traitement.</p>
+            <p data-hf-id="hf-08-f06-note" class="mini-note"><span class="pill warning">regle</span> essayer le SQL ensembliste d'abord.</p>
+          </div>
+          <div data-hf-id="hf-08-f06-panel" class="panel">
+            <h3 data-hf-id="hf-08-f06-h">Result set</h3>
+            <div data-hf-id="hf-08-f06-queue" class="queue">
+              <div class="row-card">row 01</div>
+              <div class="row-card active-row">row 02</div>
+              <div class="row-card">row 03</div>
+              <div class="row-card">row 04</div>
+              <div class="row-card">row 05</div>
+            </div>
+            <div data-hf-id="hf-08-f06-method" class="method" style="margin-top:28px;">
+              <div class="item"><span class="num">1</span><span>action differente par ligne</span></div>
+              <div class="item"><span class="num">2</span><span>etat conserve entre les lignes</span></div>
+              <div class="item"><span class="num">3</span><span>sortie anticipee quand une condition est vraie</span></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-08-f06-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-08-f07" id="frame-07" class="clip" data-start="176" data-duration="30" data-track-index="0">
+        <div data-hf-id="hf-08-f07-ground" class="ground"></div>
+        <div data-hf-id="hf-08-f07-stage" class="stage single">
+          <div data-hf-id="hf-08-f07-copy">
+            <div data-hf-id="hf-08-f07-kicker" class="kicker">Trois formes</div>
+            <h2 data-hf-id="hf-08-f07-title">Du plus simple au plus manuel</h2>
+            <div data-hf-id="hf-08-f07-compare" class="compare">
+              <div class="compare-card">
+                <span class="pill ok">souvent suffisant</span>
+                <h3>FOR rec IN SELECT</h3>
+                <p>La requete est directement dans la boucle. PostgreSQL gere l'ouverture et la fermeture.</p>
+                <pre style="color:#182126;font-size:22px;">FOR rec IN SELECT ... LOOP</pre>
+              </div>
+              <div class="compare-card">
+                <span class="pill">reutilisable</span>
+                <h3>CURSOR FOR</h3>
+                <p>Le curseur est nomme. Il peut devenir plus clair quand la requete est reutilisee ou parametree.</p>
+                <pre style="color:#182126;font-size:22px;">my_cur CURSOR FOR SELECT ...</pre>
+              </div>
+              <div class="compare-card">
+                <span class="pill warning">apprentissage</span>
+                <h3>OPEN / FETCH / CLOSE</h3>
+                <p>Cycle complet, utile pour comprendre. Attention a toujours sortir de la boucle.</p>
+                <pre style="color:#182126;font-size:22px;">FETCH cur INTO rec;</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-08-f07-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-08-f08" id="frame-08" class="clip" data-start="206" data-duration="28" data-track-index="1">
+        <div data-hf-id="hf-08-f08-ground" class="ground"></div>
+        <div data-hf-id="hf-08-f08-stage" class="stage">
+          <div data-hf-id="hf-08-f08-copy">
+            <div data-hf-id="hf-08-f08-kicker" class="kicker">Avance du lab</div>
+            <h2 data-hf-id="hf-08-f08-title">Parametres, imbrication, exceptions</h2>
+            <p data-hf-id="hf-08-f08-p">La deuxieme moitie du lab ajoute des cas utiles, mais a traiter avec prudence.</p>
+            <div data-hf-id="hf-08-f08-names" class="table-names">
+              <span class="pill">film</span><span class="pill">customer</span><span class="pill">address</span><span class="pill">city</span><span class="pill">country</span>
+            </div>
+          </div>
+          <div data-hf-id="hf-08-f08-panel" class="panel">
+            <div class="exception-map">
+              <div class="exception-card"><h3>SELECT INTO STRICT</h3><p>Exactement une ligne attendue.</p></div>
+              <div class="exception-card"><h3>NO_DATA_FOUND</h3><p>Aucune ligne trouvee.</p></div>
+              <div class="exception-card"><h3>TOO_MANY_ROWS</h3><p>Plusieurs lignes trouvees.</p></div>
+              <div class="exception-card"><h3>EXCEPTION</h3><p>Prevoir un chemin de secours.</p></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-08-f08-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-08-f09" id="frame-09" class="clip" data-start="234" data-duration="26" data-track-index="2">
+        <div data-hf-id="hf-08-f09-ground" class="ground"></div>
+        <div data-hf-id="hf-08-f09-stage" class="stage">
+          <div data-hf-id="hf-08-f09-copy">
+            <div data-hf-id="hf-08-f09-kicker" class="kicker">Methode</div>
+            <h2 data-hf-id="hf-08-f09-title">Reussir le lab sans se perdre dans les blocs</h2>
+            <p data-hf-id="hf-08-f09-p">Le but est d'apprendre a diagnostiquer un bloc procedural, pas seulement obtenir une sortie.</p>
+          </div>
+          <div data-hf-id="hf-08-f09-panel" class="panel">
+            <div data-hf-id="hf-08-f09-method" class="method">
+              <div class="item"><span class="num">1</span><span>executer un seul <span class="mono">DO $$</span> a la fois</span></div>
+              <div class="item"><span class="num">2</span><span>tester le <span class="mono">SELECT</span> avant de l'integrer</span></div>
+              <div class="item"><span class="num">3</span><span>ajouter <span class="mono">LIMIT</span> pendant les essais</span></div>
+              <div class="item"><span class="num">4</span><span>utiliser <span class="mono">RAISE NOTICE</span> pour observer</span></div>
+              <div class="item"><span class="num">5</span><span>commenter les sorties obtenues</span></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-08-f09-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#progress", { scaleX: 0 }, { scaleX: 1, duration: 260, ease: "none" }, 0);
+      window.__timelines.main = tl;
+    </script>
+  </body>
+</html>

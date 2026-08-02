@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>PostgreSQL labs 03 - Pagila et utilisateur</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Literata";
+        src: local("Literata");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "Instrument Sans";
+        src: local("Instrument Sans");
+        font-weight: 400 700;
+      }
+      @font-face {
+        font-family: "Geist Mono";
+        src: local("Geist Mono");
+        font-weight: 400 700;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+      body {
+        color: #182126;
+        font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #f7f4ee;
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      .ground {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          #f7f4ee;
+        background-size: 72px 72px;
+      }
+      .stage {
+        position: absolute;
+        inset: 72px 84px 220px 84px;
+        display: grid;
+        grid-template-columns: 0.95fr 1.05fr;
+        gap: 48px;
+        align-items: stretch;
+      }
+      .single {
+        grid-template-columns: 1fr;
+      }
+      .kicker {
+        color: #0d4f68;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 24px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 24px;
+      }
+      h1 {
+        margin: 0;
+        max-width: 860px;
+        font-family: Literata, Georgia, serif;
+        font-size: 82px;
+        font-weight: 400;
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+      h2 {
+        margin: 0 0 28px;
+        font-family: Literata, Georgia, serif;
+        font-size: 58px;
+        font-weight: 400;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+      p {
+        margin: 0;
+        font-size: 30px;
+        line-height: 1.42;
+        color: #4d5a60;
+      }
+      .panel {
+        border: 1px solid #d9dedf;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.82);
+        padding: 34px;
+        box-shadow: 0 1px 3px rgba(24, 33, 38, 0.08), 0 4px 16px rgba(24, 33, 38, 0.04);
+      }
+      .dark-panel {
+        border: 1px solid rgba(247, 244, 238, 0.16);
+        border-radius: 8px;
+        background: #151718;
+        color: #f7f4ee;
+        padding: 28px;
+        box-shadow: none;
+      }
+      .terminal-title {
+        display: flex;
+        justify-content: space-between;
+        margin: -28px -28px 22px;
+        padding: 18px 24px;
+        border-bottom: 1px solid rgba(247, 244, 238, 0.14);
+        border-radius: 8px 8px 0 0;
+        background: #202325;
+        color: #dce5e4;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 20px;
+      }
+      pre, code, .mono {
+        font-family: "Geist Mono", Consolas, "Courier New", monospace;
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        color: #f7f4ee;
+        font-size: 28px;
+        line-height: 1.45;
+      }
+      .sql-key { color: #9fd3c8; }
+      .sql-string { color: #e8a55a; }
+      .success { color: #5db872; }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 22px;
+      }
+      .item {
+        border: 1px solid rgba(24, 33, 38, 0.12);
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 24px;
+        font-size: 28px;
+        line-height: 1.25;
+      }
+      .item strong {
+        display: block;
+        color: #182126;
+        font-size: 32px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .pill {
+        display: inline-block;
+        border: 1px solid #a7c4ce;
+        border-radius: 999px;
+        background: #e8f1f4;
+        color: #0d4f68;
+        padding: 10px 18px;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+      }
+      .warning {
+        border-color: rgba(138, 101, 26, 0.24);
+        background: #f8f0dc;
+        color: #624a35;
+      }
+      .ok {
+        border-color: rgba(23, 94, 74, 0.24);
+        background: #e8f3ee;
+        color: #175e4a;
+      }
+      .caption-band {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 200px;
+        border-top: 1px dashed rgba(93, 104, 110, 0.35);
+        background: rgba(247, 244, 238, 0.72);
+        color: #687175;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .flow {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        margin-top: 34px;
+      }
+      .arrow {
+        color: #0d4f68;
+        font-family: Georgia, serif;
+        font-size: 42px;
+      }
+      .big-code {
+        color: #182126;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 36px;
+        line-height: 1.4;
+      }
+      .mini-note {
+        margin-top: 22px;
+        color: #5d686e;
+        font-size: 24px;
+      }
+      .link-list {
+        display: grid;
+        gap: 14px;
+      }
+      .link-row {
+        border: 1px solid rgba(13, 79, 104, 0.18);
+        border-radius: 8px;
+        background: #f5fafb;
+        padding: 14px 16px;
+        color: #0d4f68;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 17px;
+        line-height: 1.28;
+        overflow-wrap: anywhere;
+      }
+      .flag-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-top: 24px;
+      }
+      .flag {
+        border: 1px solid rgba(13, 79, 104, 0.2);
+        border-radius: 8px;
+        background: #e8f1f4;
+        padding: 14px;
+        color: #0d4f68;
+        font-size: 20px;
+      }
+      .flag strong {
+        display: block;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 24px;
+        color: #182126;
+        margin-bottom: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-gnq7" id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="296">
+      <section data-hf-id="hf-3n5b" id="frame-01" class="clip" data-start="0" data-duration="24" data-track-index="0">
+        <div data-hf-id="hf-ygft" class="ground"></div>
+        <div data-hf-id="hf-tan6" class="stage">
+          <div data-hf-id="hf-yeow">
+            <div data-hf-id="hf-z50y" class="kicker">03/08 · Pagila</div>
+            <h1 data-hf-id="hf-fw4f">Préparer Pagila et son utilisateur personnel</h1>
+            <p data-hf-id="hf-e8bx" class="mini-note">Objectif: une base `pagila` prête pour les TP, avec un compte de travail séparé.</p>
+          </div>
+          <div data-hf-id="hf-owjm" class="panel">
+            <h2 data-hf-id="hf-m4sd">À la fin</h2>
+            <div data-hf-id="hf-kxq8" class="grid">
+              <div data-hf-id="hf-fubx" class="item"><strong data-hf-id="hf-hf78">Base prête</strong><span data-hf-id="hf-24ug" class="mono">pagila</span></div>
+              <div data-hf-id="hf-gmqp" class="item"><strong data-hf-id="hf-s2j8">Import officiel</strong>schéma puis données</div>
+              <div data-hf-id="hf-s14e" class="item"><strong data-hf-id="hf-wkzj">Utilisateur TP</strong><span data-hf-id="hf-gmn4" class="mono">karim</span> comme exemple</div>
+              <div data-hf-id="hf-d43m" class="item"><strong data-hf-id="hf-lhm9">Vérification</strong><span data-hf-id="hf-tvto" class="mono">\dt</span> + comptage</div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-aeb1" class="caption-band">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-plue" id="frame-02" class="clip" data-start="24" data-duration="48" data-track-index="1">
+        <div data-hf-id="hf-p66l" class="ground"></div>
+        <div data-hf-id="hf-xa86" class="stage">
+          <div data-hf-id="hf-y7yw">
+            <div data-hf-id="hf-8s5y" class="kicker">Fichiers officiels</div>
+            <h2 data-hf-id="hf-kiwu">Créer le dossier et garder les fichiers officiels</h2>
+            <p data-hf-id="hf-tfpg" class="big-code">C:\Pagila_Project</p>
+            <p data-hf-id="hf-fssm" class="mini-note">Clic droit, enregistrer sous, garder les noms exacts. Ne pas éditer.</p>
+          </div>
+          <div data-hf-id="hf-gxly" class="panel">
+            <h2 data-hf-id="hf-cqnx">Source officielle / raw</h2>
+            <div data-hf-id="hf-link-list" class="link-list">
+              <div data-hf-id="hf-link-repo" class="link-row">https://github.com/devrimgunduz/pagila</div>
+              <div data-hf-id="hf-link-schema" class="link-row">https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-schema.sql</div>
+              <div data-hf-id="hf-link-data" class="link-row">https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-data.sql</div>
+            </div>
+            <div data-hf-id="hf-file-grid" class="grid" style="margin-top: 22px;">
+              <div data-hf-id="hf-dy83" class="item"><strong data-hf-id="hf-hilz" class="mono">pagila-schema.sql</strong>structure des tables</div>
+              <div data-hf-id="hf-u5n8" class="item"><strong data-hf-id="hf-vw1w" class="mono">pagila-data.sql</strong>données de démonstration</div>
+            </div>
+            <p data-hf-id="hf-w1c2" class="pill warning" style="margin-top: 24px;">noms exacts · fichiers non modifiés</p>
+          </div>
+        </div>
+        <div data-hf-id="hf-880x" class="caption-band">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-bhpc" id="frame-03" class="clip" data-start="72" data-duration="30" data-track-index="0">
+        <div data-hf-id="hf-qd3o" class="ground"></div>
+        <div data-hf-id="hf-xoj7" class="stage">
+          <div data-hf-id="hf-x11t">
+            <div data-hf-id="hf-sjuh" class="kicker">Administration</div>
+            <h2 data-hf-id="hf-nvq6">Créer la base en tant que postgres</h2>
+            <p data-hf-id="hf-2zhh">`postgres` sert au travail de préparation. Le compte personnel viendra après.</p>
+            <div data-hf-id="hf-ck2w" class="flow">
+              <span data-hf-id="hf-zylv" class="pill">postgres=#</span>
+              <span data-hf-id="hf-v68i" class="arrow">→</span>
+              <span data-hf-id="hf-34ha" class="pill ok">pagila=#</span>
+            </div>
+          </div>
+          <div data-hf-id="hf-25jd" class="dark-panel">
+            <div data-hf-id="hf-cwdp" class="terminal-title"><span data-hf-id="hf-ix6w">SQL Shell (psql)</span><span data-hf-id="hf-03fk">admin</span></div>
+            <pre data-hf-id="hf-fbha"><span data-hf-id="hf-aeh9" class="success">postgres=#</span> CREATE DATABASE pagila;
+CREATE DATABASE
+<span data-hf-id="hf-w741" class="success">postgres=#</span> \c pagila
+You are now connected to database "pagila".
+<span data-hf-id="hf-xmre" class="success">pagila=#</span></pre>
+          </div>
+        </div>
+        <div data-hf-id="hf-9ey0" class="caption-band">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-tda2" id="frame-04" class="clip" data-start="102" data-duration="40" data-track-index="1">
+        <div data-hf-id="hf-pysn" class="ground"></div>
+        <div data-hf-id="hf-y2u8" class="stage">
+          <div data-hf-id="hf-xfcu">
+            <div data-hf-id="hf-046q" class="kicker">Import Pagila</div>
+            <h2 data-hf-id="hf-frga">Importer le schéma d'abord</h2>
+            <div data-hf-id="hf-tuhs" class="flow">
+              <span data-hf-id="hf-nvlx" class="pill">1 · schema</span>
+              <span data-hf-id="hf-f1jq" class="arrow">→</span>
+              <span data-hf-id="hf-izih" class="pill warning">2 · data après</span>
+            </div>
+            <p data-hf-id="hf-6rvb" class="mini-note">Le schéma crée les tables, clés et contraintes. Dans `psql`, utilisez des slashs `/`.</p>
+          </div>
+          <div data-hf-id="hf-h3el" class="dark-panel">
+            <div data-hf-id="hf-hg9t" class="terminal-title"><span data-hf-id="hf-3hmo">SQL Shell (psql)</span><span data-hf-id="hf-x3m9">pagila=#</span></div>
+            <pre data-hf-id="hf-xc55"><span data-hf-id="hf-x0ym" class="success">pagila=#</span> \i 'C:/Pagila_Project/pagila-schema.sql'
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+-- tables, keys, constraints
+<span data-hf-id="hf-xf9n" class="success">pagila=#</span></pre>
+          </div>
+        </div>
+        <div data-hf-id="hf-90mz" class="caption-band">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-data5" id="frame-05" class="clip" data-start="142" data-duration="36" data-track-index="0">
+        <div data-hf-id="hf-data-ground" class="ground"></div>
+        <div data-hf-id="hf-data-stage" class="stage">
+          <div data-hf-id="hf-data-copy">
+            <div data-hf-id="hf-data-kicker" class="kicker">Import Pagila</div>
+            <h2 data-hf-id="hf-data-title">Importer les données ensuite</h2>
+            <div data-hf-id="hf-data-flow" class="flow">
+              <span data-hf-id="hf-data-schema-done" class="pill ok">1 · schema terminé</span>
+              <span data-hf-id="hf-data-arrow" class="arrow">→</span>
+              <span data-hf-id="hf-data-step" class="pill">2 · data</span>
+            </div>
+            <p data-hf-id="hf-data-note" class="mini-note">Les lignes `INSERT` ou `COPY` sont normales. Attendez que l'invite revienne.</p>
+          </div>
+          <div data-hf-id="hf-data-terminal" class="dark-panel">
+            <div data-hf-id="hf-data-titlebar" class="terminal-title"><span data-hf-id="hf-data-shell">SQL Shell (psql)</span><span data-hf-id="hf-data-prompt">pagila=#</span></div>
+            <pre data-hf-id="hf-data-pre"><span data-hf-id="hf-data-p1" class="success">pagila=#</span> \i 'C:/Pagila_Project/pagila-data.sql'
+INSERT 0 1
+COPY 200
+COPY 1000
+SELECT setval(...)
+-- many insert/copy lines
+<span data-hf-id="hf-data-p2" class="success">pagila=#</span></pre>
+          </div>
+        </div>
+        <div data-hf-id="hf-data-caption" class="caption-band">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-ua00" id="frame-06" class="clip" data-start="178" data-duration="42" data-track-index="1">
+        <div data-hf-id="hf-r5pq" class="ground"></div>
+        <div data-hf-id="hf-vap1" class="stage">
+          <div data-hf-id="hf-w8fr">
+            <div data-hf-id="hf-u6ni" class="kicker">Utilisateur personnel</div>
+            <h2 data-hf-id="hf-zo9i">Créer le compte de TP</h2>
+            <p data-hf-id="hf-uawo"><span data-hf-id="hf-9ac8" class="mono">karim</span> est seulement un exemple. Chaque étudiant utilise son propre prénom en minuscules.</p>
+            <p data-hf-id="hf-mic2" class="pill warning" style="margin-top: 28px;">mot de passe privé · ne pas partager</p>
+          </div>
+          <div data-hf-id="hf-iabo" class="dark-panel">
+            <div data-hf-id="hf-in6w" class="terminal-title"><span data-hf-id="hf-2apl">SQL Shell (psql)</span><span data-hf-id="hf-r4gy">droits</span></div>
+            <pre data-hf-id="hf-gqsl">CREATE ROLE karim WITH LOGIN PASSWORD 'votre_mot_de_passe';
+GRANT ALL PRIVILEGES ON DATABASE pagila TO karim;
+GRANT ALL ON SCHEMA public TO karim;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO karim;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO karim;</pre>
+          </div>
+        </div>
+        <div data-hf-id="hf-713u" class="caption-band">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-te2g" id="frame-07" class="clip" data-start="220" data-duration="32" data-track-index="0">
+        <div data-hf-id="hf-qrep" class="ground"></div>
+        <div data-hf-id="hf-vp02" class="stage">
+          <div data-hf-id="hf-wmqs">
+            <div data-hf-id="hf-608b" class="kicker">Connexion de TP</div>
+            <h2 data-hf-id="hf-1fdv">Tester le compte personnel dans CMD</h2>
+            <p data-hf-id="hf-onsx">Le travail courant se fait avec l'utilisateur de TP, pas avec `postgres`.</p>
+            <div data-hf-id="hf-flag-grid" class="flag-grid">
+              <div data-hf-id="hf-flag-h" class="flag"><strong>-h</strong>hôte</div>
+              <div data-hf-id="hf-flag-p" class="flag"><strong>-p</strong>port</div>
+              <div data-hf-id="hf-flag-u" class="flag"><strong>-U</strong>utilisateur</div>
+              <div data-hf-id="hf-flag-d" class="flag"><strong>-d</strong>base</div>
+            </div>
+            <p data-hf-id="hf-path-note" class="mini-note">Si `psql` n'est pas reconnu: revoir PATH ou utiliser SQL Shell.</p>
+          </div>
+          <div data-hf-id="hf-hw0n" class="dark-panel">
+            <div data-hf-id="hf-i8vv" class="terminal-title"><span data-hf-id="hf-n7vc">Command Prompt</span><span data-hf-id="hf-b040">localhost:5432</span></div>
+            <pre data-hf-id="hf-7zy6">psql -h localhost -p 5432 -U karim -d pagila
+
+Password for user karim:
+<span data-hf-id="hf-8d15" class="success">pagila=&gt;</span></pre>
+          </div>
+        </div>
+        <div data-hf-id="hf-6mst" class="caption-band">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-bvv2" id="frame-08" class="clip" data-start="252" data-duration="24" data-track-index="1">
+        <div data-hf-id="hf-rybs" class="ground"></div>
+        <div data-hf-id="hf-w3b3" class="stage">
+          <div data-hf-id="hf-vftp">
+            <div data-hf-id="hf-czyu" class="kicker">Méta-commandes psql</div>
+            <h2 data-hf-id="hf-tskh">Les commandes avec anti-slash</h2>
+            <p data-hf-id="hf-8r6o">Elles pilotent la console `psql`. Ce n'est pas du SQL et il n'y a pas de point-virgule.</p>
+          </div>
+          <div data-hf-id="hf-hbwz" class="panel">
+            <div data-hf-id="hf-6qwo" class="grid">
+              <div data-hf-id="hf-osnd" class="item"><strong data-hf-id="hf-ycu1" class="mono">\dt</strong>liste les tables</div>
+              <div data-hf-id="hf-kw5o" class="item"><strong data-hf-id="hf-92mj" class="mono">\d film</strong>décrit une table</div>
+              <div data-hf-id="hf-zxqq" class="item"><strong data-hf-id="hf-yr52" class="mono">\du</strong>liste les rôles</div>
+              <div data-hf-id="hf-8mdt" class="item"><strong data-hf-id="hf-x3e6" class="mono">\c pagila</strong>change de base</div>
+              <div data-hf-id="hf-sunj" class="item"><strong data-hf-id="hf-08eg" class="mono">\q</strong>quitte `psql`</div>
+              <div data-hf-id="hf-gk1u" class="item"><strong data-hf-id="hf-npka">Règle</strong>anti-slash = commande `psql`</div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-7tpw" class="caption-band">zone réservée aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-bf8e" id="frame-09" class="clip" data-start="276" data-duration="20" data-track-index="0">
+        <div data-hf-id="hf-rk0r" class="ground"></div>
+        <div data-hf-id="hf-whm4" class="stage">
+          <div data-hf-id="hf-vu4q">
+            <div data-hf-id="hf-ie59" class="kicker">Vérifier</div>
+            <h2 data-hf-id="hf-b1sm">Pagila prête pour les TP</h2>
+            <p data-hf-id="hf-9iyk">Listez les tables, puis comptez les films. Si `OWNER TO student` apparaît, retéléchargez le fichier officiel au lieu de l'éditer.</p>
+            <p data-hf-id="hf-vc5f" class="pill ok" style="margin-top: 28px;">confirmation attendue: tables + environ 1000 films</p>
+          </div>
+          <div data-hf-id="hf-j2xq" class="dark-panel">
+            <div data-hf-id="hf-g9cq" class="terminal-title"><span data-hf-id="hf-2p0m">SQL Shell (psql)</span><span data-hf-id="hf-sq8y">pagila=&gt;</span></div>
+            <pre data-hf-id="hf-z2wp"><span data-hf-id="hf-7m4t" class="success">pagila=&gt;</span> \dt
+ actor | film | customer | rental | ...
+
+<span data-hf-id="hf-8t1w" class="success">pagila=&gt;</span> SELECT COUNT(*) FROM film;
+ count
+-------
+ 1000</pre>
+          </div>
+        </div>
+        <div data-hf-id="hf-7fev" class="caption-band">zone réservée aux sous-titres</div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.to({}, { duration: 296 }, 0);
+      window.__timelines.main = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+/* Spacing — 4px base scale: 4 8 12 16 24 32 48 64 96 128. */
+:root {
+  --space-1: 0.25rem;   /* 4  */
+  --space-2: 0.5rem;    /* 8  */
+  --space-3: 0.75rem;   /* 12 */
+  --space-4: 1rem;      /* 16 */
+  --space-6: 1.5rem;    /* 24 */
+  --space-8: 2rem;      /* 32 */
+  --space-12: 3rem;     /* 48 */
+  --space-16: 4rem;     /* 64 */
+  --space-24: 6rem;     /* 96 */
+  --space-32: 8rem;     /* 128 */
+
+  /* Adaptive content widths */
+  --content-reading: 46rem;    /* 680–760px reading column */
+  --content-standard: 73.75rem;/* marketing max 1180px */
+  --content-wide: 90rem;       /* dashboard max 1440px */
+}

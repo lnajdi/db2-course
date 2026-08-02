@@ -1,0 +1,272 @@
+<template>
+  <style>
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #182126;
+    }
+
+    #root *, #root *::before, #root *::after { box-sizing: border-box; }
+
+    .clip.f01-pret-pour-les-tp-ground {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #F7F4EE;
+    }
+
+    .f01-pret-pour-les-tp-grid {
+      position: absolute;
+      inset: 0;
+      opacity: 0.44;
+      background-image:
+        linear-gradient(rgba(24, 33, 38, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 33, 38, 0.045) 1px, transparent 1px);
+      background-size: 48px 48px;
+      background-position: -1px -1px;
+    }
+
+    .f01-pret-pour-les-tp-wash {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 67%;
+      height: 100%;
+      background: #F0F2F1;
+      opacity: 0.62;
+    }
+
+    .f01-pret-pour-les-tp-layout {
+      position: absolute;
+      inset: 0;
+    }
+
+    .f01-pret-pour-les-tp-copy {
+      position: absolute;
+      left: 80px;
+      top: 224px;
+      width: 850px;
+    }
+
+    .f01-pret-pour-les-tp-kicker {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin-bottom: 42px;
+      color: #182126;
+      font-family: monospace;
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      line-height: 1;
+    }
+
+    .f01-pret-pour-les-tp-spike {
+      color: #0D4F68;
+      font-family: serif;
+      font-size: 38px;
+      line-height: 0;
+    }
+
+    .f01-pret-pour-les-tp-title {
+      margin: 0;
+      font-family: serif;
+      font-size: 108px;
+      font-weight: 400;
+      letter-spacing: -0.035em;
+      line-height: 0.96;
+    }
+
+    .f01-pret-pour-les-tp-title-line {
+      display: block;
+      overflow: hidden;
+      padding-bottom: 8px;
+    }
+
+    .f01-pret-pour-les-tp-title-beat {
+      display: inline-block;
+      margin-right: 0.21em;
+      will-change: transform, opacity;
+    }
+
+    .f01-pret-pour-les-tp-lede {
+      margin: 38px 0 0;
+      color: #5D686E;
+      font-family: sans-serif;
+      font-size: 37px;
+      font-weight: 430;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+
+    .f01-pret-pour-les-tp-burst-wrap {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .f01-pret-pour-les-tp-card {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 590px;
+      min-height: 144px;
+      padding: 29px 36px 28px;
+      border: 1px solid rgba(24, 33, 38, 0.15);
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(24, 33, 38, 0.08), 0 4px 16px rgba(24, 33, 38, 0.04);
+      color: #182126;
+      font-family: sans-serif;
+      will-change: transform, opacity;
+    }
+
+    .f01-pret-pour-les-tp-card--server { background: #D8F5ED; z-index: 3; }
+    .f01-pret-pour-les-tp-card--admin { background: #F7F4EE; z-index: 2; }
+    .f01-pret-pour-les-tp-card--tools { background: #E8F1F4; z-index: 1; }
+
+    .f01-pret-pour-les-tp-card-index {
+      display: block;
+      margin-bottom: 13px;
+      color: #5D686E;
+      font-family: monospace;
+      font-size: 21px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      line-height: 1;
+    }
+
+    .f01-pret-pour-les-tp-card-title {
+      display: block;
+      font-size: 46px;
+      font-weight: 500;
+      letter-spacing: -0.025em;
+      line-height: 1.04;
+    }
+
+    .f01-pret-pour-les-tp-card-title--tools { font-size: 41px; }
+
+    .f01-pret-pour-les-tp-link-line {
+      position: absolute;
+      left: 818px;
+      top: 542px;
+      width: 227px;
+      height: 1px;
+      background: #B8C1C3;
+      transform-origin: left center;
+      will-change: transform, opacity;
+    }
+
+    .f01-pret-pour-les-tp-lockup {
+      position: absolute;
+      left: 80px;
+      top: 785px;
+      display: flex;
+      align-items: center;
+      gap: 27px;
+      width: 1260px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(24, 33, 38, 0.16);
+      color: #5D686E;
+      font-family: monospace;
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      line-height: 1.1;
+    }
+
+    .f01-pret-pour-les-tp-lockup strong {
+      color: #182126;
+      font-family: sans-serif;
+      font-size: 29px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+
+    .f01-pret-pour-les-tp-lockup-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #0D4F68;
+    }
+  </style>
+
+  <div data-hf-id="hf-z3a2" id="root" data-composition-id="01-pret-pour-les-tp" data-start="0" data-duration="23.2" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-av8b" class="clip f01-pret-pour-les-tp-ground" data-start="0" data-duration="23.2" data-track-index="0">
+      <div data-hf-id="hf-yktc" class="f01-pret-pour-les-tp-wash"></div>
+      <div data-hf-id="hf-ascx" class="f01-pret-pour-les-tp-grid"></div>
+    </div>
+
+    <div data-hf-id="hf-zyxb" class="f01-pret-pour-les-tp-layout">
+      <section data-hf-id="hf-p3k8" class="f01-pret-pour-les-tp-copy" aria-label="Promesse de la leçon">
+        <div data-hf-id="hf-4r8i" class="f01-pret-pour-les-tp-kicker" id="f01-pret-pour-les-tp-kicker"><span data-hf-id="hf-wccf" class="f01-pret-pour-les-tp-spike">✱</span><span data-hf-id="hf-tu2e">01/08 · INSTALLATION</span></div>
+        <h1 data-hf-id="hf-nuak" class="f01-pret-pour-les-tp-title" aria-label="Bien démarrer les TP">
+          <span data-hf-id="hf-egvf" class="f01-pret-pour-les-tp-title-line"><span data-hf-id="hf-op2c" class="f01-pret-pour-les-tp-title-beat" id="f01-pret-pour-les-tp-beat-1">Bien</span></span>
+          <span data-hf-id="hf-0ix7" class="f01-pret-pour-les-tp-title-line"><span data-hf-id="hf-ekyn" class="f01-pret-pour-les-tp-title-beat" id="f01-pret-pour-les-tp-beat-2">démarrer</span> <span data-hf-id="hf-tv44" class="f01-pret-pour-les-tp-title-beat" id="f01-pret-pour-les-tp-beat-3">les TP</span></span>
+        </h1>
+        <p data-hf-id="hf-gzyl" class="f01-pret-pour-les-tp-lede" id="f01-pret-pour-les-tp-lede">Poste Windows</p>
+      </section>
+
+      <div data-hf-id="hf-gnbj" class="f01-pret-pour-les-tp-burst-wrap" aria-label="Composants installés">
+        <article data-hf-id="hf-gtqs" class="f01-pret-pour-les-tp-card f01-pret-pour-les-tp-card--server" id="f01-pret-pour-les-tp-card-server" data-target-x="380" data-target-y="-165">
+          <span data-hf-id="hf-5ngu" class="f01-pret-pour-les-tp-card-index">01 · DATABASE</span>
+          <span data-hf-id="hf-pea6" class="f01-pret-pour-les-tp-card-title">PostgreSQL Server</span>
+        </article>
+        <article data-hf-id="hf-6bmv" class="f01-pret-pour-les-tp-card f01-pret-pour-les-tp-card--admin" id="f01-pret-pour-les-tp-card-admin" data-target-x="380" data-target-y="0">
+          <span data-hf-id="hf-yx8r" class="f01-pret-pour-les-tp-card-index">02 · INTERFACE</span>
+          <span data-hf-id="hf-9cl7" class="f01-pret-pour-les-tp-card-title">pgAdmin 4</span>
+        </article>
+        <article data-hf-id="hf-zpdd" class="f01-pret-pour-les-tp-card f01-pret-pour-les-tp-card--tools" id="f01-pret-pour-les-tp-card-tools" data-target-x="380" data-target-y="165">
+          <span data-hf-id="hf-c025" class="f01-pret-pour-les-tp-card-index">03 · TERMINAL</span>
+          <span data-hf-id="hf-s5ko" class="f01-pret-pour-les-tp-card-title f01-pret-pour-les-tp-card-title--tools">Command Line Tools</span>
+        </article>
+      </div>
+
+      <div data-hf-id="hf-z15q" class="f01-pret-pour-les-tp-link-line" id="f01-pret-pour-les-tp-link-line"></div>
+      <div data-hf-id="hf-zrz0" class="f01-pret-pour-les-tp-lockup" id="f01-pret-pour-les-tp-lockup"><span data-hf-id="hf-ajy8">TERMINÉ QUAND</span><span data-hf-id="hf-hcwu" class="f01-pret-pour-les-tp-lockup-dot"></span><strong data-hf-id="hf-mrm9">3 composants installés</strong></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    window.__timelines["01-pret-pour-les-tp"] = tl;
+
+    const titleContent = [
+      { id: "f01-pret-pour-les-tp-beat-1", copy: "Bien", hold: 0.45 },
+      { id: "f01-pret-pour-les-tp-beat-2", copy: "démarrer", hold: 0.56 },
+      { id: "f01-pret-pour-les-tp-beat-3", copy: "les TP", hold: 0.72 }
+    ];
+    const baseDuration = 0.5;
+    const secondsPerCharacter = 0.055;
+    let cursor = 0.32;
+    const titleTimeline = titleContent.map((entry) => {
+      const duration = baseDuration + entry.copy.length * secondsPerCharacter + entry.hold;
+      const start = cursor;
+      cursor += duration;
+      return { ...entry, start, end: cursor };
+    });
+
+    tl.fromTo(document.getElementById("f01-pret-pour-les-tp-kicker"), { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.48, ease: "power2.out" }, 0.04);
+    titleTimeline.forEach((entry) => {
+      tl.fromTo(document.getElementById(entry.id), { y: 58, opacity: 0 }, { y: 0, opacity: 1, duration: 0.68, ease: "power3.out" }, entry.start);
+    });
+    tl.fromTo(document.getElementById("f01-pret-pour-les-tp-lede"), { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 4.35);
+
+    ["server", "admin", "tools"].forEach((name, index) => {
+      const card = document.getElementById("f01-pret-pour-les-tp-card-" + name);
+      tl.fromTo(
+        card,
+        { xPercent: -50, yPercent: -50, x: 0, y: 0, scale: 0.72, opacity: 0 },
+        { x: Number(card.dataset.targetX), y: Number(card.dataset.targetY), scale: 1, opacity: 1, duration: 1.28, ease: "power3.out" },
+        6.1 + index * 2.55
+      );
+    });
+
+    tl.fromTo(document.getElementById("f01-pret-pour-les-tp-link-line"), { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 1.3, ease: "power2.out" }, 14.65);
+    tl.fromTo(document.getElementById("f01-pret-pour-les-tp-lockup"), { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.72, ease: "power3.out" }, 16.15);
+  </script>
+</template>

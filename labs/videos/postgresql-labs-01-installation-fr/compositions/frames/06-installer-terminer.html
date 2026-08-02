@@ -1,0 +1,148 @@
+<template>
+  <style>
+    * { box-sizing: border-box; }
+    #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; container-type: size; color: #182126; font-family: sans-serif; }
+    .clip { position: absolute; }
+    .f06-ground { inset: 0; background: #F7F4EE; }
+    .f06-top { position: absolute; top: 50px; left: 80px; right: 80px; display: flex; justify-content: space-between; align-items: center; color: #182126; font: 500 21px/1 monospace; letter-spacing: .1em; }
+    .f06-top strong { font-weight: 500; color: #5D686E; }
+    .f06-stage { position: absolute; top: 104px; left: 80px; right: 80px; height: 700px; display: grid; grid-template-columns: 1.28fr .72fr; gap: 42px; }
+    .f06-window { position: relative; overflow: hidden; border: 1px solid #B8C1C3; border-radius: 12px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(24,33,38,.08), 0 4px 16px rgba(24,33,38,.04); }
+    .f06-titlebar { height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; background: #151718; color: #F7F4EE; font: 500 23px/1 monospace; }
+    .f06-titlebar small { color: #D8F5ED; font-size: 16px; letter-spacing: .12em; }
+    .f06-main { position: absolute; top: 70px; right: 0; bottom: 0; left: 0; overflow: hidden; }
+    .f06-screen { position: absolute; inset: 0; padding: 40px 46px; background: #FFFFFF; }
+    .f06-ready-screen, .f06-progress-screen, .f06-receipt, .f06-aside { opacity: 0; visibility: hidden; }
+    .f06-heading { margin: 0 0 17px; color: #182126; font: 400 63px/.98 serif; letter-spacing: -.035em; }
+    .f06-subhead { margin: 0 0 25px; color: #5D686E; font: 500 19px/1 monospace; letter-spacing: .08em; }
+    .f06-summary { overflow: hidden; border: 1px solid #A7C4CE; border-radius: 8px; background: #E8F1F4; }
+    .f06-summary-row { display: grid; grid-template-columns: 145px 1fr; min-height: 83px; align-items: center; padding: 0 22px; border-bottom: 1px solid #A7C4CE; }
+    .f06-summary-row:last-child { border-bottom: 0; }
+    .f06-summary-row b { color: #0D4F68; font: 500 17px/1 monospace; letter-spacing: .1em; }
+    .f06-summary-row span { color: #182126; font: 400 26px/1.15 sans-serif; }
+    .f06-summary-note { margin: 25px 0 0; color: #5D686E; font: 400 20px/1.45 sans-serif; }
+    .f06-nav { position: absolute; right: 46px; bottom: 38px; left: 46px; display: flex; justify-content: space-between; align-items: center; }
+    .f06-back { color: #5D686E; font: 500 18px/1 monospace; letter-spacing: .08em; }
+    .f06-next-stage { position: relative; width: 238px; height: 76px; }
+    .f06-burst { position: absolute; inset: -70px; border-radius: 50%; background: #E8F1F4; opacity: 0; }
+    .f06-next { position: absolute; inset: 0; border: 0; border-radius: 8px; background: #0D4F68; color: #F7F4EE; box-shadow: 0 9px 0 #08394C; font: 500 21px/1 monospace; letter-spacing: .04em; transform-origin: 50% 50%; }
+    .f06-cursor { position: absolute; right: 25px; bottom: -13px; color: #182126; font: 400 45px/1 sans-serif; }
+    .f06-progress-screen { padding-top: 43px; }
+    .f06-progress-copy { margin: 0 0 35px; color: #5D686E; font: 400 22px/1.4 sans-serif; }
+    .f06-progress-track { width: 100%; height: 35px; overflow: hidden; border: 1px solid #B8C1C3; border-radius: 999px; background: #F0F2F1; }
+    .f06-progress-fill { width: 100%; height: 100%; background: #175E4A; transform-origin: left center; }
+    .f06-statuses { margin-top: 36px; }
+    .f06-status { display: flex; align-items: center; gap: 17px; height: 54px; border-bottom: 1px solid #D9DEDF; color: #5D686E; font: 500 19px/1 monospace; letter-spacing: .035em; }
+    .f06-status-dot { width: 10px; height: 10px; border-radius: 50%; background: #175E4A; }
+    .f06-receipt { display: grid; align-content: center; padding-top: 0; background: #FFFFFF; }
+    .f06-success-mark { width: 70px; height: 70px; display: grid; place-items: center; margin-bottom: 23px; border-radius: 50%; background: #E8F3EE; color: #175E4A; font: 400 42px/1 sans-serif; }
+    .f06-receipt h2 { max-width: 650px; margin: 0 0 23px; color: #175E4A; font: 400 55px/1.02 serif; letter-spacing: -.03em; }
+    .f06-receipt p { max-width: 620px; margin: 0 0 33px; color: #5D686E; font: 400 22px/1.45 sans-serif; }
+    .f06-receipt-bar { width: 100%; height: 24px; border-radius: 999px; background: #175E4A; }
+    .f06-aside { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 24px; padding: 48px 36px; border: 1px solid #B8C1C3; border-radius: 12px; background: #D8F5ED; box-shadow: 0 1px 3px rgba(24,33,38,.08), 0 4px 16px rgba(24,33,38,.04); }
+    .f06-aside-kicker { margin: 0; color: #5D686E; font: 500 17px/1 monospace; letter-spacing: .13em; }
+    .f06-aside h2 { margin: 0; color: #182126; font: 400 51px/.98 serif; letter-spacing: -.035em; }
+    .f06-check { display: flex; gap: 15px; align-items: flex-start; padding: 23px 19px; border: 1px solid #A7C4CE; border-radius: 12px; background: #FFFFFF; color: #182126; font: 500 22px/1.26 sans-serif; }
+    .f06-box { flex: 0 0 auto; width: 25px; height: 25px; border: 2px solid #0D4F68; border-radius: 4px; }
+    .f06-aside-note { margin: 0; padding-top: 20px; border-top: 1px solid #B8C1C3; color: #5D686E; font: 400 21px/1.42 sans-serif; }
+    .f06-footer { position: absolute; top: 834px; left: 80px; right: 80px; display: flex; align-items: center; gap: 13px; padding-top: 20px; border-top: 1px solid #B8C1C3; color: #5D686E; font: 500 19px/1 monospace; letter-spacing: .055em; }
+    .f06-footer-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: #175E4A; }
+  </style>
+
+  <div data-hf-id="hf-1sp1" id="root" data-composition-id="06-installer-terminer" data-layout-allow-overlap data-start="0" data-duration="38.3" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-un82" class="clip f06-ground" data-start="0" data-duration="38.3" data-track-index="0"></div>
+    <div data-hf-id="hf-u51u" class="f06-top" id="f06-top"><span data-hf-id="hf-rqb1">06/08 · INSTALLATEUR</span><strong data-hf-id="hf-jmma">ÉTAPE 3/3</strong></div>
+    <div data-hf-id="hf-mhlg" class="f06-stage" id="f06-stage">
+      <section data-hf-id="hf-nk15" class="f06-window">
+        <div data-hf-id="hf-j73s" class="f06-titlebar"><span data-hf-id="hf-vqcm">PostgreSQL Setup</span><small data-hf-id="hf-n2zo">INSTALLATION</small></div>
+        <main data-hf-id="hf-ugj6" class="f06-main">
+          <section data-hf-id="hf-dqyh" class="f06-screen f06-summary-screen" id="f06-summary-screen">
+            <h1 data-hf-id="hf-0hh8" class="f06-heading">Pre Installation Summary</h1>
+            <p data-hf-id="hf-dylw" class="f06-subhead">RELIRE AVANT D’INSTALLER</p>
+            <div data-hf-id="hf-ke5n" class="f06-summary">
+              <div data-hf-id="hf-2byn" class="f06-summary-row" id="f06-components"><b data-hf-id="hf-ybyh">COMPONENTS</b><span data-hf-id="hf-ggzs">Server, pgAdmin 4, Command Line Tools</span></div>
+              <div data-hf-id="hf-3wvi" class="f06-summary-row" id="f06-port"><b data-hf-id="hf-1lja">PORT</b><span data-hf-id="hf-n1x5">5432</span></div>
+              <div data-hf-id="hf-ljap" class="f06-summary-row" id="f06-locale"><b data-hf-id="hf-enqv">LOCALE</b><span data-hf-id="hf-jizs">Default locale</span></div>
+            </div>
+            <p data-hf-id="hf-z8vk" class="f06-summary-note">Utilisez Back si une valeur est incorrecte.</p>
+          </section>
+          <section data-hf-id="hf-vznp" class="f06-screen f06-ready-screen" id="f06-ready-screen">
+            <h2 data-hf-id="hf-bhj3" class="f06-heading">Ready to Install</h2>
+            <p data-hf-id="hf-7x0b" class="f06-progress-copy">Le résumé est validé. L’installateur peut maintenant préparer PostgreSQL.</p>
+            <div data-hf-id="hf-81a0" class="f06-nav"><span data-hf-id="hf-zrc3" class="f06-back">‹ BACK</span><div data-hf-id="hf-7c6z" class="f06-next-stage"><div data-hf-id="hf-q6w0" class="f06-burst" id="f06-burst"></div><button data-hf-id="hf-3ios" class="f06-next" id="f06-next">NEXT ›</button><span data-hf-id="hf-lgsv" class="f06-cursor" id="f06-cursor">↖</span></div></div>
+          </section>
+          <section data-hf-id="hf-csff" class="f06-screen f06-progress-screen" id="f06-progress-screen">
+            <h2 data-hf-id="hf-c1k1" class="f06-heading">Installing PostgreSQL</h2>
+            <p data-hf-id="hf-jd17" class="f06-progress-copy">Laissez l’assistant terminer les opérations.</p>
+            <div data-hf-id="hf-sg82" class="f06-progress-track"><div data-hf-id="hf-ft42" class="f06-progress-fill" id="f06-progress-fill"></div></div>
+            <div data-hf-id="hf-u3h3" class="f06-statuses">
+              <div data-hf-id="hf-rl4w" class="f06-status" id="f06-status-files"><span data-hf-id="hf-dzps" class="f06-status-dot"></span><span data-hf-id="hf-7h6q">Copie des fichiers</span></div>
+              <div data-hf-id="hf-iq2v" class="f06-status" id="f06-status-cluster"><span data-hf-id="hf-3unc" class="f06-status-dot"></span><span data-hf-id="hf-d2a1">Initialisation du cluster</span></div>
+              <div data-hf-id="hf-q8zo" class="f06-status" id="f06-status-service"><span data-hf-id="hf-2nq9" class="f06-status-dot"></span><span data-hf-id="hf-h4lk">Démarrage du service Windows</span></div>
+            </div>
+          </section>
+          <section data-hf-id="hf-9vkb" class="f06-screen f06-receipt" id="f06-receipt">
+            <div data-hf-id="hf-plgh" class="f06-success-mark">✓</div>
+            <h2 data-hf-id="hf-3dbn">Installation completed successfully</h2>
+            <p data-hf-id="hf-fuw5">PostgreSQL est prêt à être utilisé pour les prochains travaux pratiques.</p>
+            <div data-hf-id="hf-hiob" class="f06-receipt-bar"></div>
+          </section>
+        </main>
+      </section>
+      <aside data-hf-id="hf-7luz" class="f06-aside" id="f06-aside">
+        <p data-hf-id="hf-kq28" class="f06-aside-kicker">DERNIER ÉCRAN</p>
+        <h2 data-hf-id="hf-cr2h">Terminez simplement</h2>
+        <div data-hf-id="hf-86g3" class="f06-check"><span data-hf-id="hf-b35n" class="f06-box"></span><span data-hf-id="hf-jzd2">Launch Stack Builder at exit</span></div>
+        <p data-hf-id="hf-gcgd" class="f06-aside-note">Disponible plus tard, lorsque vous en aurez besoin.</p>
+      </aside>
+    </div>
+    <div data-hf-id="hf-mewm" class="f06-footer" id="f06-footer"><span data-hf-id="hf-f5ej" class="f06-footer-dot"></span><span data-hf-id="hf-bt06">RÉSULTAT ATTENDU · INSTALLATION TERMINÉE · STACK BUILDER NON LANCÉ</span></div>
+  </div>
+
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    window.__timelines["06-installer-terminer"] = tl;
+
+    gsap.set(["#f06-ready-screen", "#f06-progress-screen", "#f06-receipt", "#f06-aside"], { autoAlpha: 0 });
+
+    const summaryItems = [
+      { at: 0.8, selector: "#f06-components" },
+      { at: 2.6, selector: "#f06-port" },
+      { at: 4.4, selector: "#f06-locale" }
+    ];
+    summaryItems.forEach((item) => {
+      tl.fromTo(item.selector, { opacity: 0, x: -28 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, item.at);
+    });
+    tl.fromTo("#f06-stage", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 0);
+    tl.fromTo("#f06-top", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.1);
+    tl.fromTo("#f06-footer", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, 0.25);
+
+    tl.set("#f06-ready-screen", { visibility: "visible" }, 7);
+    tl.fromTo("#f06-ready-screen", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 7);
+    tl.set("#f06-summary-screen", { autoAlpha: 0 }, 7.6);
+    tl.fromTo("#f06-next", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.38, ease: "power2.out" }, 7.55);
+    tl.fromTo("#f06-cursor", { opacity: 0, x: 18, y: 20 }, { opacity: 1, x: 0, y: 0, duration: 0.35, ease: "power2.out" }, 9.0);
+    tl.to("#f06-next", { scale: 0.92, boxShadow: "0 3px 0 #08394C", duration: 0.18, ease: "power1.in" }, 10);
+    tl.to("#f06-next", { scale: 1, boxShadow: "0 9px 0 #08394C", duration: 0.62, ease: "back.out(1.8)" }, 10.18);
+    tl.fromTo("#f06-burst", { opacity: 0, scale: 1 }, { opacity: 0.56, scale: 4.5, duration: 0.52, ease: "power2.out" }, 10.18);
+    tl.to("#f06-burst", { opacity: 0, duration: 0.48, ease: "power2.in" }, 10.7);
+    tl.to("#f06-cursor", { autoAlpha: 0, duration: 0.18, ease: "power1.out" }, 10.2);
+
+    tl.set("#f06-progress-screen", { visibility: "visible" }, 14);
+    tl.fromTo("#f06-progress-screen", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 14);
+    tl.set("#f06-ready-screen", { autoAlpha: 0 }, 14.6);
+    tl.fromTo("#f06-progress-fill", { scaleX: 0 }, { scaleX: 0.31, duration: 3.2, ease: "power2.out" }, 14.65);
+    tl.to("#f06-progress-fill", { scaleX: 0.66, duration: 3.3, ease: "power2.out" }, 18.05);
+    tl.to("#f06-progress-fill", { scaleX: 1, duration: 4.0, ease: "power2.out" }, 21.55);
+    tl.fromTo("#f06-status-files", { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, 15.25);
+    tl.fromTo("#f06-status-cluster", { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, 18.65);
+    tl.fromTo("#f06-status-service", { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, 22.55);
+
+    tl.set("#f06-receipt", { visibility: "visible" }, 27);
+    tl.fromTo("#f06-receipt", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.58, ease: "power2.out" }, 27);
+    tl.set("#f06-progress-screen", { autoAlpha: 0 }, 27.65);
+    tl.set("#f06-aside", { visibility: "visible" }, 33);
+    tl.fromTo("#f06-aside", { opacity: 0, x: 24 }, { opacity: 1, x: 0, duration: 0.55, ease: "power2.out" }, 33);
+  </script>
+</template>

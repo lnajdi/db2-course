@@ -1,0 +1,43 @@
+/* Color system — Atlantic blue leads, Pine green is success-only, Walnut brown is editorial.
+   Never use raw hex in components; consume these semantic tokens. */
+:root {
+  color-scheme: light;
+
+  /* Primary — Atlantic blue */
+  --color-primary: #0d4f68;
+  --color-primary-hover: #083e53;
+  --color-primary-active: #062f40;
+  --color-primary-soft: #e8f1f4;
+  --color-primary-border: #a7c4ce;
+  --color-on-primary: #ffffff;
+
+  /* Success — Pine green (status only, never primary action) */
+  --color-success: #175e4a;
+  --color-success-soft: #e8f3ee;
+  --color-on-success: #ffffff;
+
+  /* Editorial — Walnut brown (personal/editorial warmth, sparse) */
+  --color-editorial: #624a35;
+  --color-editorial-soft: #f2ece5;
+
+  /* Neutrals — warm layered, not clinical white */
+  --color-canvas: #f7f4ee;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f0f2f1;
+  --color-text: #182126;
+  --color-text-muted: #5d686e;
+  --color-text-subtle: #788388;
+  --color-border: #d9dedf;
+  --color-border-strong: #b8c1c3;
+
+  /* Semantic status */
+  --color-danger: #a53b35;
+  --color-danger-soft: #f8eae8;
+  --color-warning: #8a651a;
+  --color-warning-soft: #f8f0dc;
+}
+
+/* Future dark theme: override semantic values here, never component rules. */
+[data-theme='dark'] {
+  color-scheme: dark;
+}

@@ -1,0 +1,324 @@
+<template>
+  <style>
+    @font-face { font-family: "Literata"; src: local("Georgia"); font-weight: 400; }
+    @font-face { font-family: "Instrument Sans"; src: local("Arial"); font-weight: 400 700; }
+    @font-face { font-family: "Geist Mono"; src: local("Consolas"); font-weight: 400 700; }
+
+    * { box-sizing: border-box; }
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #182126;
+      font-family: "Instrument Sans", sans-serif;
+    }
+    .clip { position: absolute; }
+    .f03-ground {
+      inset: 0;
+      background: #F7F4EE;
+    }
+    .f03-tile-a, .f03-tile-b {
+      position: absolute;
+      background: #D8F5ED;
+      opacity: .42;
+      border: 1px solid rgba(24,33,38,.08);
+    }
+    .f03-tile-a { width: 580px; height: 510px; right: -150px; top: -165px; border-radius: 12px; }
+    .f03-tile-b { width: 430px; height: 150px; left: -120px; top: 685px; border-radius: 12px; }
+    .f03-top {
+      position: absolute;
+      left: 90px;
+      right: 90px;
+      top: 56px;
+      display: flex;
+      justify-content: space-between;
+      color: #0D4F68;
+      font-family: "Geist Mono", monospace;
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: .11em;
+    }
+    .f03-top span:first-child::first-letter { color: #0D4F68; }
+    .f03-top::before {
+      content: "✱";
+      position: absolute;
+      left: -28px;
+      color: #0D4F68;
+      letter-spacing: 0;
+    }
+    .f03-stage {
+      position: absolute;
+      left: 90px;
+      right: 90px;
+      top: 126px;
+      height: 635px;
+      perspective: 1500px;
+    }
+    .f03-browser-wrap {
+      position: absolute;
+      left: 0;
+      top: 18px;
+      width: 1120px;
+      height: 606px;
+      overflow: hidden;
+      border-radius: 28px;
+      background: #E8F1F4;
+      transform-origin: 50% 50%;
+      will-change: transform;
+    }
+    .f03-browser {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border: 1px solid #D9DEDF;
+      border-radius: 14px;
+      background: #FFFFFF;
+      box-shadow: 28px 22px 44px rgba(24,33,38,.10);
+      transform: perspective(1500px) rotateY(-5deg) rotateX(2deg);
+      transform-style: preserve-3d;
+    }
+    .f03-browser-bar {
+      height: 70px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 28px;
+      border-bottom: 1px solid #D9DEDF;
+      background: #E8F1F4;
+      color: #182126;
+      font-family: "Geist Mono", monospace;
+      font-size: 19px;
+      font-weight: 500;
+    }
+    .f03-dots { display: flex; gap: 7px; }
+    .f03-dots i { width: 8px; height: 8px; border-radius: 50%; background: #A7C4CE; }
+    .f03-page-viewport { position: absolute; inset: 70px 0 0; overflow: hidden; background: #FFFFFF; }
+    .f03-page-content { display: none; }
+    .f03-capture {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+    }
+    /* UI Fidelity: the capture is unfiltered; the teaching cue sits outside its pixels. */
+    .f03-focus {
+      position: absolute;
+      left: 16px;
+      top: 62px;
+      width: 358px;
+      height: 58px;
+      border: 3px solid #0D4F68;
+      border-radius: 7px;
+      box-shadow: 0 0 0 5px rgba(13,79,104,.16);
+      transform-origin: 0 50%;
+      will-change: transform, opacity;
+    }
+    .f03-aside {
+      position: absolute;
+      top: 105px;
+      right: 0;
+      width: 474px;
+    }
+    .f03-aside-index {
+      margin-bottom: 16px;
+      color: #5D686E;
+      font-family: "Geist Mono", monospace;
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: .12em;
+    }
+    .f03-pause-stack { position: relative; }
+    .f03-pause-head {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      height: 74px;
+      padding: 0 26px;
+      border: 1px solid #8A651A;
+      border-radius: 12px 12px 0 0;
+      background: #F8F0DC;
+      color: #8A651A;
+      font-family: "Geist Mono", monospace;
+      font-size: 27px;
+      font-weight: 600;
+      letter-spacing: .08em;
+    }
+    .f03-pause-mask {
+      height: 104px;
+      overflow: hidden;
+      border-left: 1px solid #8A651A;
+      border-right: 1px solid #8A651A;
+    }
+    .f03-pause-sheet {
+      height: 104px;
+      padding: 22px 26px;
+      background: #F8F0DC;
+      color: #624A35;
+      font-size: 22px;
+      line-height: 1.35;
+      will-change: transform;
+    }
+    .f03-below { will-change: transform; }
+    .f03-aside-copy {
+      padding: 25px 26px 24px;
+      border: 1px solid #8A651A;
+      border-top: 0;
+      border-radius: 0 0 12px 12px;
+      background: #FFFFFF;
+      box-shadow: 0 1px 3px rgba(24,33,38,.08), 0 4px 16px rgba(24,33,38,.04);
+    }
+    .f03-aside-title {
+      margin: 0 0 13px;
+      color: #182126;
+      font-family: "Literata";
+      font-size: 43px;
+      font-weight: 400;
+      letter-spacing: -.018em;
+      line-height: 1.05;
+    }
+    .f03-aside-copy p { margin: 0; color: #5D686E; font-size: 23px; line-height: 1.38; }
+    .f03-footer {
+      position: absolute;
+      left: 90px;
+      right: 90px;
+      top: 800px;
+      display: flex;
+      align-items: center;
+      height: 44px;
+      border-top: 1px solid #D9DEDF;
+      color: #5D686E;
+      font-family: "Geist Mono", monospace;
+      font-size: 19px;
+      font-weight: 500;
+      letter-spacing: .055em;
+    }
+  </style>
+
+  <div data-hf-id="hf-gpfw" id="root" data-composition-id="03-bon-telechargement" data-layout-allow-overlap data-start="0" data-duration="34.2" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-5chi" id="f03-ground" class="clip f03-ground" data-start="0" data-duration="34.2" data-track-index="0">
+      <div data-hf-id="hf-xc78" class="f03-tile-a"></div>
+      <div data-hf-id="hf-6033" class="f03-tile-b"></div>
+    </div>
+
+    <div data-hf-id="hf-n7iz" class="f03-top"><span data-hf-id="hf-vyzo">01/08 · TÉLÉCHARGER</span><span data-hf-id="hf-hwdk">PAGE OFFICIELLE</span></div>
+
+    <div data-hf-id="hf-s41c" class="f03-stage">
+      <div data-hf-id="hf-r1a7" class="f03-browser-wrap">
+        <div data-hf-id="hf-i7u6" class="f03-browser">
+          <div data-hf-id="hf-svhi" class="f03-browser-bar"><span data-hf-id="hf-m047" class="f03-dots"><i data-hf-id="hf-wt6k"></i><i data-hf-id="hf-zeb8"></i><i data-hf-id="hf-y7e5"></i></span><span data-hf-id="hf-pg5r">postgresql.org/download/windows/</span></div>
+          <div data-hf-id="hf-34qm" class="f03-page-viewport">
+            <img data-hf-id="hf-capture" id="f03-postgresql-windows-capture" class="f03-capture" src="assets/captures/postgresql-windows-download.png" alt="Official PostgreSQL Windows download page capture">
+            <div data-hf-id="hf-fc03" class="f03-focus" aria-hidden="true"></div>
+            <div data-hf-id="hf-pw3j" class="f03-page-content">
+              <div data-hf-id="hf-zcz0" class="f03-kicker">✱ DOWNLOAD</div>
+              <h2 data-hf-id="hf-esmz" class="f03-page-title">Windows installers</h2>
+              <div data-hf-id="hf-nnnu" class="f03-page-rule"></div>
+              <div data-hf-id="hf-j21r" class="f03-page-lead">Source officielle · Windows</div>
+              <div data-hf-id="hf-wujb" class="f03-choice">
+                <span data-hf-id="hf-jvvh" class="f03-choice-line"></span>
+                <span data-hf-id="hf-1geq" class="f03-choice-label">RECOMMANDÉ</span>
+                <strong data-hf-id="hf-h01q">Interactive installer by EDB</strong>
+              </div>
+              <div data-hf-id="hf-vhva" class="f03-version"><span data-hf-id="hf-n2jp" class="f03-version-copy"></span><span data-hf-id="hf-5qfo" class="f03-cursor">▍</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside data-hf-id="hf-xa8z" class="f03-aside">
+        <div data-hf-id="hf-886f" class="f03-aside-index">ÉTAPE 01 · WINDOWS</div>
+        <div data-hf-id="hf-uxir" class="f03-pause-stack">
+          <div data-hf-id="hf-yohw" class="f03-pause-head">PAUSEZ ICI</div>
+          <div data-hf-id="hf-u9y4" class="f03-pause-mask" data-layout-allow-overflow="">
+            <div data-hf-id="hf-w897" class="f03-pause-sheet">Téléchargement de l’installateur officiel</div>
+          </div>
+          <div data-hf-id="hf-fyd5" class="f03-below">
+            <div data-hf-id="hf-3ndc" class="f03-aside-copy">
+              <h3 data-hf-id="hf-58wt" class="f03-aside-title">Choisissez le bon fichier</h3>
+              <p data-hf-id="hf-0sqv">Source officielle, installateur interactif, architecture x86-64.</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div data-hf-id="hf-4hck" class="f03-footer">RÉSULTAT ATTENDU · LE FICHIER .EXE EST TÉLÉCHARGÉ</div>
+  </div>
+
+  <script>
+    window.__timelines = window.__timelines || {};
+    gsap.set(".f03-aside", { opacity: 0 });
+    gsap.set(".f03-aside-copy", { opacity: 0 });
+    gsap.set(".f03-focus", { opacity: 0 });
+    gsap.set(".f03-footer", { opacity: 0 });
+    const tl = gsap.timeline({ paused: true });
+    window.__timelines["03-bon-telechargement"] = tl;
+
+    const choiceLine = document.querySelector(".f03-choice-line");
+    const versionCopy = document.querySelector(".f03-version-copy");
+    const cursor = document.querySelector(".f03-cursor");
+    const textStates = [
+      { t: 0, text: "" },
+      { t: 16.25, text: "Windows x86-64" },
+      { t: 18.9, text: "Windows x86-64 · dernière version" },
+      { t: 21.9, text: "Windows x86-64 · dernière version prise en charge ✓" }
+    ];
+    function textAt(time) {
+      for (let i = textStates.length - 1; i >= 0; i -= 1) {
+        if (time >= textStates[i].t) return textStates[i].text;
+      }
+      return "";
+    }
+
+    tl.set([".f03-pause-sheet", ".f03-below"], { y: -104 }, 0);
+    tl.set(choiceLine, { scaleY: 0 }, 0);
+
+    tl.fromTo(
+      ".f03-browser-wrap",
+      { y: 350, scale: 0.88 },
+      { y: 0, scale: 1, borderRadius: 14, backgroundColor: "#FFFFFF", duration: 1.25, ease: "power2.out" },
+      0
+    );
+    tl.fromTo(".f03-top", { opacity: 0, y: -12 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 0.18);
+    tl.fromTo(".f03-browser-bar", { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power1.out" }, 0.42);
+    tl.fromTo(".f03-capture", { opacity: 0 }, { opacity: 1, duration: 0.62, ease: "power1.out" }, 1.18);
+    tl.fromTo(".f03-focus", { opacity: 0, scaleX: 0.72 }, { opacity: 1, scaleX: 1, duration: 0.62, ease: "power2.out" }, 8.1);
+    tl.fromTo(".f03-page-title", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.62, ease: "power2.out" }, 1.18);
+    tl.fromTo(".f03-page-lead", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.48, ease: "power2.out" }, 3.15);
+
+    tl.to(".f03-page-content", { y: -252, duration: 1.45, ease: "power3.out" }, 7.15);
+    tl.fromTo(".f03-choice", { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 8.1);
+    tl.to(choiceLine, { scaleY: 1, duration: 0.72, ease: "power2.inOut" }, 8.42);
+    tl.fromTo(".f03-choice strong", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.44, ease: "power2.out" }, 10.05);
+
+    tl.fromTo(".f03-version", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 15.9);
+    const textDriver = { t: 0 };
+    tl.to(textDriver, {
+      t: 33.7,
+      duration: 33.7,
+      ease: "none",
+      onUpdate: () => { versionCopy.textContent = textAt(textDriver.t); }
+    }, 0);
+    const blink = { p: 0 };
+    tl.to(blink, {
+      p: Math.PI * 2 * 48,
+      duration: 33.7,
+      ease: "none",
+      onUpdate: () => { cursor.style.opacity = Math.sin(blink.p) > 0 ? "1" : "0"; }
+    }, 0);
+    tl.fromTo(".f03-footer", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.48, ease: "power2.out" }, 24.1);
+
+    tl.fromTo(".f03-aside", { opacity: 0, x: 22 }, { opacity: 1, x: 0, duration: 0.36, ease: "power2.out" }, 26.0);
+    tl.fromTo(
+      [".f03-pause-sheet", ".f03-below"],
+      { y: -104 },
+      { y: 0, duration: 0.56, ease: "power3.out" },
+      26.36
+    );
+    tl.fromTo(".f03-aside-copy", { opacity: 0 }, { opacity: 1, duration: 0.26, ease: "power2.out" }, 26.55);
+  </script>
+</template>

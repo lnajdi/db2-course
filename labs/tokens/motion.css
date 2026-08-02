@@ -1,0 +1,22 @@
+/* Motion — quiet, functional. ease-out for entry, ease-in for exit. */
+:root {
+  --duration-fast: 140ms;  /* @kind other */
+  --duration-base: 200ms;  /* @kind other */
+  --duration-slow: 420ms;  /* @kind other */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* @kind other */
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0); /* @kind other */
+}
+
+/* Shared component keyframes */
+@keyframes pds-spin { to { transform: rotate(360deg); } }
+@keyframes pds-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pds-pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

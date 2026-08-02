@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #F7F4EE;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf02mainroot" id="root" data-composition-id="main" data-start="0" data-duration="190" data-width="1920" data-height="1080">
+      <div data-hf-id="hf02main01" id="el-01-objectif-episode" class="scene clip" data-composition-id="01-objectif-episode" data-composition-src="compositions/frames/01-objectif-episode.html" data-start="0" data-duration="22" data-track-index="0" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf02main02" id="el-02-ouvrir-sql-shell" class="scene clip" data-composition-id="02-ouvrir-sql-shell" data-composition-src="compositions/frames/02-ouvrir-sql-shell.html" data-start="22" data-duration="24" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf02main03" id="el-03-repondre-prompts" class="scene clip" data-composition-id="03-repondre-prompts" data-composition-src="compositions/frames/03-repondre-prompts.html" data-start="46" data-duration="32" data-track-index="0" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf02main04" id="el-04-connexion-reussie" class="scene clip" data-composition-id="04-connexion-reussie" data-composition-src="compositions/frames/04-connexion-reussie.html" data-start="78" data-duration="24" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf02main05" id="el-05-premieres-commandes" class="scene clip" data-composition-id="05-premieres-commandes" data-composition-src="compositions/frames/05-premieres-commandes.html" data-start="102" data-duration="38" data-track-index="0" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf02main06" id="el-06-sortir-erreurs" class="scene clip" data-composition-id="06-sortir-erreurs" data-composition-src="compositions/frames/06-sortir-erreurs.html" data-start="140" data-duration="28" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf02main07" id="el-07-cloture-suite" class="scene clip" data-composition-id="07-cloture-suite" data-composition-src="compositions/frames/07-cloture-suite.html" data-start="168" data-duration="22" data-track-index="0" data-width="1920" data-height="1080"></div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+      (function () {
+        var tl = window.__timelines["main"];
+        tl.to("#el-01-objectif-episode", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 22);
+        tl.fromTo("#el-02-ouvrir-sql-shell", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 22);
+        tl.to("#el-02-ouvrir-sql-shell", { x: -1920, duration: 0.5, ease: "power3.inOut" }, 46);
+        tl.fromTo("#el-03-repondre-prompts", { x: 1920, opacity: 1 }, { x: 0, duration: 0.5, ease: "power3.inOut" }, 46);
+        tl.to("#el-03-repondre-prompts", { x: -1920, duration: 0.5, ease: "power3.inOut" }, 78);
+        tl.fromTo("#el-04-connexion-reussie", { x: 1920, opacity: 1 }, { x: 0, duration: 0.5, ease: "power3.inOut" }, 78);
+        tl.to("#el-04-connexion-reussie", { x: -1920, duration: 0.5, ease: "power3.inOut" }, 102);
+        tl.fromTo("#el-05-premieres-commandes", { x: 1920, opacity: 1 }, { x: 0, duration: 0.5, ease: "power3.inOut" }, 102);
+        tl.to("#el-05-premieres-commandes", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 140);
+        tl.fromTo("#el-06-sortir-erreurs", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 140);
+        tl.to("#el-06-sortir-erreurs", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 168);
+        tl.fromTo("#el-07-cloture-suite", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 168);
+        tl.to({}, { duration: 190 }, 0);
+      })();
+    </script>
+  </body>
+</html>

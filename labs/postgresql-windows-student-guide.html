@@ -278,44 +278,62 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Create folder <code>C:\Pagila_Project</code> and download these two files:</p>
 <ul>
 <li><strong>Schema:</strong> <a href="https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-schema.sql">pagila-schema.sql</a></li>
-<li><strong>Data:</strong> <a href="https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-insert-data.sql">pagila-data.sql</a></li>
+<li><strong>Data:</strong> <a href="https://raw.githubusercontent.com/devrimgunduz/pagila/master/pagila-data.sql">pagila-data.sql</a></li>
 </ul>
 <p><em>(Right-click links → Save As… → Save to <code>C:\Pagila_Project</code>)</em></p>
+<p>Do <strong>not</strong> edit these official Pagila SQL files. Save them exactly as downloaded:</p>
+<ul>
+<li><code>C:\Pagila_Project\pagila-schema.sql</code></li>
+<li><code>C:\Pagila_Project\pagila-data.sql</code></li>
+</ul>
 </section>
-<section id="create-the-database" class="level3">
-<h3 class="anchored" data-anchor-id="create-the-database">Create the Database</h3>
-<p>In <code>psql</code>:</p>
+<section id="create-and-import-the-database-as-postgres" class="level3">
+<h3 class="anchored" data-anchor-id="create-and-import-the-database-as-postgres">Create and Import the Database as <code>postgres</code></h3>
+<p>Open <code>psql</code> as the admin user <code>postgres</code>, then run the commands in this order:</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">DATABASE</span> pagila;</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>\c pagila</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</section>
-<section id="load-schema-and-data-choose-a-method" class="level3">
-<h3 class="anchored" data-anchor-id="load-schema-and-data-choose-a-method">Load Schema and Data (Choose a Method)</h3>
-<p><strong>Method A — From Inside <code>psql</code> (Easier)</strong></p>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>\c pagila</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>\i <span class="st">'C:/Pagila_Project/pagila-schema.sql'</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>\i <span class="st">'C:/Pagila_Project/pagila-data.sql'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <blockquote class="blockquote">
-<p><strong>Note:</strong> Use forward slashes (/) in <code>psql</code> paths, even on Windows.</p>
+<p><strong>Note:</strong> Use forward slashes (/) in <code>psql</code> paths, even on Windows. Import the schema first, then the data.</p>
 </blockquote>
-<div class="sourceCode" id="cb10"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>\i <span class="st">'C:/Pagila_Project/pagila-schema.sql'</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>\i <span class="st">'C:/Pagila_Project/pagila-data.sql'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p><strong>Method B — From Command Prompt (CMD) or PowerShell</strong></p>
+</section>
+<section id="alternative-import-from-command-prompt-cmd-or-powershell" class="level3">
+<h3 class="anchored" data-anchor-id="alternative-import-from-command-prompt-cmd-or-powershell">Alternative Import from Command Prompt (CMD) or PowerShell</h3>
 <p><strong>For CMD:</strong></p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> C:\Pagila_Project</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="va">PSQL</span>=<span class="st">"C:\Program Files\PostgreSQL\17\bin\psql.exe"</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="pp">%</span><span class="va">PSQL</span><span class="pp">%</span> -U postgres <span class="at">-d</span> pagila <span class="at">-f</span> pagila<span class="at">-schema</span>.sql</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="pp">%</span><span class="va">PSQL</span><span class="pp">%</span> -U postgres <span class="at">-d</span> pagila <span class="at">-f</span> pagila<span class="at">-data</span>.sql</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> C:\Pagila_Project</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="va">PSQL</span>=<span class="st">"C:\Program Files\PostgreSQL\17\bin\psql.exe"</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="pp">%</span><span class="va">PSQL</span><span class="pp">%</span> -U postgres <span class="at">-d</span> pagila <span class="at">-f</span> pagila<span class="at">-schema</span>.sql</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="pp">%</span><span class="va">PSQL</span><span class="pp">%</span> -U postgres <span class="at">-d</span> pagila <span class="at">-f</span> pagila<span class="at">-data</span>.sql</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>For PowerShell:</strong></p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> C<span class="op">:</span>\Pagila_Project</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="va">$PSQL</span> <span class="op">=</span> <span class="st">"C:\Program Files\PostgreSQL\17\bin\psql.exe"</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="va">$PSQL</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>f pagila-schema<span class="op">.</span><span class="fu">sql</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="va">$PSQL</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>f pagila-data<span class="op">.</span><span class="fu">sql</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> C<span class="op">:</span>\Pagila_Project</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="va">$PSQL</span> <span class="op">=</span> <span class="st">"C:\Program Files\PostgreSQL\17\bin\psql.exe"</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="va">$PSQL</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>f pagila-schema<span class="op">.</span><span class="fu">sql</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="va">$PSQL</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>f pagila-data<span class="op">.</span><span class="fu">sql</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><em>(Replace <code>17</code> with your installed version.)</em></p>
+</section>
+<section id="create-your-personal-user" class="level3">
+<h3 class="anchored" data-anchor-id="create-your-personal-user">Create Your Personal User</h3>
+<p>After the import succeeds, stay connected as <code>postgres</code> and create a normal user for daily TP work. In the example below, <code>karim</code> is a Moroccan first-name example.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> karim <span class="kw">WITH</span> LOGIN <span class="kw">PASSWORD</span> <span class="st">'votre_mot_de_passe'</span>;</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">PRIVILEGES</span> <span class="kw">ON</span> <span class="kw">DATABASE</span> pagila <span class="kw">TO</span> karim;</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> karim;</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">ON</span> <span class="kw">ALL</span> <span class="kw">TABLES</span> <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> karim;</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">ON</span> <span class="kw">ALL</span> SEQUENCES <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> karim;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Each student replaces <code>karim</code> with their own lowercase first name, for example <code>amina</code>, <code>youssef</code>, or <code>salma</code>. Choose a private password and do not share it.</p>
+<p>To connect directly from CMD with your personal user, run:</p>
+<p><code>"C:\Program Files\PostgreSQL\&lt;version&gt;\bin\psql.exe" -h localhost -p 5432 -U karim -d pagila</code></p>
+<p>The same command split across two lines for readability:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="st">"C:\Program Files\PostgreSQL\&lt;version&gt;\bin\psql.exe"</span> ^</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  -h localhost <span class="at">-p</span> 5432 <span class="at">-U</span> karim <span class="at">-d</span> pagila</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="confirm-it-worked" class="level3">
 <h3 class="anchored" data-anchor-id="confirm-it-worked">Confirm It Worked</h3>
-<div class="sourceCode" id="cb13"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>\c pagila</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>\dt</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> film;       <span class="co">-- ~1,000</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> customer;   <span class="co">-- ~599</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> actor;      <span class="co">-- ~200</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>\c pagila</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>\dt</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> film;       <span class="co">-- ~1,000</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> customer;   <span class="co">-- ~599</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> actor;      <span class="co">-- ~200</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <hr>
 </section>
 </section>
@@ -327,7 +345,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><strong>Download:</strong> <a href="https://www.pgadmin.org/download/">https://www.pgadmin.org/download/</a></p>
 <ul>
 <li><strong>Best for:</strong> Administration + learning core PostgreSQL concepts</li>
-<li><strong>Connection:</strong> Open pgAdmin → Register → Server… → Host <code>localhost</code>, Port <code>5432</code>, Database <code>postgres</code>, User <code>postgres</code> (or <code>student</code>), password → <strong>Save</strong></li>
+<li><strong>Connection:</strong> Open pgAdmin → Register → Server… → Host <code>localhost</code>, Port <code>5432</code>, Database <code>pagila</code>, User <code>karim</code> (or your own lowercase first name), password → <strong>Save</strong></li>
 <li><strong>Usage:</strong> Create databases/roles, browse, run queries in <strong>Query Tool</strong></li>
 </ul>
 <p><strong>Example: Running Your First Query in pgAdmin</strong> 1. Expand Servers → PostgreSQL 17 → Databases → pagila 2. Right-click pagila → Query Tool 3. Type: <code>SELECT * FROM film LIMIT 10;</code> 4. Click the lightning bolt icon (Execute) or press F5</p>
@@ -343,11 +361,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><strong>Example: Exploring Data in DBeaver</strong> 1. Connect to your pagila database 2. Expand pagila → Schemas → public → Tables 3. Right-click <code>film</code> table → View Data 4. Use the filter row at the top to search (e.g., rating = ‘PG’) 5. Export results: right-click grid → Export Data</p>
 </section>
 <section id="c-visual-studio-code-postgresql-extension-free" class="level3">
-<h3 class="anchored" data-anchor-id="c-visual-studio-code-postgresql-extension-free">C) Visual Studio Code + PostgreSQL Extension (Free)</h3>
-<p><strong>Download:</strong> <a href="https://marketplace.visualstudio.com/items?itemName=ms-ossdata.vscode-postgresql">https://marketplace.visualstudio.com/items?itemName=ms-ossdata.vscode-postgresql</a></p>
+<h3 class="anchored" data-anchor-id="c-visual-studio-code-postgresql-extension-free">C) Visual Studio Code + PostgreSQL for Visual Studio Code (Free)</h3>
+<p><strong>Download:</strong> <a href="https://marketplace.visualstudio.com/items?itemName=ms-ossdata.vscode-pgsql">https://marketplace.visualstudio.com/items?itemName=ms-ossdata.vscode-pgsql</a></p>
 <ul>
 <li><strong>Best for:</strong> Developers who live in VS Code</li>
-<li><strong>Connection:</strong> Extensions → search <strong>PostgreSQL</strong> (Microsoft) → Install → Command Palette → <strong>PostgreSQL: Add Connection</strong> → fill host/port/database/user/password</li>
+<li><strong>Extension:</strong> <strong>PostgreSQL for Visual Studio Code</strong> by Microsoft (<code>ms-ossdata.vscode-pgsql</code>)</li>
+<li><strong>Connection:</strong> Extensions → search <strong>PostgreSQL for Visual Studio Code</strong> (Microsoft) → Install → PostgreSQL activity view or Command Palette → add a connection → fill host/port/database/user/password</li>
 <li><strong>Cool Features:</strong> Run queries next to your code; IntelliSense; results grid</li>
 </ul>
 <p><strong>Example: Quick Query in VS Code</strong> 1. Create new file: <code>queries.sql</code> 2. Connect to database using Command Palette (Ctrl+Shift+P): PostgreSQL: Connect 3. Write your query: <code>SELECT title, rating FROM film WHERE rating = 'PG' LIMIT 5;</code> 4. Highlight the query text 5. Right-click → Execute Query (or use keyboard shortcut)</p>
@@ -357,7 +376,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><strong>Brand new to databases?</strong> <strong>pgAdmin</strong> (official, safe default choice)</li>
 <li><strong>Modern, user-friendly explorer?</strong> <strong>DBeaver Community</strong></li>
-<li><strong>I live in VS Code</strong> → <strong>PostgreSQL for VS Code</strong> extension</li>
+<li><strong>I live in VS Code</strong> → <strong>PostgreSQL for Visual Studio Code</strong> extension</li>
 </ul>
 </section>
 <section id="how-to-connect-same-settings-in-most-guis" class="level3">
@@ -366,7 +385,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Host:</strong> <code>localhost</code></li>
 <li><strong>Port:</strong> <code>5432</code> (unless you changed it)</li>
 <li><strong>Database:</strong> <code>pagila</code> (after creation) or <code>postgres</code> to start</li>
-<li><strong>User:</strong> <code>postgres</code> (admin) or your own user (e.g., <code>student</code>)</li>
+<li><strong>User:</strong> <code>karim</code> (or your own lowercase first name); use <code>postgres</code> only for administration</li>
 <li><strong>Password:</strong> what you set during installation or for that role</li>
 </ul>
 </section>
@@ -390,215 +409,226 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="troubleshooting-gui-connection-quick-flow" class="level3">
 <h3 class="anchored" data-anchor-id="troubleshooting-gui-connection-quick-flow">Troubleshooting GUI Connection — Quick Flow</h3>
-<pre><code>1) Is PostgreSQL running? Services → PostgreSQL &lt;version&gt; should be Running.
-
-2) Does the server respond?
-
-   **CMD:**</code></pre>
-<p>“%PGBIN%_isready.exe” -h localhost -p 5432 ```</p>
-<p><strong>PowerShell:</strong> <code>&amp; "$PGBIN\pg_isready.exe" -h localhost -p 5432</code></p>
-<ol start="3" type="1">
-<li><p>Can you connect with psql?</p>
-<p><strong>CMD:</strong></p>
-<pre><code>"%PGBIN%\psql.exe" -U postgres -d postgres -c "SELECT 1;"</code></pre>
-<p><strong>PowerShell:</strong></p>
-<pre><code>&amp; "$PGBIN\psql.exe" -U postgres -d postgres -c "SELECT 1;"</code></pre></li>
-<li><p>Is the port listening? CMD: netstat -ano | findstr 5432 PowerShell: Get-NetTCPConnection -LocalPort 5432</p></li>
-<li><p>Try host variations: 127.0.0.1 instead of localhost (IPv4 vs IPv6).</p></li>
-<li><p>Reset/create user (if needed): ALTER ROLE postgres PASSWORD ‘NewStrongPassword!’;</p></li>
-<li><p>Firewall/security tools: allow postgres.exe on port 5432 (private network).</p></li>
+<ol type="1">
+<li><p>Is PostgreSQL running? Services → PostgreSQL <code>&lt;version&gt;</code> should be Running.</p></li>
+<li><p>Does the server respond?</p></li>
 </ol>
-<pre><code>
-&gt; **Remote Connections (Later):** For another computer to connect to your server, you'll need to adjust `postgresql.conf` (`listen_addresses`) and `pg_hba.conf`. For this beginner guide (same PC), no changes required.
-
-### Useful Windows Commands (Copy/Paste)
-
-**For CMD (Command Prompt):**
-
-First set the path:
-```cmd
-set PGBIN=C:\Program Files\PostgreSQL\17\bin</code></pre>
+<p><strong>CMD:</strong></p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\pg_isready.exe"</span> -h localhost <span class="at">-p</span> 5432</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><strong>PowerShell:</strong></p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\pg_isready.exe"</span> <span class="op">-</span>h localhost <span class="op">-</span>p <span class="dv">5432</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ol start="3" type="1">
+<li>Can you connect with psql?</li>
+</ol>
+<p><strong>CMD:</strong></p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\psql.exe"</span> -U postgres <span class="at">-d</span> postgres <span class="at">-c</span> <span class="st">"SELECT 1;"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><strong>PowerShell:</strong></p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\psql.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d postgres <span class="op">-</span>c <span class="st">"SELECT 1;"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ol start="4" type="1">
+<li>Is the port listening?</li>
+</ol>
+<p><strong>CMD:</strong></p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>netstat <span class="at">-ano</span> <span class="kw">|</span> <span class="kw">findstr</span> 5432</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><strong>PowerShell:</strong></p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>Get-NetTCPConnection <span class="op">-</span>LocalPort <span class="dv">5432</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ol start="5" type="1">
+<li><p>Try host variations: <code>127.0.0.1</code> instead of <code>localhost</code> (IPv4 vs IPv6).</p></li>
+<li><p>Reset/create user if needed:</p></li>
+</ol>
+<div class="sourceCode" id="cb21"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">ROLE</span> postgres <span class="kw">PASSWORD</span> <span class="st">'NewStrongPassword!'</span>;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ol start="7" type="1">
+<li>Firewall/security tools: allow <code>postgres.exe</code> on port <code>5432</code> (private network).</li>
+</ol>
+<blockquote class="blockquote">
+<p><strong>Remote Connections (Later):</strong> For another computer to connect to your server, you’ll need to adjust <code>postgresql.conf</code> (<code>listen_addresses</code>) and <code>pg_hba.conf</code>. For this beginner guide (same PC), no changes required.</p>
+</blockquote>
+</section>
+<section id="useful-windows-commands-copypaste" class="level3">
+<h3 class="anchored" data-anchor-id="useful-windows-commands-copypaste">Useful Windows Commands (Copy/Paste)</h3>
+<p><strong>For CMD (Command Prompt):</strong></p>
+<p>First set the path:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="va">PGBIN</span>=C:\Program Files\PostgreSQL\17\bin</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Then use:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\psql.exe"</span> --version</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\pg_isready.exe"</span> -h localhost <span class="at">-p</span> 5432</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\psql.exe"</span> -U postgres <span class="at">-d</span> postgres </span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>-c <span class="st">"SELECT current_database();"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\psql.exe"</span> --version</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\pg_isready.exe"</span> -h localhost <span class="at">-p</span> 5432</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\psql.exe"</span> -U postgres <span class="at">-d</span> postgres </span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>-c <span class="st">"SELECT current_database();"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>For PowerShell:</strong></p>
 <p>First set the path:</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="va">$PGBIN</span> <span class="op">=</span> <span class="st">"C:\Program Files\PostgreSQL\17\bin"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="va">$PGBIN</span> <span class="op">=</span> <span class="st">"C:\Program Files\PostgreSQL\17\bin"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Then use:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\psql.exe"</span> <span class="op">--</span>version</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\pg_isready.exe"</span> <span class="op">-</span>h localhost <span class="op">-</span>p <span class="dv">5432</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\psql.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d postgres </span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="op">-</span>c <span class="st">"SELECT current_database();"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\psql.exe"</span> <span class="op">--</span>version</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\pg_isready.exe"</span> <span class="op">-</span>h localhost <span class="op">-</span>p <span class="dv">5432</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\psql.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d postgres </span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="op">-</span>c <span class="st">"SELECT current_database();"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <hr>
 </section>
 </section>
 <section id="psql-essentials-cheat-sheet" class="level2">
 <h2 class="anchored" data-anchor-id="psql-essentials-cheat-sheet"><code>psql</code> Essentials (Cheat Sheet)</h2>
-<div class="sourceCode" id="cb21"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>\q                 <span class="co">-- quit psql</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>\l                 <span class="co">-- list databases</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>\c dbname          <span class="co">-- connect to a database (e.g., \c pagila)</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>\dt                <span class="co">-- list tables in current schema</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>\d table_name      <span class="co">-- describe a table (e.g., \d film)</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>\du                <span class="co">-- list roles/users</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>\timing            <span class="co">-- toggle query timing on/off</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>\i path.sql        <span class="co">-- execute commands from a file</span></span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>\?                 <span class="co">-- help for meta-commands</span></span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>\h                 <span class="co">-- help for SQL commands</span></span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>\h <span class="kw">SELECT</span>          <span class="co">-- help for specific SQL command</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>\q                 <span class="co">-- quit psql</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>\l                 <span class="co">-- list databases</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>\c dbname          <span class="co">-- connect to a database (e.g., \c pagila)</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>\dt                <span class="co">-- list tables in current schema</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>\d table_name      <span class="co">-- describe a table (e.g., \d film)</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>\du                <span class="co">-- list roles/users</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>\timing            <span class="co">-- toggle query timing on/off</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>\i path.sql        <span class="co">-- execute commands from a file</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>\?                 <span class="co">-- help for meta-commands</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>\h                 <span class="co">-- help for SQL commands</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>\h <span class="kw">SELECT</span>          <span class="co">-- help for specific SQL command</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>More Useful Meta-Commands:</strong></p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>\dn                <span class="co">-- list schemas</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>\df                <span class="co">-- list functions</span></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>\dv                <span class="co">-- list views</span></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>\x                 <span class="co">-- toggle expanded display (better for wide rows)</span></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>\e                 <span class="co">-- open text editor to write/edit query</span></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>\g                 <span class="co">-- execute previous query again</span></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>\s                 <span class="co">-- display command history</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>\dn                <span class="co">-- list schemas</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>\df                <span class="co">-- list functions</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>\dv                <span class="co">-- list views</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>\x                 <span class="co">-- toggle expanded display (better for wide rows)</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>\e                 <span class="co">-- open text editor to write/edit query</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>\g                 <span class="co">-- execute previous query again</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>\s                 <span class="co">-- display command history</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <hr>
 </section>
 <section id="your-first-queries-pagila" class="level2">
 <h2 class="anchored" data-anchor-id="your-first-queries-pagila">Your First Queries (Pagila)</h2>
 <p>Connect to <code>pagila</code>:</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>\c pagila</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>\c pagila</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <section id="warm-up-queries-simple" class="level3">
 <h3 class="anchored" data-anchor-id="warm-up-queries-simple">Warm-up Queries (Simple)</h3>
-<div class="sourceCode" id="cb24"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- How many films?</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> film;</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- See a few films</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> film <span class="kw">LIMIT</span> <span class="dv">5</span>;</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- G-rated films</span></span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, rating <span class="kw">FROM</span> film <span class="kw">WHERE</span> rating <span class="op">=</span> <span class="st">'G'</span> <span class="kw">LIMIT</span> <span class="dv">10</span>;</span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- Longest films</span></span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, <span class="fu">length</span> <span class="kw">FROM</span> film <span class="kw">ORDER</span> <span class="kw">BY</span> <span class="fu">length</span> <span class="kw">DESC</span> <span class="kw">LIMIT</span> <span class="dv">10</span>;</span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="co">-- Films with "LOVE" in the title</span></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, release_year <span class="kw">FROM</span> film <span class="kw">WHERE</span> title <span class="kw">LIKE</span> <span class="st">'%LOVE%'</span>;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb29"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- How many films?</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> film;</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- See a few films</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> film <span class="kw">LIMIT</span> <span class="dv">5</span>;</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- G-rated films</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, rating <span class="kw">FROM</span> film <span class="kw">WHERE</span> rating <span class="op">=</span> <span class="st">'G'</span> <span class="kw">LIMIT</span> <span class="dv">10</span>;</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- Longest films</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, <span class="fu">length</span> <span class="kw">FROM</span> film <span class="kw">ORDER</span> <span class="kw">BY</span> <span class="fu">length</span> <span class="kw">DESC</span> <span class="kw">LIMIT</span> <span class="dv">10</span>;</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="co">-- Films with "LOVE" in the title</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, release_year <span class="kw">FROM</span> film <span class="kw">WHERE</span> title <span class="kw">LIKE</span> <span class="st">'%LOVE%'</span>;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="intermediate-queries" class="level3">
 <h3 class="anchored" data-anchor-id="intermediate-queries">Intermediate Queries</h3>
-<div class="sourceCode" id="cb25"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Top 10 most expensive PG films to rent</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, rental_rate</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> rating <span class="op">=</span> <span class="st">'PG'</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> rental_rate <span class="kw">DESC</span>, title</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">10</span>;</span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="co">-- Average film length by rating</span></span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> rating, </span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fu">AVG</span>(<span class="fu">length</span>), <span class="dv">2</span>) <span class="kw">as</span> avg_length,</span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">as</span> film_count</span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film</span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> rating</span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> avg_length <span class="kw">DESC</span>;</span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="co">-- Films with above-average rental rates</span></span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, rental_rate</span>
-<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film</span>
-<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> rental_rate <span class="op">&gt;</span> (<span class="kw">SELECT</span> <span class="fu">AVG</span>(rental_rate) <span class="kw">FROM</span> film)</span>
-<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> rental_rate <span class="kw">DESC</span></span>
-<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">15</span>;</span>
-<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a><span class="co">-- Count films by category</span></span>
-<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> c.name <span class="kw">as</span> <span class="kw">category</span>, <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">as</span> film_count</span>
-<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> <span class="kw">category</span> c</span>
-<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film_category fc <span class="kw">ON</span> c.category_id <span class="op">=</span> fc.category_id</span>
-<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> c.name</span>
-<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> film_count <span class="kw">DESC</span>;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Top 10 most expensive PG films to rent</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, rental_rate</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> rating <span class="op">=</span> <span class="st">'PG'</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> rental_rate <span class="kw">DESC</span>, title</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">10</span>;</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="co">-- Average film length by rating</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> rating, </span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fu">AVG</span>(<span class="fu">length</span>), <span class="dv">2</span>) <span class="kw">as</span> avg_length,</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">as</span> film_count</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> rating</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> avg_length <span class="kw">DESC</span>;</span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a><span class="co">-- Films with above-average rental rates</span></span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, rental_rate</span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film</span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> rental_rate <span class="op">&gt;</span> (<span class="kw">SELECT</span> <span class="fu">AVG</span>(rental_rate) <span class="kw">FROM</span> film)</span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> rental_rate <span class="kw">DESC</span></span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">15</span>;</span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a><span class="co">-- Count films by category</span></span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> c.name <span class="kw">as</span> <span class="kw">category</span>, <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">as</span> film_count</span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> <span class="kw">category</span> c</span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film_category fc <span class="kw">ON</span> c.category_id <span class="op">=</span> fc.category_id</span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> c.name</span>
+<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> film_count <span class="kw">DESC</span>;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="advanced-queries-to-explore" class="level3">
 <h3 class="anchored" data-anchor-id="advanced-queries-to-explore">Advanced Queries to Explore</h3>
-<div class="sourceCode" id="cb26"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Rentals per customer (top 10)</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> c.customer_id,</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>       c.first_name <span class="op">||</span> <span class="st">' '</span> <span class="op">||</span> c.last_name <span class="kw">AS</span> customer,</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> rentals</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> rental r</span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> customer c <span class="kw">USING</span> (customer_id)</span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> c.customer_id, customer</span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> rentals <span class="kw">DESC</span></span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">10</span>;</span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a><span class="co">-- Revenue by category</span></span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> ca.name <span class="kw">AS</span> <span class="kw">category</span>,</span>
-<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(p.amount) <span class="kw">AS</span> total_revenue</span>
-<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> payment p</span>
-<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> rental r <span class="kw">USING</span> (rental_id)</span>
-<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> inventory i <span class="kw">USING</span> (inventory_id)</span>
-<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film f <span class="kw">USING</span> (film_id)</span>
-<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film_category fc <span class="kw">USING</span> (film_id)</span>
-<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> <span class="kw">category</span> ca <span class="kw">USING</span> (category_id)</span>
-<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> ca.name</span>
-<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> total_revenue <span class="kw">DESC</span>;</span>
-<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a><span class="co">-- Most popular actors (by number of films)</span></span>
-<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> a.actor_id,</span>
-<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>       a.first_name <span class="op">||</span> <span class="st">' '</span> <span class="op">||</span> a.last_name <span class="kw">AS</span> actor_name,</span>
-<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(fa.film_id) <span class="kw">AS</span> film_count</span>
-<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> actor a</span>
-<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film_actor fa <span class="kw">USING</span> (actor_id)</span>
-<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> a.actor_id, actor_name</span>
-<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> film_count <span class="kw">DESC</span></span>
-<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">10</span>;</span>
-<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a><span class="co">-- Films starring a specific actor</span></span>
-<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> f.title, f.release_year, f.rating</span>
-<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film f</span>
-<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film_actor fa <span class="kw">USING</span> (film_id)</span>
-<span id="cb26-37"><a href="#cb26-37" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> actor a <span class="kw">USING</span> (actor_id)</span>
-<span id="cb26-38"><a href="#cb26-38" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> a.first_name <span class="op">=</span> <span class="st">'PENELOPE'</span> <span class="kw">AND</span> a.last_name <span class="op">=</span> <span class="st">'GUINESS'</span></span>
-<span id="cb26-39"><a href="#cb26-39" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> f.title;</span>
-<span id="cb26-40"><a href="#cb26-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-41"><a href="#cb26-41" aria-hidden="true" tabindex="-1"></a><span class="co">-- Customers who haven't rented in the last 30 days</span></span>
-<span id="cb26-42"><a href="#cb26-42" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> c.customer_id,</span>
-<span id="cb26-43"><a href="#cb26-43" aria-hidden="true" tabindex="-1"></a>       c.first_name <span class="op">||</span> <span class="st">' '</span> <span class="op">||</span> c.last_name <span class="kw">AS</span> customer,</span>
-<span id="cb26-44"><a href="#cb26-44" aria-hidden="true" tabindex="-1"></a>       <span class="fu">MAX</span>(r.rental_date) <span class="kw">AS</span> last_rental</span>
-<span id="cb26-45"><a href="#cb26-45" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> customer c</span>
-<span id="cb26-46"><a href="#cb26-46" aria-hidden="true" tabindex="-1"></a><span class="kw">LEFT</span> <span class="kw">JOIN</span> rental r <span class="kw">USING</span> (customer_id)</span>
-<span id="cb26-47"><a href="#cb26-47" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> c.customer_id, customer</span>
-<span id="cb26-48"><a href="#cb26-48" aria-hidden="true" tabindex="-1"></a><span class="kw">HAVING</span> <span class="fu">MAX</span>(r.rental_date) <span class="op">&lt;</span> <span class="fu">CURRENT_DATE</span> <span class="op">-</span> <span class="dt">INTERVAL</span> <span class="st">'30 days'</span></span>
-<span id="cb26-49"><a href="#cb26-49" aria-hidden="true" tabindex="-1"></a>   <span class="kw">OR</span> <span class="fu">MAX</span>(r.rental_date) <span class="kw">IS</span> <span class="kw">NULL</span></span>
-<span id="cb26-50"><a href="#cb26-50" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> last_rental <span class="kw">NULLS</span> <span class="fu">FIRST</span>;</span>
-<span id="cb26-51"><a href="#cb26-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-52"><a href="#cb26-52" aria-hidden="true" tabindex="-1"></a><span class="co">-- Monthly revenue trend</span></span>
-<span id="cb26-53"><a href="#cb26-53" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> DATE_TRUNC(<span class="st">'month'</span>, payment_date) <span class="kw">AS</span> <span class="dt">month</span>,</span>
-<span id="cb26-54"><a href="#cb26-54" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(amount) <span class="kw">AS</span> monthly_revenue,</span>
-<span id="cb26-55"><a href="#cb26-55" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> transaction_count</span>
-<span id="cb26-56"><a href="#cb26-56" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> payment</span>
-<span id="cb26-57"><a href="#cb26-57" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> <span class="dt">month</span></span>
-<span id="cb26-58"><a href="#cb26-58" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> <span class="dt">month</span>;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb31"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Rentals per customer (top 10)</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> c.customer_id,</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>       c.first_name <span class="op">||</span> <span class="st">' '</span> <span class="op">||</span> c.last_name <span class="kw">AS</span> customer,</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> rentals</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> rental r</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> customer c <span class="kw">USING</span> (customer_id)</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> c.customer_id, customer</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> rentals <span class="kw">DESC</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">10</span>;</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a><span class="co">-- Revenue by category</span></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> ca.name <span class="kw">AS</span> <span class="kw">category</span>,</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(p.amount) <span class="kw">AS</span> total_revenue</span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> payment p</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> rental r <span class="kw">USING</span> (rental_id)</span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> inventory i <span class="kw">USING</span> (inventory_id)</span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film f <span class="kw">USING</span> (film_id)</span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film_category fc <span class="kw">USING</span> (film_id)</span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> <span class="kw">category</span> ca <span class="kw">USING</span> (category_id)</span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> ca.name</span>
+<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> total_revenue <span class="kw">DESC</span>;</span>
+<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-23"><a href="#cb31-23" aria-hidden="true" tabindex="-1"></a><span class="co">-- Most popular actors (by number of films)</span></span>
+<span id="cb31-24"><a href="#cb31-24" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> a.actor_id,</span>
+<span id="cb31-25"><a href="#cb31-25" aria-hidden="true" tabindex="-1"></a>       a.first_name <span class="op">||</span> <span class="st">' '</span> <span class="op">||</span> a.last_name <span class="kw">AS</span> actor_name,</span>
+<span id="cb31-26"><a href="#cb31-26" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(fa.film_id) <span class="kw">AS</span> film_count</span>
+<span id="cb31-27"><a href="#cb31-27" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> actor a</span>
+<span id="cb31-28"><a href="#cb31-28" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film_actor fa <span class="kw">USING</span> (actor_id)</span>
+<span id="cb31-29"><a href="#cb31-29" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> a.actor_id, actor_name</span>
+<span id="cb31-30"><a href="#cb31-30" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> film_count <span class="kw">DESC</span></span>
+<span id="cb31-31"><a href="#cb31-31" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">10</span>;</span>
+<span id="cb31-32"><a href="#cb31-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-33"><a href="#cb31-33" aria-hidden="true" tabindex="-1"></a><span class="co">-- Films starring a specific actor</span></span>
+<span id="cb31-34"><a href="#cb31-34" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> f.title, f.release_year, f.rating</span>
+<span id="cb31-35"><a href="#cb31-35" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film f</span>
+<span id="cb31-36"><a href="#cb31-36" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film_actor fa <span class="kw">USING</span> (film_id)</span>
+<span id="cb31-37"><a href="#cb31-37" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> actor a <span class="kw">USING</span> (actor_id)</span>
+<span id="cb31-38"><a href="#cb31-38" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> a.first_name <span class="op">=</span> <span class="st">'PENELOPE'</span> <span class="kw">AND</span> a.last_name <span class="op">=</span> <span class="st">'GUINESS'</span></span>
+<span id="cb31-39"><a href="#cb31-39" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> f.title;</span>
+<span id="cb31-40"><a href="#cb31-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-41"><a href="#cb31-41" aria-hidden="true" tabindex="-1"></a><span class="co">-- Customers who haven't rented in the last 30 days</span></span>
+<span id="cb31-42"><a href="#cb31-42" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> c.customer_id,</span>
+<span id="cb31-43"><a href="#cb31-43" aria-hidden="true" tabindex="-1"></a>       c.first_name <span class="op">||</span> <span class="st">' '</span> <span class="op">||</span> c.last_name <span class="kw">AS</span> customer,</span>
+<span id="cb31-44"><a href="#cb31-44" aria-hidden="true" tabindex="-1"></a>       <span class="fu">MAX</span>(r.rental_date) <span class="kw">AS</span> last_rental</span>
+<span id="cb31-45"><a href="#cb31-45" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> customer c</span>
+<span id="cb31-46"><a href="#cb31-46" aria-hidden="true" tabindex="-1"></a><span class="kw">LEFT</span> <span class="kw">JOIN</span> rental r <span class="kw">USING</span> (customer_id)</span>
+<span id="cb31-47"><a href="#cb31-47" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> c.customer_id, customer</span>
+<span id="cb31-48"><a href="#cb31-48" aria-hidden="true" tabindex="-1"></a><span class="kw">HAVING</span> <span class="fu">MAX</span>(r.rental_date) <span class="op">&lt;</span> <span class="fu">CURRENT_DATE</span> <span class="op">-</span> <span class="dt">INTERVAL</span> <span class="st">'30 days'</span></span>
+<span id="cb31-49"><a href="#cb31-49" aria-hidden="true" tabindex="-1"></a>   <span class="kw">OR</span> <span class="fu">MAX</span>(r.rental_date) <span class="kw">IS</span> <span class="kw">NULL</span></span>
+<span id="cb31-50"><a href="#cb31-50" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> last_rental <span class="kw">NULLS</span> <span class="fu">FIRST</span>;</span>
+<span id="cb31-51"><a href="#cb31-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-52"><a href="#cb31-52" aria-hidden="true" tabindex="-1"></a><span class="co">-- Monthly revenue trend</span></span>
+<span id="cb31-53"><a href="#cb31-53" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> DATE_TRUNC(<span class="st">'month'</span>, payment_date) <span class="kw">AS</span> <span class="dt">month</span>,</span>
+<span id="cb31-54"><a href="#cb31-54" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(amount) <span class="kw">AS</span> monthly_revenue,</span>
+<span id="cb31-55"><a href="#cb31-55" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> transaction_count</span>
+<span id="cb31-56"><a href="#cb31-56" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> payment</span>
+<span id="cb31-57"><a href="#cb31-57" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> <span class="dt">month</span></span>
+<span id="cb31-58"><a href="#cb31-58" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> <span class="dt">month</span>;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="window-function-examples" class="level3">
 <h3 class="anchored" data-anchor-id="window-function-examples">Window Function Examples</h3>
-<div class="sourceCode" id="cb27"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Rank films by rental rate within each rating</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, rating, rental_rate,</span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>       <span class="fu">RANK</span>() <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> rating <span class="kw">ORDER</span> <span class="kw">BY</span> rental_rate <span class="kw">DESC</span>) <span class="kw">as</span> rank_in_rating</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film</span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> rating, rank_in_rating</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">20</span>;</span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="co">-- Running total of payments</span></span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> payment_date,</span>
-<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>       amount,</span>
-<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(amount) <span class="kw">OVER</span> (<span class="kw">ORDER</span> <span class="kw">BY</span> payment_date) <span class="kw">as</span> running_total</span>
-<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> payment</span>
-<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> payment_date</span>
-<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">50</span>;</span>
-<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="co">-- Compare each film's length to category average</span></span>
-<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> f.title, c.name <span class="kw">as</span> <span class="kw">category</span>, f.<span class="fu">length</span>,</span>
-<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fu">AVG</span>(f.<span class="fu">length</span>) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> c.category_id), <span class="dv">2</span>) <span class="kw">as</span> category_avg_length,</span>
-<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>       f.<span class="fu">length</span> <span class="op">-</span> <span class="fu">ROUND</span>(<span class="fu">AVG</span>(f.<span class="fu">length</span>) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> c.category_id), <span class="dv">2</span>) <span class="kw">as</span> diff_from_avg</span>
-<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film f</span>
-<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film_category fc <span class="kw">USING</span> (film_id)</span>
-<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> <span class="kw">category</span> c <span class="kw">USING</span> (category_id)</span>
-<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> <span class="kw">category</span>, diff_from_avg <span class="kw">DESC</span>;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Rank films by rental rate within each rating</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> title, rating, rental_rate,</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>       <span class="fu">RANK</span>() <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> rating <span class="kw">ORDER</span> <span class="kw">BY</span> rental_rate <span class="kw">DESC</span>) <span class="kw">as</span> rank_in_rating</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> rating, rank_in_rating</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">20</span>;</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a><span class="co">-- Running total of payments</span></span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> payment_date,</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>       amount,</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(amount) <span class="kw">OVER</span> (<span class="kw">ORDER</span> <span class="kw">BY</span> payment_date) <span class="kw">as</span> running_total</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> payment</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> payment_date</span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">50</span>;</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a><span class="co">-- Compare each film's length to category average</span></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> f.title, c.name <span class="kw">as</span> <span class="kw">category</span>, f.<span class="fu">length</span>,</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fu">AVG</span>(f.<span class="fu">length</span>) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> c.category_id), <span class="dv">2</span>) <span class="kw">as</span> category_avg_length,</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>       f.<span class="fu">length</span> <span class="op">-</span> <span class="fu">ROUND</span>(<span class="fu">AVG</span>(f.<span class="fu">length</span>) <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> c.category_id), <span class="dv">2</span>) <span class="kw">as</span> diff_from_avg</span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> film f</span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> film_category fc <span class="kw">USING</span> (film_id)</span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> <span class="kw">category</span> c <span class="kw">USING</span> (category_id)</span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> <span class="kw">category</span>, diff_from_avg <span class="kw">DESC</span>;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <hr>
 </section>
 </section>
@@ -629,45 +659,49 @@ set PGBIN=C:\Program Files\PostgreSQL\17\bin</code></pre>
 "syntax error at or near..."
   - Check for missing semicolons
   - Verify SQL keyword spelling
-  - Check for unmatched quotes or parentheses</code></pre>
+  - Check for unmatched quotes or parentheses
+
+"OWNER TO student" appears in a Pagila schema file
+  - That is a course-modified file, not the official Pagila file.
+  - Download the official `pagila-schema.sql` again instead of editing it.</code></pre>
 <hr>
 </section>
 <section id="security-best-practices" class="level2">
 <h2 class="anchored" data-anchor-id="security-best-practices">Security Best Practices</h2>
-<section id="create-a-non-superuser-for-practice" class="level3">
-<h3 class="anchored" data-anchor-id="create-a-non-superuser-for-practice">Create a Non-Superuser for Practice</h3>
-<p>Instead of always using <code>postgres</code>, create a normal user:</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> student <span class="kw">WITH</span> LOGIN <span class="kw">PASSWORD</span> <span class="st">'secure_password_here'</span>;</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">PRIVILEGES</span> <span class="kw">ON</span> <span class="kw">DATABASE</span> pagila <span class="kw">TO</span> student;</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- Also grant schema privileges</span></span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>\c pagila</span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> student;</span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">ON</span> <span class="kw">ALL</span> <span class="kw">TABLES</span> <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> student;</span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">ON</span> <span class="kw">ALL</span> SEQUENCES <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> student;</span>
-<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- Then connect with this user</span></span>
-<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>\c pagila student</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="your-personal-non-superuser-for-practice" class="level3">
+<h3 class="anchored" data-anchor-id="your-personal-non-superuser-for-practice">Your Personal Non-Superuser for Practice</h3>
+<p>Instead of always using <code>postgres</code>, create a normal user after importing Pagila. Replace <code>karim</code> with your own lowercase first name, and keep your password private:</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> karim <span class="kw">WITH</span> LOGIN <span class="kw">PASSWORD</span> <span class="st">'votre_mot_de_passe'</span>;</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">PRIVILEGES</span> <span class="kw">ON</span> <span class="kw">DATABASE</span> pagila <span class="kw">TO</span> karim;</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- Also grant schema privileges</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>\c pagila</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> karim;</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">ON</span> <span class="kw">ALL</span> <span class="kw">TABLES</span> <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> karim;</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">ON</span> <span class="kw">ALL</span> SEQUENCES <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> karim;</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- Then connect with this user</span></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>\c pagila karim</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>Why?</strong> Principle of least privilege: use <code>postgres</code> only for administration, not daily queries.</p>
 </section>
 <section id="example-creating-department-specific-users" class="level3">
 <h3 class="anchored" data-anchor-id="example-creating-department-specific-users">Example: Creating Department-Specific Users</h3>
-<div class="sourceCode" id="cb30"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Read-only analyst</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> analyst <span class="kw">WITH</span> LOGIN <span class="kw">PASSWORD</span> <span class="st">'analyst_pass'</span>;</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">CONNECT</span> <span class="kw">ON</span> <span class="kw">DATABASE</span> pagila <span class="kw">TO</span> analyst;</span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">USAGE</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> analyst;</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">SELECT</span> <span class="kw">ON</span> <span class="kw">ALL</span> <span class="kw">TABLES</span> <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> analyst;</span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- Developer with write access</span></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> developer <span class="kw">WITH</span> LOGIN <span class="kw">PASSWORD</span> <span class="st">'dev_pass'</span>;</span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">CONNECT</span> <span class="kw">ON</span> <span class="kw">DATABASE</span> pagila <span class="kw">TO</span> developer;</span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">USAGE</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> developer;</span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">SELECT</span>, <span class="kw">INSERT</span>, <span class="kw">UPDATE</span>, <span class="kw">DELETE</span> <span class="kw">ON</span> <span class="kw">ALL</span> <span class="kw">TABLES</span> <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> developer;</span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="co">-- Manager who can create tables</span></span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> manager <span class="kw">WITH</span> LOGIN <span class="kw">PASSWORD</span> <span class="st">'manager_pass'</span>;</span>
-<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">CONNECT</span> <span class="kw">ON</span> <span class="kw">DATABASE</span> pagila <span class="kw">TO</span> manager;</span>
-<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> manager;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Read-only analyst</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> analyst <span class="kw">WITH</span> LOGIN <span class="kw">PASSWORD</span> <span class="st">'analyst_pass'</span>;</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">CONNECT</span> <span class="kw">ON</span> <span class="kw">DATABASE</span> pagila <span class="kw">TO</span> analyst;</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">USAGE</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> analyst;</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">SELECT</span> <span class="kw">ON</span> <span class="kw">ALL</span> <span class="kw">TABLES</span> <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> analyst;</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- Developer with write access</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> developer <span class="kw">WITH</span> LOGIN <span class="kw">PASSWORD</span> <span class="st">'dev_pass'</span>;</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">CONNECT</span> <span class="kw">ON</span> <span class="kw">DATABASE</span> pagila <span class="kw">TO</span> developer;</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">USAGE</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> developer;</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">SELECT</span>, <span class="kw">INSERT</span>, <span class="kw">UPDATE</span>, <span class="kw">DELETE</span> <span class="kw">ON</span> <span class="kw">ALL</span> <span class="kw">TABLES</span> <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> developer;</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a><span class="co">-- Manager who can create tables</span></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> manager <span class="kw">WITH</span> LOGIN <span class="kw">PASSWORD</span> <span class="st">'manager_pass'</span>;</span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">CONNECT</span> <span class="kw">ON</span> <span class="kw">DATABASE</span> pagila <span class="kw">TO</span> manager;</span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">ALL</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> manager;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <hr>
 </section>
 </section>
@@ -742,47 +776,47 @@ set PGBIN=C:\Program Files\PostgreSQL\17\bin</code></pre>
 <section id="backup-a-database" class="level3">
 <h3 class="anchored" data-anchor-id="backup-a-database">Backup a Database</h3>
 <p><strong>CMD:</strong></p>
-<div class="sourceCode" id="cb31"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="va">PGBIN</span>=C:\Program Files\PostgreSQL\17\bin</span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\pg_dump.exe"</span> -U postgres <span class="at">-d</span> pagila <span class="at">-f</span> C:\backup_pagila.sql</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="va">PGBIN</span>=C:\Program Files\PostgreSQL\17\bin</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\pg_dump.exe"</span> -U postgres <span class="at">-d</span> pagila <span class="at">-f</span> C:\backup_pagila.sql</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>PowerShell:</strong></p>
-<div class="sourceCode" id="cb32"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="va">$PGBIN</span> <span class="op">=</span> <span class="st">"C:\Program Files\PostgreSQL\17\bin"</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\pg_dump.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>f C<span class="op">:</span>\backup_pagila<span class="op">.</span><span class="fu">sql</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb37"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="va">$PGBIN</span> <span class="op">=</span> <span class="st">"C:\Program Files\PostgreSQL\17\bin"</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\pg_dump.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>f C<span class="op">:</span>\backup_pagila<span class="op">.</span><span class="fu">sql</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="backup-with-custom-format-compressed-faster-restore" class="level3">
 <h3 class="anchored" data-anchor-id="backup-with-custom-format-compressed-faster-restore">Backup with Custom Format (Compressed, Faster Restore)</h3>
 <p><strong>CMD:</strong></p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\pg_dump.exe"</span> -U postgres <span class="at">-d</span> pagila <span class="at">-Fc</span> <span class="at">-f</span> C:\backup_pagila.dump</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb38"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\pg_dump.exe"</span> -U postgres <span class="at">-d</span> pagila <span class="at">-Fc</span> <span class="at">-f</span> C:\backup_pagila.dump</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>PowerShell:</strong></p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\pg_dump.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>Fc <span class="op">-</span>f C<span class="op">:</span>\backup_pagila<span class="op">.</span><span class="fu">dump</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb39"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\pg_dump.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>Fc <span class="op">-</span>f C<span class="op">:</span>\backup_pagila<span class="op">.</span><span class="fu">dump</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="restore-a-database" class="level3">
 <h3 class="anchored" data-anchor-id="restore-a-database">Restore a Database</h3>
 <p><strong>From SQL file (CMD):</strong></p>
-<div class="sourceCode" id="cb35"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\psql.exe"</span> -U postgres <span class="at">-d</span> pagila <span class="at">-f</span> C:\backup_pagila.sql</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb40"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\psql.exe"</span> -U postgres <span class="at">-d</span> pagila <span class="at">-f</span> C:\backup_pagila.sql</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>From SQL file (PowerShell):</strong></p>
-<div class="sourceCode" id="cb36"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\psql.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>f C<span class="op">:</span>\backup_pagila<span class="op">.</span><span class="fu">sql</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb41"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\psql.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>f C<span class="op">:</span>\backup_pagila<span class="op">.</span><span class="fu">sql</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>From custom format (CMD):</strong></p>
-<div class="sourceCode" id="cb37"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\pg_restore.exe"</span> -U postgres <span class="at">-d</span> pagila C:\backup_pagila.dump</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb42"><pre class="sourceCode cmd code-with-copy"><code class="sourceCode dosbat"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="pp">%</span><span class="va">PGBIN</span><span class="pp">%</span><span class="st">\pg_restore.exe"</span> -U postgres <span class="at">-d</span> pagila C:\backup_pagila.dump</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>From custom format (PowerShell):</strong></p>
-<div class="sourceCode" id="cb38"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\pg_restore.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila C<span class="op">:</span>\backup_pagila<span class="op">.</span><span class="fu">dump</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb43"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\pg_restore.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila C<span class="op">:</span>\backup_pagila<span class="op">.</span><span class="fu">dump</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>Tip:</strong> Back up your practice databases regularly before experimenting with destructive commands!</p>
 </section>
 <section id="automated-backup-script-example" class="level3">
 <h3 class="anchored" data-anchor-id="automated-backup-script-example">Automated Backup Script Example</h3>
 <p><strong>PowerShell script (save as <code>backup_postgres.ps1</code>):</strong></p>
-<div class="sourceCode" id="cb39"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="va">$PGBIN</span> <span class="op">=</span> <span class="st">"C:\Program Files\PostgreSQL\17\bin"</span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="va">$BACKUP_DIR</span> <span class="op">=</span> <span class="st">"C:\PostgreSQL_Backups"</span></span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="va">$DATE</span> <span class="op">=</span> <span class="fu">Get-Date</span> <span class="op">-</span>Format <span class="st">"yyyy-MM-dd_HHmmss"</span></span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Create backup directory if it doesn't exist</span></span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(-not</span> <span class="op">(</span><span class="fu">Test-Path</span> <span class="va">$BACKUP_DIR</span><span class="op">))</span> <span class="op">{</span></span>
-<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">New-Item</span> <span class="op">-</span>ItemType Directory <span class="op">-</span>Path <span class="va">$BACKUP_DIR</span></span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
-<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Backup pagila database</span></span>
-<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\pg_dump.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>Fc <span class="op">-</span>f <span class="st">"</span><span class="va">$BACKUP_DIR</span><span class="st">\pagila_</span><span class="va">$DATE</span><span class="st">.dump"</span></span>
-<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a><span class="fu">Write-Host</span> <span class="st">"Backup completed: pagila_</span><span class="va">$DATE</span><span class="st">.dump"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb44"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="va">$PGBIN</span> <span class="op">=</span> <span class="st">"C:\Program Files\PostgreSQL\17\bin"</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="va">$BACKUP_DIR</span> <span class="op">=</span> <span class="st">"C:\PostgreSQL_Backups"</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a><span class="va">$DATE</span> <span class="op">=</span> <span class="fu">Get-Date</span> <span class="op">-</span>Format <span class="st">"yyyy-MM-dd_HHmmss"</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Create backup directory if it doesn't exist</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(-not</span> <span class="op">(</span><span class="fu">Test-Path</span> <span class="va">$BACKUP_DIR</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">New-Item</span> <span class="op">-</span>ItemType Directory <span class="op">-</span>Path <span class="va">$BACKUP_DIR</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Backup pagila database</span></span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="st">"</span><span class="va">$PGBIN</span><span class="st">\pg_dump.exe"</span> <span class="op">-</span>U postgres <span class="op">-</span>d pagila <span class="op">-</span>Fc <span class="op">-</span>f <span class="st">"</span><span class="va">$BACKUP_DIR</span><span class="st">\pagila_</span><span class="va">$DATE</span><span class="st">.dump"</span></span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a><span class="fu">Write-Host</span> <span class="st">"Backup completed: pagila_</span><span class="va">$DATE</span><span class="st">.dump"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <hr>
 </section>
 </section>

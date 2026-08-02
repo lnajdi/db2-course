@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>PostgreSQL labs 06 - Lab 02 Indexes</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Literata"; src: local("Literata"); font-weight: 400; }
+      @font-face { font-family: "Instrument Sans"; src: local("Instrument Sans"); font-weight: 400 700; }
+      @font-face { font-family: "Geist Mono"; src: local("Geist Mono"); font-weight: 400 700; }
+      * { box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #000; }
+      body { color: #182126; font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #f7f4ee; }
+      .clip { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+      .ground {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          #f7f4ee;
+        background-size: 72px 72px;
+      }
+      .stage {
+        position: absolute;
+        inset: 72px 84px 220px 84px;
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 48px;
+        align-items: stretch;
+      }
+      .single { grid-template-columns: 1fr; }
+      .kicker {
+        color: #0d4f68;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 24px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 22px;
+      }
+      h1 {
+        margin: 0;
+        max-width: 980px;
+        font-family: Literata, Georgia, serif;
+        font-size: 82px;
+        font-weight: 400;
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+      h2 {
+        margin: 0 0 26px;
+        font-family: Literata, Georgia, serif;
+        font-size: 58px;
+        font-weight: 400;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+      h3 { margin: 0 0 14px; color: #182126; font-size: 32px; line-height: 1.15; }
+      p { margin: 0; color: #4d5a60; font-size: 30px; line-height: 1.42; }
+      pre, code, .mono { font-family: "Geist Mono", Consolas, "Courier New", monospace; }
+      pre { margin: 0; white-space: pre-wrap; color: #f7f4ee; font-size: 24px; line-height: 1.42; }
+      .mini-note { margin-top: 22px; color: #5d686e; font-size: 24px; }
+      .panel {
+        border: 1px solid #d9dedf;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.86);
+        padding: 32px;
+        box-shadow: 0 1px 3px rgba(24, 33, 38, 0.08), 0 4px 16px rgba(24, 33, 38, 0.04);
+      }
+      .dark-panel {
+        border: 1px solid rgba(247, 244, 238, 0.16);
+        border-radius: 8px;
+        background: #151718;
+        color: #f7f4ee;
+        padding: 28px;
+      }
+      .titlebar {
+        display: flex;
+        justify-content: space-between;
+        margin: -28px -28px 22px;
+        padding: 16px 22px;
+        border-bottom: 1px solid rgba(247, 244, 238, 0.14);
+        border-radius: 8px 8px 0 0;
+        background: #202325;
+        color: #dce5e4;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 20px;
+      }
+      .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+      .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .item {
+        min-height: 118px;
+        border: 1px solid rgba(24, 33, 38, 0.12);
+        border-radius: 8px;
+        background: #fff;
+        padding: 20px;
+        color: #4d5a60;
+        font-size: 24px;
+        line-height: 1.25;
+      }
+      .item strong { display: block; margin-bottom: 8px; color: #182126; font-size: 30px; font-weight: 600; }
+      .pill {
+        display: inline-block;
+        border: 1px solid #a7c4ce;
+        border-radius: 999px;
+        background: #e8f1f4;
+        color: #0d4f68;
+        padding: 10px 18px;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+      }
+      .ok { border-color: rgba(23, 94, 74, 0.24); background: #e8f3ee; color: #175e4a; }
+      .warning { border-color: rgba(138, 101, 26, 0.24); background: #f8f0dc; color: #624a35; }
+      .caption-band {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 200px;
+        border-top: 1px dashed rgba(93, 104, 110, 0.35);
+        background: rgba(247, 244, 238, 0.72);
+        color: #687175;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .progress-wrap { position: absolute; left: 84px; right: 84px; top: 34px; height: 6px; border-radius: 999px; background: rgba(13, 79, 104, 0.12); overflow: hidden; }
+      #progress { display: block; width: 100%; height: 100%; border-radius: 999px; background: #0d4f68; transform-origin: left center; }
+      .roadmap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+      .step {
+        min-height: 148px;
+        border: 1px solid rgba(13, 79, 104, 0.18);
+        border-radius: 8px;
+        background: #f5fafb;
+        padding: 19px;
+        font-size: 24px;
+        line-height: 1.24;
+      }
+      .step b { display: block; color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-size: 22px; margin-bottom: 10px; }
+      .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+      .compare-card { min-height: 430px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 26px; }
+      .compare-card p { font-size: 25px; }
+      .scan-row { display: grid; grid-template-columns: repeat(10, 1fr); gap: 7px; margin-top: 24px; }
+      .cell { height: 46px; border: 1px solid #d9dedf; border-radius: 6px; background: #fff; display: grid; place-items: center; color: #5d686e; font-family: "Geist Mono", Consolas, monospace; font-size: 18px; }
+      .hit { background: #e8f3ee; border-color: #9ac2b4; color: #175e4a; font-weight: 700; }
+      .tree { display: grid; gap: 18px; justify-items: center; margin-top: 22px; }
+      .node { border: 1px solid #a7c4ce; border-radius: 8px; background: #e8f1f4; color: #0d4f68; padding: 14px 24px; font-family: "Geist Mono", Consolas, monospace; font-size: 22px; }
+      .branch { display: flex; gap: 28px; }
+      .sql-key { color: #9fd3c8; }
+      .sql-name { color: #e8d978; }
+      .sql-string { color: #e8a55a; }
+      .explain { display: grid; gap: 12px; margin-top: 14px; }
+      .line {
+        border: 1px solid rgba(247, 244, 238, 0.14);
+        border-radius: 6px;
+        background: #202325;
+        padding: 12px 14px;
+        color: #f7f4ee;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 21px;
+      }
+      .mark { color: #e8d978; }
+      .method { display: grid; gap: 14px; }
+      .method .item { min-height: 78px; display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 14px; padding: 16px; }
+      .num { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; background: #e8f1f4; color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-06-root" id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="250">
+      <div data-hf-id="hf-06-progress-wrap" class="progress-wrap" data-layout-ignore=""><span data-hf-id="hf-06-progress" id="progress"></span></div>
+
+      <section style="z-index: 1" data-hf-id="hf-06-f01" id="frame-01" class="clip" data-start="0" data-duration="26" data-track-index="1">
+        <div data-hf-id="hf-06-f01-ground" class="ground"></div>
+        <div data-hf-id="hf-06-f01-stage" class="stage">
+          <div data-hf-id="hf-06-f01-copy">
+            <div data-hf-id="hf-06-f01-kicker" class="kicker">06/08 - Lab 02</div>
+            <h1 data-hf-id="hf-06-f01-title">Lab 02 - Indexes</h1>
+            <p data-hf-id="hf-06-f01-note" class="mini-note">Objectif: mesurer les performances avant de creer des index.</p>
+          </div>
+          <div data-hf-id="hf-06-f01-panel" class="panel">
+            <h2 data-hf-id="hf-06-f01-panel-title">Avant de commencer</h2>
+            <div data-hf-id="hf-06-f01-grid" class="grid">
+              <div data-hf-id="hf-06-f01-a" class="item"><strong data-hf-id="hf-06-f01-a1">PostgreSQL</strong>service demarre</div>
+              <div data-hf-id="hf-06-f01-b" class="item"><strong data-hf-id="hf-06-f01-b1">Base</strong><span data-hf-id="hf-06-f01-b2" class="mono">pagila</span> chargee</div>
+              <div data-hf-id="hf-06-f01-c" class="item"><strong data-hf-id="hf-06-f01-c1">Client SQL</strong>pgAdmin, DBeaver, VS Code ou psql</div>
+              <div data-hf-id="hf-06-f01-d" class="item"><strong data-hf-id="hf-06-f01-d1">Permission</strong><span data-hf-id="hf-06-f01-d2" class="mono">CREATE INDEX</span></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-06-f01-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-06-f02" id="frame-02" class="clip" data-start="26" data-duration="34" data-track-index="1">
+        <div data-hf-id="hf-06-f02-ground" class="ground"></div>
+        <div data-hf-id="hf-06-f02-stage" class="stage single">
+          <div data-hf-id="hf-06-f02-copy">
+            <div data-hf-id="hf-06-f02-kicker" class="kicker">Roadmap du lab</div>
+            <h2 data-hf-id="hf-06-f02-title">Sept etapes, une meme question: le plan change-t-il ?</h2>
+            <div data-hf-id="hf-06-f02-roadmap" class="roadmap">
+              <div data-hf-id="hf-06-f02-s1" class="step"><b data-hf-id="hf-06-f02-n1">1</b>Inspecter les tables<br><span class="mono">film, rental, customer</span></div>
+              <div data-hf-id="hf-06-f02-s2" class="step"><b data-hf-id="hf-06-f02-n2">2</b>Observer les index<br><span class="mono">pg_indexes</span></div>
+              <div data-hf-id="hf-06-f02-s3" class="step"><b data-hf-id="hf-06-f02-n3">3</b>Mesurer les requetes<br><span class="mono">EXPLAIN ANALYZE</span></div>
+              <div data-hf-id="hf-06-f02-s4" class="step"><b data-hf-id="hf-06-f02-n4">4</b>Creer les index<br><span class="mono">CREATE INDEX</span></div>
+              <div data-hf-id="hf-06-f02-s5" class="step"><b data-hf-id="hf-06-f02-n5">5</b>Comparer les plans<br><span class="mono">Seq / Index Scan</span></div>
+              <div data-hf-id="hf-06-f02-s6" class="step"><b data-hf-id="hf-06-f02-n6">6</b>Optimiser le reporting<br><span class="mono">UPPER, rental_date</span></div>
+              <div data-hf-id="hf-06-f02-s7" class="step"><b data-hf-id="hf-06-f02-n7">7</b>Nettoyer a la fin<br><span class="mono">DROP INDEX</span></div>
+              <div data-hf-id="hf-06-f02-s8" class="step"><b data-hf-id="hf-06-f02-n8">livrable</b>notes avant/apres<br><span class="mono">solutions.sql</span></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-06-f02-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-06-f03" id="frame-03" class="clip" data-start="60" data-duration="32" data-track-index="0">
+        <div data-hf-id="hf-06-f03-ground" class="ground"></div>
+        <div data-hf-id="hf-06-f03-stage" class="stage">
+          <div data-hf-id="hf-06-f03-copy">
+            <div data-hf-id="hf-06-f03-kicker" class="kicker">Mesurer avant d'indexer</div>
+            <h2 data-hf-id="hf-06-f03-title">Un index a un cout</h2>
+            <p data-hf-id="hf-06-f03-p">Il peut accelerer une lecture, mais il prend de la place et ralentit certaines ecritures.</p>
+            <p data-hf-id="hf-06-f03-note" class="mini-note"><span data-hf-id="hf-06-f03-pill" class="pill warning">discipline</span> plan avant, index, meme requete, plan apres.</p>
+          </div>
+          <div data-hf-id="hf-06-f03-panel" class="panel">
+            <div data-hf-id="hf-06-f03-compare" class="compare">
+              <div data-hf-id="hf-06-f03-before" class="compare-card">
+                <span data-hf-id="hf-06-f03-before-pill" class="pill warning">avant</span>
+                <h3 data-hf-id="hf-06-f03-before-h">Plan observe</h3>
+                <p data-hf-id="hf-06-f03-before-p">Execution time, lignes retirees, noeud dominant.</p>
+                <p data-hf-id="hf-06-f03-before-m" class="mini-note mono">Rows Removed by Filter</p>
+              </div>
+              <div data-hf-id="hf-06-f03-after" class="compare-card">
+                <span data-hf-id="hf-06-f03-after-pill" class="pill ok">apres</span>
+                <h3 data-hf-id="hf-06-f03-after-h">Decision justifiee</h3>
+                <p data-hf-id="hf-06-f03-after-p">L'index correspond a une condition ou a un tri reel.</p>
+                <p data-hf-id="hf-06-f03-after-m" class="mini-note mono">Execution Time</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-06-f03-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-06-f04" id="frame-04" class="clip" data-start="92" data-duration="32" data-track-index="1">
+        <div data-hf-id="hf-06-f04-ground" class="ground"></div>
+        <div data-hf-id="hf-06-f04-stage" class="stage">
+          <div data-hf-id="hf-06-f04-copy">
+            <div data-hf-id="hf-06-f04-kicker" class="kicker">Seq Scan vs Index Scan</div>
+            <h2 data-hf-id="hf-06-f04-title">Deux chemins vers la meme ligne</h2>
+            <p data-hf-id="hf-06-f04-p">Le lab utilise une recherche sur le titre du film pour rendre la difference lisible.</p>
+            <p data-hf-id="hf-06-f04-note" class="mini-note mono">film.title = 'ACADEMY DINOSAUR'</p>
+          </div>
+          <div data-hf-id="hf-06-f04-panel" class="panel">
+            <div data-hf-id="hf-06-f04-compare" class="compare">
+              <div data-hf-id="hf-06-f04-seq" class="compare-card">
+                <span data-hf-id="hf-06-f04-seq-pill" class="pill warning">Seq Scan</span>
+                <p data-hf-id="hf-06-f04-seq-p">La table est testee ligne par ligne.</p>
+                <div data-hf-id="hf-06-f04-row" class="scan-row">
+                  <span class="cell">01</span><span class="cell">02</span><span class="cell">03</span><span class="cell">04</span><span class="cell">05</span><span class="cell">06</span><span class="cell">07</span><span class="cell">08</span><span class="cell hit">film</span><span class="cell">10</span>
+                </div>
+              </div>
+              <div data-hf-id="hf-06-f04-index" class="compare-card">
+                <span data-hf-id="hf-06-f04-index-pill" class="pill ok">Index Scan</span>
+                <p data-hf-id="hf-06-f04-index-p">L'index guide PostgreSQL vers les lignes candidates.</p>
+                <div data-hf-id="hf-06-f04-tree" class="tree">
+                  <div class="node">A-M</div>
+                  <div class="branch"><div class="node">ACA...</div><div class="node">ALI...</div><div class="node">AMA...</div></div>
+                  <div class="node hit">ACADEMY DINOSAUR</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-06-f04-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-06-f05" id="frame-05" class="clip" data-start="124" data-duration="30" data-track-index="0">
+        <div data-hf-id="hf-06-f05-ground" class="ground"></div>
+        <div data-hf-id="hf-06-f05-stage" class="stage">
+          <div data-hf-id="hf-06-f05-copy">
+            <div data-hf-id="hf-06-f05-kicker" class="kicker">B-tree simple</div>
+            <h2 data-hf-id="hf-06-f05-title">Creer, puis relancer la meme mesure</h2>
+            <p data-hf-id="hf-06-f05-p">Un index B-tree trie les valeurs pour les recherches d'egalite et de plage.</p>
+          </div>
+          <div data-hf-id="hf-06-f05-code" class="dark-panel">
+            <div data-hf-id="hf-06-f05-bar" class="titlebar"><span>Lab-02-indexes.sql</span><span>extrait court</span></div>
+            <pre data-hf-id="hf-06-f05-pre"><span class="sql-key">EXPLAIN ANALYZE</span>
+<span class="sql-key">SELECT</span> * <span class="sql-key">FROM</span> film
+<span class="sql-key">WHERE</span> title = <span class="sql-string">'ACADEMY DINOSAUR'</span>;
+
+<span class="sql-key">CREATE INDEX</span> <span class="sql-name">idx_film_title</span>
+<span class="sql-key">ON</span> film(title);
+
+<span class="sql-key">EXPLAIN ANALYZE</span>
+<span class="sql-key">SELECT</span> * <span class="sql-key">FROM</span> film
+<span class="sql-key">WHERE</span> title = <span class="sql-string">'ACADEMY DINOSAUR'</span>;</pre>
+          </div>
+        </div>
+        <div data-hf-id="hf-06-f05-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-06-f06" id="frame-06" class="clip" data-start="154" data-duration="36" data-track-index="2">
+        <div data-hf-id="hf-06-f06-ground" class="ground"></div>
+        <div data-hf-id="hf-06-f06-stage" class="stage">
+          <div data-hf-id="hf-06-f06-copy">
+            <div data-hf-id="hf-06-f06-kicker" class="kicker">Lire EXPLAIN ANALYZE</div>
+            <h2 data-hf-id="hf-06-f06-title">Quelques reperes suffisent pour commencer</h2>
+            <p data-hf-id="hf-06-f06-p">Ne cherchez pas a tout maitriser au premier passage. Reperez le type de noeud, les temps reels, les lignes filtrees et le temps final.</p>
+          </div>
+          <div data-hf-id="hf-06-f06-panel" class="dark-panel">
+            <div data-hf-id="hf-06-f06-bar" class="titlebar"><span>plan simplifie</span><span>lecture guidee</span></div>
+            <div data-hf-id="hf-06-f06-lines" class="explain">
+              <div class="line"><span class="mark">Index Scan</span> using idx_film_title on film</div>
+              <div class="line">Index Cond: title = 'ACADEMY DINOSAUR'</div>
+              <div class="line">actual time=<span class="mark">0.020..0.025</span> rows=<span class="mark">1</span></div>
+              <div class="line">Rows Removed by Filter: <span class="mark">0</span></div>
+              <div class="line">Buffers: shared hit=<span class="mark">3</span></div>
+              <div class="line">Execution Time: <span class="mark">0.055 ms</span></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-06-f06-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-06-f07" id="frame-07" class="clip" data-start="190" data-duration="34" data-track-index="0">
+        <div data-hf-id="hf-06-f07-ground" class="ground"></div>
+        <div data-hf-id="hf-06-f07-stage" class="stage single">
+          <div data-hf-id="hf-06-f07-copy">
+            <div data-hf-id="hf-06-f07-kicker" class="kicker">Indexes avances du lab</div>
+            <h2 data-hf-id="hf-06-f07-title">La forme de l'index doit suivre la forme de la requete</h2>
+            <div data-hf-id="hf-06-f07-grid" class="grid-3">
+              <div data-hf-id="hf-06-f07-a" class="panel">
+                <span data-hf-id="hf-06-f07-a-pill" class="pill">fonction</span>
+                <h3 data-hf-id="hf-06-f07-a-h">UPPER(name)</h3>
+                <pre data-hf-id="hf-06-f07-a-pre" style="font-size:20px;"><span class="sql-key">CREATE INDEX</span>
+<span class="sql-name">idx_category_upper_name</span>
+<span class="sql-key">ON</span> category (UPPER(name));</pre>
+              </div>
+              <div data-hf-id="hf-06-f07-b" class="panel">
+                <span data-hf-id="hf-06-f07-b-pill" class="pill ok">date</span>
+                <h3 data-hf-id="hf-06-f07-b-h">rental_date</h3>
+                <pre data-hf-id="hf-06-f07-b-pre" style="font-size:20px;"><span class="sql-key">CREATE INDEX</span>
+<span class="sql-name">idx_rental_date</span>
+<span class="sql-key">ON</span> rental (rental_date);</pre>
+              </div>
+              <div data-hf-id="hf-06-f07-c" class="panel">
+                <span data-hf-id="hf-06-f07-c-pill" class="pill warning">composite</span>
+                <h3 data-hf-id="hf-06-f07-c-h">gauche a droite</h3>
+                <pre data-hf-id="hf-06-f07-c-pre" style="font-size:20px;"><span class="sql-key">CREATE INDEX</span>
+<span class="sql-name">idx_customer_name</span>
+<span class="sql-key">ON</span> customer(first_name, last_name);</pre>
+                <p data-hf-id="hf-06-f07-c-note" class="mini-note mono">simple: idx_customer_last_name</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-06-f07-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-06-f08" id="frame-08" class="clip" data-start="224" data-duration="26" data-track-index="2">
+        <div data-hf-id="hf-06-f08-ground" class="ground"></div>
+        <div data-hf-id="hf-06-f08-stage" class="stage">
+          <div data-hf-id="hf-06-f08-copy">
+            <div data-hf-id="hf-06-f08-kicker" class="kicker">Methode de travail</div>
+            <h2 data-hf-id="hf-06-f08-title">Avancer avec des preuves</h2>
+            <p data-hf-id="hf-06-f08-p">Le lab demande surtout une habitude: chaque index doit etre explique par une mesure avant/apres.</p>
+            <p data-hf-id="hf-06-f08-note" class="mini-note"><span data-hf-id="hf-06-f08-pill" class="pill ok">fin</span> nettoyer seulement quand les comparaisons sont notees.</p>
+          </div>
+          <div data-hf-id="hf-06-f08-panel" class="panel">
+            <div data-hf-id="hf-06-f08-method" class="method">
+              <div data-hf-id="hf-06-f08-m1" class="item"><span class="num">1</span><span>Executer un bloc de <span class="mono">Lab-02-indexes.sql</span></span></div>
+              <div data-hf-id="hf-06-f08-m2" class="item"><span class="num">2</span><span>Garder le plan et le temps avant</span></div>
+              <div data-hf-id="hf-06-f08-m3" class="item"><span class="num">3</span><span>Creer un index cible</span></div>
+              <div data-hf-id="hf-06-f08-m4" class="item"><span class="num">4</span><span>Relancer la meme requete</span></div>
+              <div data-hf-id="hf-06-f08-m5" class="item"><span class="num">5</span><span><span class="mono">DROP INDEX IF EXISTS ...</span> a la fin</span></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-06-f08-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#progress", { scaleX: 0 }, { scaleX: 1, duration: 250, ease: "none" }, 0);
+      window.__timelines.main = tl;
+    </script>
+  </body>
+</html>

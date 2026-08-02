@@ -1,0 +1,12 @@
+/* Radii & elevation — depth is border-first, shadow-second. Max three levels per screen. */
+:root {
+  --radius-control: 0.5rem;  /* 8px  — buttons, inputs */
+  --radius-card: 0.75rem;    /* 12px — cards, dialogs */
+  --radius-pill: 999px;      /* status, filters, compact tags only */
+
+  --shadow-1: 0 1px 2px rgb(24 33 38 / 4%), 0 5px 16px rgb(24 33 38 / 5%);  /* card */
+  --shadow-2: 0 8px 30px rgb(24 33 38 / 10%);                                /* popover/sticky */
+  --shadow-3: 0 20px 60px rgb(24 33 38 / 16%);                               /* modal */
+
+  --ring-focus: 0 0 0 2px var(--color-surface), 0 0 0 5px var(--color-primary);
+}

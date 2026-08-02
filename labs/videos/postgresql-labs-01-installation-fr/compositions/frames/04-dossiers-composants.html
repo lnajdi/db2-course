@@ -1,0 +1,158 @@
+<template>
+  <style>
+    * { box-sizing: border-box; }
+    #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; color: #182126; container-type: size; }
+    .clip { position: absolute; }
+    .f04-ground { inset: 0; background: #F7F4EE; }
+    .f04-hairline { position: absolute; left: 90px; right: 90px; top: 108px; height: 1px; background: #182126; opacity: .12; }
+    .f04-top { position: absolute; left: 90px; right: 90px; top: 54px; display: flex; justify-content: space-between; font: 500 22px/1 monospace; letter-spacing: .12em; color: #0D4F68; }
+    .f04-top strong { font-weight: 500; color: #182126; }
+    .f04-stage { position: absolute; inset: 150px 90px 236px; display: grid; grid-template-columns: 1.3fr .7fr; gap: 44px; }
+    .f04-window { position: relative; overflow: hidden; background: #FFFFFF; border: 1px solid #B8C1C3; border-radius: 12px; box-shadow: 0 1px 3px rgba(24,33,38,.08), 0 4px 16px rgba(24,33,38,.04); }
+    .f04-titlebar { height: 74px; padding: 21px 30px; background: #151718; color: #F7F4EE; font: 500 25px/1.15 sans-serif; }
+    .f04-wizard { position: absolute; inset: 74px 0 0; display: grid; grid-template-columns: 250px 1fr; }
+    .f04-steps { padding: 34px 26px; display: grid; align-content: start; gap: 25px; background: #E8F1F4; color: #5D686E; font: 500 21px/1.1 monospace; }
+    .f04-step-active { color: #0D4F68; font-weight: 700; }
+    .f04-panel { position: relative; overflow: hidden; padding: 42px; }
+    .f04-swap { position: absolute; inset: 0; transform-origin: 50% 50%; }
+    .f04-panel h2 { margin: 0 0 28px; font: 400 48px/1.05 serif; letter-spacing: -.018em; }
+    .f04-welcome { padding-top: 108px; }
+    .f04-welcome h2 { margin-bottom: 18px; font-size: 66px; }
+    .f04-welcome p, .f04-directory p { max-width: 440px; margin: 0; color: #5D686E; font: 430 25px/1.45 sans-serif; }
+    .f04-directory { padding-top: 86px; }
+    .f04-path { width: 100%; margin-top: 26px; padding: 19px 20px; border: 1px solid #D9DEDF; border-radius: 8px; background: #F0F2F1; color: #182126; font: 500 19px/1.2 monospace; }
+    .f04-ghost-button { margin-top: 24px; padding: 13px 18px; width: 138px; border: 1px solid #0D4F68; border-radius: 8px; color: #0D4F68; font: 500 19px/1 sans-serif; text-align: center; transform-origin: 50% 50%; }
+    .f04-check { position: relative; padding: 15px 20px 15px 54px; margin: 12px 0; border: 1px solid #D9DEDF; border-radius: 8px; background: #FFFFFF; font: 500 28px/1.1 sans-serif; transform-origin: 50% 50%; }
+    .f04-check::before { content: "✓"; position: absolute; left: 19px; top: 14px; width: 21px; height: 21px; border: 1px solid #A7C4CE; border-radius: 4px; color: #175E4A; font: 700 17px/21px sans-serif; text-align: center; }
+    .f04-check.f04-required { border-color: #175E4A; }
+    .f04-check.f04-required.f04-current { background: #E8F3EE; box-shadow: inset 4px 0 0 #175E4A; }
+    .f04-check.f04-optional { color: #788388; border-color: #D9DEDF; background: #F0F2F1; }
+    .f04-check.f04-optional::before { color: #8A651A; border-color: #B8C1C3; }
+    .f04-required-frame { position: absolute; left: 30px; right: 30px; top: 108px; height: 196px; border: 2px solid #175E4A; border-radius: 10px; opacity: 0; pointer-events: none; }
+    .f04-aside { display: flex; flex-direction: column; justify-content: center; gap: 28px; }
+    .f04-aside h3 { max-width: 440px; margin: 0 0 4px; font: 400 48px/1.05 serif; letter-spacing: -.018em; }
+    .f04-rule { padding: 22px; border-left: 6px solid #0D4F68; background: #E8F1F4; font: 500 27px/1.25 sans-serif; transform-origin: 50% 50%; }
+    .f04-note { padding: 22px; border-left: 6px solid #624A35; color: #5D686E; font: 430 25px/1.3 sans-serif; transform-origin: 50% 50%; }
+    .f04-status { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 18px 0 0; border-top: 1px solid #D9DEDF; color: #5D686E; font: 500 20px/1.2 monospace; }
+    .f04-status b { color: #175E4A; font-weight: 700; }
+    .f04-status em { color: #8A651A; font-style: normal; }
+    .f04-cursor { position: absolute; left: 748px; top: 505px; width: 33px; height: 44px; z-index: 8; color: #182126; pointer-events: none; transform-origin: 7px 6px; }
+    .f04-cursor svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 1px 1px rgba(24,33,38,.22)); }
+    .f04-ripple { position: absolute; left: 840px; top: 564px; width: 58px; height: 58px; border: 2px solid #0D4F68; border-radius: 50%; opacity: 0; pointer-events: none; z-index: 7; transform-origin: 50% 50%; }
+    .f04-footer { position: absolute; left: 90px; right: 90px; top: 818px; padding-top: 18px; border-top: 1px solid #D9DEDF; color: #5D686E; font: 500 21px/1.2 monospace; letter-spacing: .04em; }
+    .f04-keep { position: absolute; right: 0; top: -2px; padding: 10px 14px; border-radius: 9999px; background: #0D4F68; color: #F7F4EE; font: 500 17px/1 sans-serif; opacity: 0; transform-origin: 50% 50%; }
+  </style>
+
+  <div data-hf-id="hf-5clz" id="root" data-composition-id="04-dossiers-composants" data-start="0" data-duration="39.1" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-wfu7" class="clip f04-ground" data-start="0" data-duration="39.1" data-track-index="0"></div>
+    <div data-hf-id="hf-38al" class="f04-hairline"></div>
+    <div data-hf-id="hf-55jk" class="f04-top"><span data-hf-id="hf-axys">01/08 · INSTALLATEUR</span><strong data-hf-id="hf-3dmo">ÉTAPE 1/3</strong></div>
+
+    <div data-hf-id="hf-51oz" class="f04-stage">
+      <section data-hf-id="hf-50gv" class="f04-window">
+        <div data-hf-id="hf-wrn5" class="f04-titlebar">PostgreSQL Setup</div>
+        <div data-hf-id="hf-45oy" class="f04-wizard">
+          <nav data-hf-id="hf-w2hi" class="f04-steps">
+            <span data-hf-id="hf-zv1z">Welcome</span><span data-hf-id="hf-6nn6">Installation Directory</span><span data-hf-id="hf-50h5" class="f04-step-active">Select Components</span><span data-hf-id="hf-dite">Data Directory</span>
+          </nav>
+          <main data-hf-id="hf-ykyz" class="f04-panel">
+            <section data-hf-id="hf-opqi" class="f04-swap f04-welcome" id="f04-welcome"><h2 data-hf-id="hf-6akl">Welcome</h2><p data-hf-id="hf-od18">Préparez l’installation avec les réglages recommandés.</p></section>
+            <section data-hf-id="hf-79m4" class="f04-swap f04-directory" id="f04-directory"><h2 data-hf-id="hf-nhlk">Installation Directory</h2><p data-hf-id="hf-7m11">Le chemin proposé convient pour le TP.</p><div data-hf-id="hf-f13e" class="f04-path" id="f04-path">C:\Program Files\PostgreSQL\17</div><div data-hf-id="hf-ze6r" class="f04-ghost-button" id="f04-path-target">Suivant</div></section>
+            <section data-hf-id="hf-k26n" class="f04-swap" id="f04-components"><h2 data-hf-id="hf-7pap">Select Components</h2><div data-hf-id="hf-vx0g" class="f04-check f04-required" id="f04-server">PostgreSQL Server</div><div data-hf-id="hf-04qy" class="f04-check f04-required" id="f04-pgadmin">pgAdmin 4</div><div data-hf-id="hf-pvh9" class="f04-check f04-required" id="f04-tools">Command Line Tools</div><div data-hf-id="hf-p4a7" class="f04-check f04-optional" id="f04-stack">Stack Builder · optionnel</div><div data-hf-id="hf-7olg" class="f04-required-frame" id="f04-frame"></div></section>
+          </main>
+        </div>
+      </section>
+
+      <aside data-hf-id="hf-fzaw" class="f04-aside">
+        <h3 data-hf-id="hf-stlg">Gardez les choix utiles</h3>
+        <div data-hf-id="hf-5x4k" class="f04-rule" id="f04-path-rule">Dossiers proposés → conserver<span data-hf-id="hf-zmz6" class="f04-keep" id="f04-keep">Conserver</span></div>
+        <div data-hf-id="hf-akcn" class="f04-rule" id="f04-required-rule">3 composants → requis</div>
+        <div data-hf-id="hf-v60y" class="f04-note" id="f04-note">Stack Builder → complémentaire</div>
+        <div data-hf-id="hf-b9ca" class="f04-status" id="f04-status"><b data-hf-id="hf-5tgh">3 requis</b><span data-hf-id="hf-53zj">—</span><em data-hf-id="hf-vff1">optionnel</em></div>
+      </aside>
+    </div>
+
+    <div data-hf-id="hf-ku3c" class="f04-ripple" id="f04-ripple-1"></div><div data-hf-id="hf-thz7" class="f04-ripple" id="f04-ripple-2"></div><div data-hf-id="hf-pjv6" class="f04-ripple" id="f04-ripple-3"></div>
+    <div data-hf-id="hf-f6sq" class="f04-cursor" id="f04-cursor"><svg data-hf-id="hf-koq3" viewBox="0 0 31 43" aria-hidden="true"><path data-hf-id="hf-qhv9" d="M3 2 4 36l9-9 7 13 5-3-7-13 11-1Z" fill="#F7F4EE" stroke="#182126" stroke-width="2.4" stroke-linejoin="round" /></svg></div>
+    <div data-hf-id="hf-w0mg" class="f04-footer">RÉSULTAT ATTENDU · SERVER + PGADMIN 4 + COMMAND LINE TOOLS COCHÉS</div>
+  </div>
+
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    window.__timelines["04-dossiers-composants"] = tl;
+
+    const welcome = document.getElementById("f04-welcome");
+    const directory = document.getElementById("f04-directory");
+    const components = document.getElementById("f04-components");
+    const pathRule = document.getElementById("f04-path-rule");
+    const cursor = document.getElementById("f04-cursor");
+    const ripples = ["f04-ripple-1", "f04-ripple-2", "f04-ripple-3"].map((id) => document.getElementById(id));
+
+    gsap.set([directory, components], { opacity: 0, scale: 0.72 });
+    gsap.set([document.getElementById("f04-status"), document.getElementById("f04-frame")], { opacity: 0 });
+    tl.set([document.getElementById("f04-keep"), ...ripples], { opacity: 0, scale: 0 }, 0);
+    tl.fromTo(welcome, { opacity: 0, scale: 0.72 }, { opacity: 1, scale: 1, duration: 0.62, ease: "back.out(1.4)" }, 0.12);
+    tl.fromTo(".f04-top, .f04-titlebar", { opacity: 0, y: -18 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", stagger: 0.08 }, 0);
+    tl.fromTo(".f04-aside h3", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.42);
+
+    tl.to(welcome, { scale: 0.72, opacity: 0, duration: 0.38, ease: "power2.in" }, 3.65);
+    tl.to(directory, { scale: 1, opacity: 1, duration: 0.58, ease: "back.out(1.4)" }, 3.86);
+    tl.fromTo("#f04-path", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.38, ease: "power3.out" }, 4.64);
+    tl.fromTo("#f04-path-target", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.32, ease: "power3.out" }, 5.18);
+
+    tl.to(cursor, { x: 108, y: 66, duration: 0.7, ease: "back.out(1.3)" }, 7.35);
+    tl.to(cursor, { scale: 0.85, duration: 0.08, ease: "power2.in" }, 8.22);
+    tl.to("#f04-path-target", { scale: 0.95, duration: 0.08, ease: "power2.in" }, 8.22);
+    tl.to([cursor, "#f04-path-target"], { scale: 1, duration: 0.08, ease: "power2.out" }, 8.30);
+    tl.set(ripples, { opacity: 1 }, 8.30);
+    tl.to(ripples, { scale: 3.2, opacity: 0, duration: 0.7, ease: "power2.out", stagger: 0.08, immediateRender: false }, 8.30);
+    tl.fromTo("#f04-keep", { opacity: 0, scale: 0.76 }, { opacity: 1, scale: 1, duration: 0.38, ease: "back.out(1.4)" }, 8.62);
+    tl.fromTo(pathRule, { opacity: 0.45, x: 0 }, { opacity: 1, x: 0, duration: 0.35, ease: "power2.out" }, 8.6);
+
+    tl.to(directory, { scale: 0.72, opacity: 0, duration: 0.38, ease: "power2.in" }, 14.48);
+    tl.to(components, { scale: 1, opacity: 1, duration: 0.58, ease: "back.out(1.4)" }, 14.70);
+
+    const componentEntries = [
+      { id: "f04-server", key: "server", body: "PostgreSQL Server", hold: 0.8 },
+      { id: "f04-pgadmin", key: "pgadmin", body: "pgAdmin 4", hold: 0.8 },
+      { id: "f04-tools", key: "tools", body: "Command Line Tools", hold: 1.6 }
+    ];
+    let cumulative = 15.7;
+    const sequence = componentEntries.map((entry) => {
+      const duration = 1.2 + entry.body.length * 0.05 + entry.hold;
+      const start = cumulative;
+      cumulative += duration;
+      return { ...entry, start, end: cumulative };
+    });
+    const driver = { t: 15.7 };
+    let lastKey = "";
+    function currentEntry(time) {
+      for (let i = sequence.length - 1; i >= 0; i -= 1) if (time >= sequence[i].start) return sequence[i];
+      return sequence[0];
+    }
+    tl.to(driver, {
+      t: 26,
+      duration: 10.3,
+      ease: "none",
+      onUpdate: () => {
+        const entry = currentEntry(driver.t);
+        if (entry.key !== lastKey) {
+          componentEntries.forEach((item) => document.getElementById(item.id).classList.toggle("f04-current", item.key === entry.key));
+          lastKey = entry.key;
+        }
+      }
+    }, 15.7);
+    sequence.forEach((entry) => {
+      tl.fromTo("#" + entry.id, { opacity: 0.58, y: 14 }, { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, entry.start);
+    });
+    tl.fromTo("#f04-required-rule", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, 21.9);
+
+    tl.fromTo("#f04-stack", { opacity: 0.45, y: 14 }, { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, 26.0);
+    tl.fromTo("#f04-note", { opacity: 0, x: 26 }, { opacity: 1, x: 0, duration: 0.48, ease: "power4.out" }, 27.0);
+    tl.fromTo("#f04-status", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, 29.1);
+    tl.to("#f04-stack", { opacity: 0.66, duration: 0.45, ease: "power2.out" }, 31.3);
+    tl.fromTo("#f04-frame", { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.62, ease: "power3.out" }, 34.0);
+    tl.fromTo(".f04-footer", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 35.3);
+  </script>
+</template>

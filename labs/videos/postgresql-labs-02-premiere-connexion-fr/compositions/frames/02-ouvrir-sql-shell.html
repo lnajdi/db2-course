@@ -1,0 +1,16 @@
+<template>
+  <style>
+    #root{position:relative;width:1920px;height:1080px;overflow:hidden;container-type:size;color:#182126}#root *{box-sizing:border-box}.clip{position:absolute;inset:0;background:#F7F4EE;overflow:hidden}
+    .title{position:absolute;left:80px;top:124px;font:400 82px/1 serif;letter-spacing:-.03em}.kicker{position:absolute;left:80px;top:58px;font:500 24px/1 monospace;letter-spacing:.16em}.kicker span{color:#0D4F68;font-family:serif;font-size:34px;margin-right:10px}
+    .menu{position:absolute;left:120px;top:218px;width:780px;height:620px;background:#fff;border:1px solid rgba(24,33,38,.15);border-radius:12px;box-shadow:0 1px 3px rgba(24,33,38,.08),0 4px 16px rgba(24,33,38,.04);padding:34px}
+    .search{height:72px;border:1px solid #A7C4CE;border-radius:8px;background:#E8F1F4;font:500 30px/72px monospace;color:#0D4F68;padding:0 24px}.result{margin-top:44px;padding:28px;border:2px solid #0D4F68;border-radius:10px;background:#F7F4EE;display:grid;grid-template-columns:78px 1fr;gap:22px;align-items:center}.icon{width:64px;height:64px;border-radius:8px;background:#151718;color:#F7F4EE;font:500 28px/64px monospace;text-align:center}.name{font:500 42px/1.08 sans-serif}.sub{display:block;color:#5D686E;font:500 24px/1.4 monospace;margin-top:8px}
+    .rail{position:absolute;right:120px;top:272px;width:700px;padding:42px;border-left:4px solid #0D4F68;background:#E8F1F4;border-radius:0 12px 12px 0}.rail h2{font:400 58px/1.05 serif;letter-spacing:-.025em;margin:0 0 28px}.rail p{font:430 34px/1.35 sans-serif;color:#182126;margin:0}.path{margin-top:34px;font:500 28px/1.4 monospace;color:#5D686E}
+  </style>
+  <div id="root" data-hf-id="hf0202root" data-composition-id="02-ouvrir-sql-shell" data-start="0" data-duration="24" data-width="1920" data-height="1080">
+    <div id="f02-ground" class="clip" data-hf-id="hf0202clip" data-start="0" data-duration="24" data-track-index="0"></div>
+    <div class="kicker" data-hf-id="hf0202kicker"><span data-hf-id="hf0202spike">✱</span>OUVRIR L'OUTIL</div><h1 class="title" data-hf-id="hf0202title">Menu Démarrer</h1>
+    <section class="menu" data-hf-id="hf0202menu"><div class="search" data-hf-id="hf0202search">SQL Shell</div><article class="result" data-hf-id="hf0202result"><div class="icon" data-hf-id="hf0202icon">&gt;_</div><div data-hf-id="hf0202rtext"><strong class="name" data-hf-id="hf0202name">SQL Shell (psql)</strong><span class="sub" data-hf-id="hf0202sub">Application PostgreSQL installée</span></div></article></section>
+    <aside class="rail" data-hf-id="hf0202rail"><h2 data-hf-id="hf0202rtitle">Pourquoi cette entrée?</h2><p data-hf-id="hf0202p">Elle lance directement le client installé. Vous évitez le blocage classique: `psql` non reconnu dans un terminal ordinaire.</p><div class="path" data-hf-id="hf0202path">PATH non requis pour ce premier test</div></aside>
+  </div>
+  <script>window.__timelines=window.__timelines||{};window.__timelines["02-ouvrir-sql-shell"]=gsap.timeline({paused:true}).to({}, {duration:24}, 0);</script>
+</template>

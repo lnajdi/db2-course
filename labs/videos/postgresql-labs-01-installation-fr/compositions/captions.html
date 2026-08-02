@@ -1,0 +1,232 @@
+<template>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+
+
+<style data-brand-tokens="">
+      :root {
+      --ink: #182126;
+      --cream: #F7F4EE;
+      --tile: #D8F5ED;
+      --tile-strong: #175E4A;
+      --coral: #0D4F68;
+      --navy: #151718;
+      --navy-soft: #1B1E1F;
+      --navy-elev: #202325;
+      --canvas: #F7F4EE;
+      --surface: #FFFFFF;
+      --surface-muted: #F0F2F1;
+      --primary: #0D4F68;
+      --primary-soft: #E8F1F4;
+      --primary-border: #A7C4CE;
+      --on-primary: #FFFFFF;
+      --text: #182126;
+      --text-muted: #5D686E;
+      --text-subtle: #788388;
+      --border: #D9DEDF;
+      --border-strong: #B8C1C3;
+      --success: #175E4A;
+      --success-soft: #E8F3EE;
+      --editorial: #624A35;
+      --editorial-soft: #F2ECE5;
+      --warning: #8A651A;
+      --warning-soft: #F8F0DC;
+      --danger: #A53B35;
+      --danger-soft: #F8EAE8;
+      --cap-ink: #182126;
+      --cap-canvas: #F7F4EE;
+      --cap-accent: #0D4F68;
+      --cap-accent-2: #0D4F68;
+      --font-display: "Literata", system-ui, serif;
+      --font-body: "Instrument Sans", system-ui, sans-serif;
+      --cap-band-top: 900px;
+      --cap-band-height: 180px;
+      }
+    </style>
+
+<style>
+  #root {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .caption-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    pointer-events: none;
+  }
+  /* the keep-out band, from captionBand(H) — frame content stays above it */
+  .caption-stage {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--cap-band-top, 900px);
+    height: var(--cap-band-height, 180px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .caption-group {
+    /* every group is absolutely stacked over the SAME band — exactly one shown at a
+       time via opacity. Must be absolute: in-flow groups would lay out side-by-side. */
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+  }
+
+  /* THE lifted cream card — warm cream fill, 1px hairline ink border, one soft warm
+     shadow (code-editorial's only elevation language), 12px radius, no tilt */
+  .caption-pill {
+    max-width: 78%;
+    padding: 22px 44px 26px;
+    background: var(--cap-canvas, #faf9f5);
+    border: 1px solid color-mix(in srgb, var(--cap-ink, #141413) 12%, transparent);
+    border-radius: 12px;
+    box-shadow:
+      0 1px 3px color-mix(in srgb, var(--cap-ink, #141413) 8%, transparent),
+      0 4px 16px color-mix(in srgb, var(--cap-ink, #141413) 4%, transparent);
+  }
+  .caption-line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.12em 0.3em;
+    font-family: Georgia, serif;
+    font-weight: 500;
+    font-size: clamp(40px, 4.4vw, 56px);
+    line-height: 1.24;
+    letter-spacing: -0.02em;
+  }
+
+  /* upcoming — faint warm ink, no underline */
+  .caption-word {
+    display: inline-block;
+    padding: 0 0.02em 0.06em;
+    color: color-mix(in srgb, var(--cap-ink, #141413) 40%, var(--cap-canvas, #faf9f5));
+    border-bottom: 3px solid transparent;
+  }
+  /* current word — full ink under the coral voltage underline (the brand's signature
+     inline-link gesture; border-bottom = underline without layout shift) */
+  .caption-word.is-active {
+    color: var(--cap-ink, #141413);
+    border-bottom: 3px solid var(--cap-accent, #cc785c);
+  }
+  /* already spoken — solid warm ink, underline cleared */
+  .caption-word.is-spoken {
+    color: var(--cap-ink, #141413);
+    border-bottom: 3px solid transparent;
+  }
+
+  /* optional per-word accents (dormant until a word-classer tags them) */
+  /* brand / key term — the expressive EB Garamond italic */
+  .caption-word.cap-brand {
+    font-style: italic;
+    color: var(--cap-ink, #141413);
+  }
+  .caption-word.cap-brand.is-active {
+    border-bottom: 3px solid var(--cap-accent, #cc785c);
+  }
+  /* numerals / data — slightly recessed warm ink */
+  .caption-word.cap-num {
+    color: color-mix(in srgb, var(--cap-ink, #141413) 72%, var(--cap-canvas, #faf9f5));
+  }
+  /* emphasis — a persistent coral voltage underline */
+  .caption-word.cap-cta {
+    border-bottom: 3px solid var(--cap-accent-2, #b5654a);
+    color: var(--cap-ink, #141413);
+  }
+
+  @media (max-aspect-ratio: 9/16) {
+    .caption-pill {
+      max-width: 92%;
+    }
+    .caption-line {
+      font-size: clamp(34px, 5.4vw, 46px);
+    }
+  }
+</style>
+
+<div data-hf-id="hf-1p67" id="root" data-composition-id="captions" data-timeline-locked="" data-start="0" data-duration="227.6" data-fps="30" data-width="1920" data-height="1080">
+  <div data-hf-id="hf-9flp" class="caption-layer" aria-hidden="true">
+    <div data-hf-id="hf-ajrg" id="caption-stage" class="caption-stage"></div>
+  </div>
+</div>
+
+<script>
+  // captions.mjs injects the engine's scene-aware groups + real duration here.
+  var GROUPS = [{"id":"caption-group-0","frame":1,"start":0.3,"end":1.943,"text":"À la fin de cette","words":[{"id":"caption-word-0-0","text":"À","start":0.3,"end":0.569},{"id":"caption-word-0-1","text":"la","start":0.629,"end":0.898},{"id":"caption-word-0-2","text":"fin","start":0.957,"end":1.227},{"id":"caption-word-0-3","text":"de","start":1.286,"end":1.555},{"id":"caption-word-0-4","text":"cette","start":1.614,"end":1.884}]},{"id":"caption-group-1","frame":1,"start":1.943,"end":3.586,"text":"vidéo, votre poste Windows sera","words":[{"id":"caption-word-1-0","text":"vidéo,","start":1.943,"end":2.212},{"id":"caption-word-1-1","text":"votre","start":2.271,"end":2.541},{"id":"caption-word-1-2","text":"poste","start":2.6,"end":2.869},{"id":"caption-word-1-3","text":"Windows","start":2.929,"end":3.198},{"id":"caption-word-1-4","text":"sera","start":3.257,"end":3.527}]},{"id":"caption-group-2","frame":1,"start":3.586,"end":4.9,"text":"prêt pour les TP","words":[{"id":"caption-word-2-0","text":"prêt","start":3.586,"end":3.855},{"id":"caption-word-2-1","text":"pour","start":3.914,"end":4.184},{"id":"caption-word-2-2","text":"les","start":4.243,"end":4.512},{"id":"caption-word-2-3","text":"TP","start":4.571,"end":4.841}]},{"id":"caption-group-3","frame":1,"start":5.2,"end":8.8,"text":"PostgreSQL Server, pgAdmin 4 et les","words":[{"id":"caption-word-3-0","text":"PostgreSQL","start":5.2,"end":5.692},{"id":"caption-word-3-1","text":"Server,","start":5.8,"end":6.292},{"id":"caption-word-3-2","text":"pgAdmin","start":6.4,"end":6.892},{"id":"caption-word-3-3","text":"4","start":7,"end":7.492},{"id":"caption-word-3-4","text":"et","start":7.6,"end":8.092},{"id":"caption-word-3-5","text":"les","start":8.2,"end":8.692}]},{"id":"caption-group-4","frame":1,"start":8.8,"end":11.8,"text":"outils en ligne de commande","words":[{"id":"caption-word-4-0","text":"outils","start":8.8,"end":9.292},{"id":"caption-word-4-1","text":"en","start":9.4,"end":9.892},{"id":"caption-word-4-2","text":"ligne","start":10,"end":10.492},{"id":"caption-word-4-3","text":"de","start":10.6,"end":11.092},{"id":"caption-word-4-4","text":"commande","start":11.2,"end":11.692}]},{"id":"caption-group-5","frame":1,"start":12.1,"end":19.6,"text":"notamment psql, seront installés.","words":[{"id":"caption-word-5-0","text":"notamment","start":12.1,"end":13.637},{"id":"caption-word-5-1","text":"psql,","start":13.975,"end":15.512},{"id":"caption-word-5-2","text":"seront","start":15.85,"end":17.387},{"id":"caption-word-5-3","text":"installés.","start":17.725,"end":19.263}]},{"id":"caption-group-6","frame":2,"start":22.9,"end":30,"text":"Avant de commencer, vérifiez trois prérequis.","words":[{"id":"caption-word-6-0","text":"Avant","start":22.9,"end":23.87},{"id":"caption-word-6-1","text":"de","start":24.083,"end":25.054},{"id":"caption-word-6-2","text":"commencer,","start":25.267,"end":26.237},{"id":"caption-word-6-3","text":"vérifiez","start":26.45,"end":27.42},{"id":"caption-word-6-4","text":"trois","start":27.633,"end":28.604},{"id":"caption-word-6-5","text":"prérequis.","start":28.817,"end":29.787}]},{"id":"caption-group-7","frame":2,"start":30.4,"end":32.456,"text":"Utilisez un compte autorisé à","words":[{"id":"caption-word-7-0","text":"Utilisez","start":30.4,"end":30.737},{"id":"caption-word-7-1","text":"un","start":30.811,"end":31.148},{"id":"caption-word-7-2","text":"compte","start":31.222,"end":31.559},{"id":"caption-word-7-3","text":"autorisé","start":31.633,"end":31.97},{"id":"caption-word-7-4","text":"à","start":32.044,"end":32.382}]},{"id":"caption-group-8","frame":2,"start":32.456,"end":34.1,"text":"installer un service Windows","words":[{"id":"caption-word-8-0","text":"installer","start":32.456,"end":32.793},{"id":"caption-word-8-1","text":"un","start":32.867,"end":33.204},{"id":"caption-word-8-2","text":"service","start":33.278,"end":33.615},{"id":"caption-word-8-3","text":"Windows","start":33.689,"end":34.026}]},{"id":"caption-group-9","frame":2,"start":34.3,"end":37.9,"text":"gardez une connexion Internet stable","words":[{"id":"caption-word-9-0","text":"gardez","start":34.3,"end":34.89},{"id":"caption-word-9-1","text":"une","start":35.02,"end":35.61},{"id":"caption-word-9-2","text":"connexion","start":35.74,"end":36.33},{"id":"caption-word-9-3","text":"Internet","start":36.46,"end":37.05},{"id":"caption-word-9-4","text":"stable","start":37.18,"end":37.77}]},{"id":"caption-group-10","frame":2,"start":38.1,"end":39.75,"text":"et préparez un gestionnaire de mots","words":[{"id":"caption-word-10-0","text":"et","start":38.1,"end":38.325},{"id":"caption-word-10-1","text":"préparez","start":38.375,"end":38.601},{"id":"caption-word-10-2","text":"un","start":38.65,"end":38.876},{"id":"caption-word-10-3","text":"gestionnaire","start":38.925,"end":39.151},{"id":"caption-word-10-4","text":"de","start":39.2,"end":39.425},{"id":"caption-word-10-5","text":"mots","start":39.475,"end":39.7}]},{"id":"caption-group-11","frame":2,"start":39.75,"end":41.4,"text":"de passe, ou une note privée.","words":[{"id":"caption-word-11-0","text":"de","start":39.75,"end":39.975},{"id":"caption-word-11-1","text":"passe,","start":40.025,"end":40.251},{"id":"caption-word-11-2","text":"ou","start":40.3,"end":40.526},{"id":"caption-word-11-3","text":"une","start":40.575,"end":40.8},{"id":"caption-word-11-4","text":"note","start":40.85,"end":41.075},{"id":"caption-word-11-5","text":"privée.","start":41.125,"end":41.35}]},{"id":"caption-group-12","frame":2,"start":41.7,"end":44.45,"text":"Le mot de passe postgres ne","words":[{"id":"caption-word-12-0","text":"Le","start":41.7,"end":42.076},{"id":"caption-word-12-1","text":"mot","start":42.158,"end":42.534},{"id":"caption-word-12-2","text":"de","start":42.617,"end":42.992},{"id":"caption-word-12-3","text":"passe","start":43.075,"end":43.451},{"id":"caption-word-12-4","text":"postgres","start":43.533,"end":43.909},{"id":"caption-word-12-5","text":"ne","start":43.992,"end":44.367}]},{"id":"caption-group-13","frame":2,"start":44.45,"end":47.2,"text":"sera pas affiché une seconde fois.","words":[{"id":"caption-word-13-0","text":"sera","start":44.45,"end":44.826},{"id":"caption-word-13-1","text":"pas","start":44.908,"end":45.284},{"id":"caption-word-13-2","text":"affiché","start":45.367,"end":45.742},{"id":"caption-word-13-3","text":"une","start":45.825,"end":46.201},{"id":"caption-word-13-4","text":"seconde","start":46.283,"end":46.659},{"id":"caption-word-13-5","text":"fois.","start":46.742,"end":47.117}]},{"id":"caption-group-14","frame":3,"start":52.8,"end":56.5,"text":"Ouvrez la page officielle postgresql.org,","words":[{"id":"caption-word-14-0","text":"Ouvrez","start":52.8,"end":53.407},{"id":"caption-word-14-1","text":"la","start":53.54,"end":54.147},{"id":"caption-word-14-2","text":"page","start":54.28,"end":54.887},{"id":"caption-word-14-3","text":"officielle","start":55.02,"end":55.627},{"id":"caption-word-14-4","text":"postgresql.org,","start":55.76,"end":56.367}]},{"id":"caption-group-15","frame":3,"start":56.5,"end":60.2,"text":"puis la rubrique Download, Windows.","words":[{"id":"caption-word-15-0","text":"puis","start":56.5,"end":57.107},{"id":"caption-word-15-1","text":"la","start":57.24,"end":57.847},{"id":"caption-word-15-2","text":"rubrique","start":57.98,"end":58.587},{"id":"caption-word-15-3","text":"Download,","start":58.72,"end":59.327},{"id":"caption-word-15-4","text":"Windows.","start":59.46,"end":60.067}]},{"id":"caption-group-16","frame":3,"start":60.4,"end":64.8,"text":"Choisissez Interactive installer by EDB: c'est","words":[{"id":"caption-word-16-0","text":"Choisissez","start":60.4,"end":61.001},{"id":"caption-word-16-1","text":"Interactive","start":61.133,"end":61.735},{"id":"caption-word-16-2","text":"installer","start":61.867,"end":62.468},{"id":"caption-word-16-3","text":"by","start":62.6,"end":63.201},{"id":"caption-word-16-4","text":"EDB:","start":63.333,"end":63.935},{"id":"caption-word-16-5","text":"c'est","start":64.067,"end":64.668}]},{"id":"caption-group-17","frame":3,"start":64.8,"end":69.2,"text":"l'assistant graphique utilisé dans cette vidéo.","words":[{"id":"caption-word-17-0","text":"l'assistant","start":64.8,"end":65.401},{"id":"caption-word-17-1","text":"graphique","start":65.533,"end":66.135},{"id":"caption-word-17-2","text":"utilisé","start":66.267,"end":66.868},{"id":"caption-word-17-3","text":"dans","start":67,"end":67.601},{"id":"caption-word-17-4","text":"cette","start":67.733,"end":68.335},{"id":"caption-word-17-5","text":"vidéo.","start":68.467,"end":69.068}]},{"id":"caption-group-18","frame":3,"start":69.4,"end":72.95,"text":"Téléchargez la dernière version stable et","words":[{"id":"caption-word-18-0","text":"Téléchargez","start":69.4,"end":69.885},{"id":"caption-word-18-1","text":"la","start":69.992,"end":70.477},{"id":"caption-word-18-2","text":"dernière","start":70.583,"end":71.069},{"id":"caption-word-18-3","text":"version","start":71.175,"end":71.66},{"id":"caption-word-18-4","text":"stable","start":71.767,"end":72.252},{"id":"caption-word-18-5","text":"et","start":72.358,"end":72.844}]},{"id":"caption-group-19","frame":3,"start":72.95,"end":76.5,"text":"prise en charge pour Windows x86-64.","words":[{"id":"caption-word-19-0","text":"prise","start":72.95,"end":73.435},{"id":"caption-word-19-1","text":"en","start":73.542,"end":74.027},{"id":"caption-word-19-2","text":"charge","start":74.133,"end":74.618},{"id":"caption-word-19-3","text":"pour","start":74.725,"end":75.21},{"id":"caption-word-19-4","text":"Windows","start":75.317,"end":75.802},{"id":"caption-word-19-5","text":"x86-64.","start":75.908,"end":76.394}]},{"id":"caption-group-20","frame":3,"start":76.8,"end":80.073,"text":"Évitez les versions de test. Pausez","words":[{"id":"caption-word-20-0","text":"Évitez","start":76.8,"end":77.247},{"id":"caption-word-20-1","text":"les","start":77.345,"end":77.793},{"id":"caption-word-20-2","text":"versions","start":77.891,"end":78.338},{"id":"caption-word-20-3","text":"de","start":78.436,"end":78.884},{"id":"caption-word-20-4","text":"test.","start":78.982,"end":79.429},{"id":"caption-word-20-5","text":"Pausez","start":79.527,"end":79.975}]},{"id":"caption-group-21","frame":3,"start":80.073,"end":82.8,"text":"ici pour terminer le téléchargement.","words":[{"id":"caption-word-21-0","text":"ici","start":80.073,"end":80.52},{"id":"caption-word-21-1","text":"pour","start":80.618,"end":81.065},{"id":"caption-word-21-2","text":"terminer","start":81.164,"end":81.611},{"id":"caption-word-21-3","text":"le","start":81.709,"end":82.156},{"id":"caption-word-21-4","text":"téléchargement.","start":82.255,"end":82.702}]},{"id":"caption-group-22","frame":4,"start":86.4,"end":92.2,"text":"Exécutez le fichier en tant qu'administrateur","words":[{"id":"caption-word-22-0","text":"Exécutez","start":86.4,"end":87.193},{"id":"caption-word-22-1","text":"le","start":87.367,"end":88.159},{"id":"caption-word-22-2","text":"fichier","start":88.333,"end":89.126},{"id":"caption-word-22-3","text":"en","start":89.3,"end":90.093},{"id":"caption-word-22-4","text":"tant","start":90.267,"end":91.059},{"id":"caption-word-22-5","text":"qu'administrateur","start":91.233,"end":92.026}]},{"id":"caption-group-23","frame":4,"start":92.2,"end":98,"text":"et acceptez la demande de Windows.","words":[{"id":"caption-word-23-0","text":"et","start":92.2,"end":92.993},{"id":"caption-word-23-1","text":"acceptez","start":93.167,"end":93.959},{"id":"caption-word-23-2","text":"la","start":94.133,"end":94.926},{"id":"caption-word-23-3","text":"demande","start":95.1,"end":95.893},{"id":"caption-word-23-4","text":"de","start":96.067,"end":96.859},{"id":"caption-word-23-5","text":"Windows.","start":97.033,"end":97.826}]},{"id":"caption-group-24","frame":4,"start":98.3,"end":101.633,"text":"Conservez les dossiers proposés: cela","words":[{"id":"caption-word-24-0","text":"Conservez","start":98.3,"end":98.847},{"id":"caption-word-24-1","text":"les","start":98.967,"end":99.513},{"id":"caption-word-24-2","text":"dossiers","start":99.633,"end":100.18},{"id":"caption-word-24-3","text":"proposés:","start":100.3,"end":100.847},{"id":"caption-word-24-4","text":"cela","start":100.967,"end":101.513}]},{"id":"caption-group-25","frame":4,"start":101.633,"end":104.967,"text":"évite les problèmes de droits","words":[{"id":"caption-word-25-0","text":"évite","start":101.633,"end":102.18},{"id":"caption-word-25-1","text":"les","start":102.3,"end":102.847},{"id":"caption-word-25-2","text":"problèmes","start":102.967,"end":103.513},{"id":"caption-word-25-3","text":"de","start":103.633,"end":104.18},{"id":"caption-word-25-4","text":"droits","start":104.3,"end":104.847}]},{"id":"caption-group-26","frame":4,"start":104.967,"end":108.3,"text":"et simplifie les prochains TP.","words":[{"id":"caption-word-26-0","text":"et","start":104.967,"end":105.513},{"id":"caption-word-26-1","text":"simplifie","start":105.633,"end":106.18},{"id":"caption-word-26-2","text":"les","start":106.3,"end":106.847},{"id":"caption-word-26-3","text":"prochains","start":106.967,"end":107.513},{"id":"caption-word-26-4","text":"TP.","start":107.633,"end":108.18}]},{"id":"caption-group-27","frame":4,"start":108.6,"end":110.425,"text":"Dans Select Components, gardez PostgreSQL Server,","words":[{"id":"caption-word-27-0","text":"Dans","start":108.6,"end":108.849},{"id":"caption-word-27-1","text":"Select","start":108.904,"end":109.154},{"id":"caption-word-27-2","text":"Components,","start":109.208,"end":109.458},{"id":"caption-word-27-3","text":"gardez","start":109.512,"end":109.762},{"id":"caption-word-27-4","text":"PostgreSQL","start":109.817,"end":110.066},{"id":"caption-word-27-5","text":"Server,","start":110.121,"end":110.37}]},{"id":"caption-group-28","frame":4,"start":110.425,"end":112.25,"text":"qui exécute la base de données;","words":[{"id":"caption-word-28-0","text":"qui","start":110.425,"end":110.674},{"id":"caption-word-28-1","text":"exécute","start":110.729,"end":110.979},{"id":"caption-word-28-2","text":"la","start":111.033,"end":111.283},{"id":"caption-word-28-3","text":"base","start":111.338,"end":111.587},{"id":"caption-word-28-4","text":"de","start":111.642,"end":111.891},{"id":"caption-word-28-5","text":"données;","start":111.946,"end":112.195}]},{"id":"caption-group-29","frame":4,"start":112.25,"end":114.075,"text":"pgAdmin 4, l'interface graphique; et Command","words":[{"id":"caption-word-29-0","text":"pgAdmin","start":112.25,"end":112.499},{"id":"caption-word-29-1","text":"4,","start":112.554,"end":112.804},{"id":"caption-word-29-2","text":"l'interface","start":112.858,"end":113.108},{"id":"caption-word-29-3","text":"graphique;","start":113.162,"end":113.412},{"id":"caption-word-29-4","text":"et","start":113.467,"end":113.716},{"id":"caption-word-29-5","text":"Command","start":113.771,"end":114.02}]},{"id":"caption-group-30","frame":4,"start":114.075,"end":115.9,"text":"Line Tools, qui contient notamment psql.","words":[{"id":"caption-word-30-0","text":"Line","start":114.075,"end":114.324},{"id":"caption-word-30-1","text":"Tools,","start":114.379,"end":114.629},{"id":"caption-word-30-2","text":"qui","start":114.683,"end":114.933},{"id":"caption-word-30-3","text":"contient","start":114.988,"end":115.237},{"id":"caption-word-30-4","text":"notamment","start":115.292,"end":115.541},{"id":"caption-word-30-5","text":"psql.","start":115.596,"end":115.845}]},{"id":"caption-group-31","frame":4,"start":116.2,"end":119.046,"text":"Stack Builder ajoute des pilotes","words":[{"id":"caption-word-31-0","text":"Stack","start":116.2,"end":116.667},{"id":"caption-word-31-1","text":"Builder","start":116.769,"end":117.236},{"id":"caption-word-31-2","text":"ajoute","start":117.338,"end":117.805},{"id":"caption-word-31-3","text":"des","start":117.908,"end":118.374},{"id":"caption-word-31-4","text":"pilotes","start":118.477,"end":118.944}]},{"id":"caption-group-32","frame":4,"start":119.046,"end":121.323,"text":"et extensions; il reste","words":[{"id":"caption-word-32-0","text":"et","start":119.046,"end":119.513},{"id":"caption-word-32-1","text":"extensions;","start":119.615,"end":120.082},{"id":"caption-word-32-2","text":"il","start":120.185,"end":120.651},{"id":"caption-word-32-3","text":"reste","start":120.754,"end":121.221}]},{"id":"caption-group-33","frame":4,"start":121.323,"end":123.6,"text":"optionnel pour le moment.","words":[{"id":"caption-word-33-0","text":"optionnel","start":121.323,"end":121.79},{"id":"caption-word-33-1","text":"pour","start":121.892,"end":122.359},{"id":"caption-word-33-2","text":"le","start":122.462,"end":122.928},{"id":"caption-word-33-3","text":"moment.","start":123.031,"end":123.498}]},{"id":"caption-group-34","frame":5,"start":125,"end":129.167,"text":"Sur l'écran Password, créez un mot","words":[{"id":"caption-word-34-0","text":"Sur","start":125,"end":125.569},{"id":"caption-word-34-1","text":"l'écran","start":125.694,"end":126.264},{"id":"caption-word-34-2","text":"Password,","start":126.389,"end":126.958},{"id":"caption-word-34-3","text":"créez","start":127.083,"end":127.653},{"id":"caption-word-34-4","text":"un","start":127.778,"end":128.347},{"id":"caption-word-34-5","text":"mot","start":128.472,"end":129.042}]},{"id":"caption-group-35","frame":5,"start":129.167,"end":133.333,"text":"de passe solide pour le superutilisateur","words":[{"id":"caption-word-35-0","text":"de","start":129.167,"end":129.736},{"id":"caption-word-35-1","text":"passe","start":129.861,"end":130.431},{"id":"caption-word-35-2","text":"solide","start":130.556,"end":131.125},{"id":"caption-word-35-3","text":"pour","start":131.25,"end":131.819},{"id":"caption-word-35-4","text":"le","start":131.944,"end":132.514},{"id":"caption-word-35-5","text":"superutilisateur","start":132.639,"end":133.208}]},{"id":"caption-group-36","frame":5,"start":133.333,"end":137.5,"text":"postgres, saisissez-le deux fois et conservez-le.","words":[{"id":"caption-word-36-0","text":"postgres,","start":133.333,"end":133.903},{"id":"caption-word-36-1","text":"saisissez-le","start":134.028,"end":134.597},{"id":"caption-word-36-2","text":"deux","start":134.722,"end":135.292},{"id":"caption-word-36-3","text":"fois","start":135.417,"end":135.986},{"id":"caption-word-36-4","text":"et","start":136.111,"end":136.681},{"id":"caption-word-36-5","text":"conservez-le.","start":136.806,"end":137.375}]},{"id":"caption-group-37","frame":5,"start":137.8,"end":140.533,"text":"Il protège le compte d'administration et","words":[{"id":"caption-word-37-0","text":"Il","start":137.8,"end":138.174},{"id":"caption-word-37-1","text":"protège","start":138.256,"end":138.629},{"id":"caption-word-37-2","text":"le","start":138.711,"end":139.085},{"id":"caption-word-37-3","text":"compte","start":139.167,"end":139.54},{"id":"caption-word-37-4","text":"d'administration","start":139.622,"end":139.996},{"id":"caption-word-37-5","text":"et","start":140.078,"end":140.451}]},{"id":"caption-group-38","frame":5,"start":140.533,"end":143.267,"text":"sera demandé lors de la première","words":[{"id":"caption-word-38-0","text":"sera","start":140.533,"end":140.907},{"id":"caption-word-38-1","text":"demandé","start":140.989,"end":141.362},{"id":"caption-word-38-2","text":"lors","start":141.444,"end":141.818},{"id":"caption-word-38-3","text":"de","start":141.9,"end":142.274},{"id":"caption-word-38-4","text":"la","start":142.356,"end":142.729},{"id":"caption-word-38-5","text":"première","start":142.811,"end":143.185}]},{"id":"caption-group-39","frame":5,"start":143.267,"end":146,"text":"connexion. Pausez ici avant de continuer.","words":[{"id":"caption-word-39-0","text":"connexion.","start":143.267,"end":143.64},{"id":"caption-word-39-1","text":"Pausez","start":143.722,"end":144.096},{"id":"caption-word-39-2","text":"ici","start":144.178,"end":144.551},{"id":"caption-word-39-3","text":"avant","start":144.633,"end":145.007},{"id":"caption-word-39-4","text":"de","start":145.089,"end":145.462},{"id":"caption-word-39-5","text":"continuer.","start":145.544,"end":145.918}]},{"id":"caption-group-40","frame":5,"start":146.3,"end":150.009,"text":"Gardez ensuite le port 5432: c'est","words":[{"id":"caption-word-40-0","text":"Gardez","start":146.3,"end":146.807},{"id":"caption-word-40-1","text":"ensuite","start":146.918,"end":147.425},{"id":"caption-word-40-2","text":"le","start":147.536,"end":148.043},{"id":"caption-word-40-3","text":"port","start":148.155,"end":148.661},{"id":"caption-word-40-4","text":"5432:","start":148.773,"end":149.28},{"id":"caption-word-40-5","text":"c'est","start":149.391,"end":149.898}]},{"id":"caption-group-41","frame":5,"start":150.009,"end":153.1,"text":"le port PostgreSQL par défaut.","words":[{"id":"caption-word-41-0","text":"le","start":150.009,"end":150.516},{"id":"caption-word-41-1","text":"port","start":150.627,"end":151.134},{"id":"caption-word-41-2","text":"PostgreSQL","start":151.245,"end":151.752},{"id":"caption-word-41-3","text":"par","start":151.864,"end":152.371},{"id":"caption-word-41-4","text":"défaut.","start":152.482,"end":152.989}]},{"id":"caption-group-42","frame":5,"start":153.4,"end":155.55,"text":"Conservez aussi la locale proposée","words":[{"id":"caption-word-42-0","text":"Conservez","start":153.4,"end":153.753},{"id":"caption-word-42-1","text":"aussi","start":153.83,"end":154.183},{"id":"caption-word-42-2","text":"la","start":154.26,"end":154.613},{"id":"caption-word-42-3","text":"locale","start":154.69,"end":155.043},{"id":"caption-word-42-4","text":"proposée","start":155.12,"end":155.473}]},{"id":"caption-group-43","frame":5,"start":155.55,"end":157.7,"text":"par Windows; elle définit notamment","words":[{"id":"caption-word-43-0","text":"par","start":155.55,"end":155.903},{"id":"caption-word-43-1","text":"Windows;","start":155.98,"end":156.333},{"id":"caption-word-43-2","text":"elle","start":156.41,"end":156.763},{"id":"caption-word-43-3","text":"définit","start":156.84,"end":157.193},{"id":"caption-word-43-4","text":"notamment","start":157.27,"end":157.623}]},{"id":"caption-group-44","frame":5,"start":157.7,"end":159.85,"text":"les règles de tri et","words":[{"id":"caption-word-44-0","text":"les","start":157.7,"end":158.053},{"id":"caption-word-44-1","text":"règles","start":158.13,"end":158.483},{"id":"caption-word-44-2","text":"de","start":158.56,"end":158.913},{"id":"caption-word-44-3","text":"tri","start":158.99,"end":159.343},{"id":"caption-word-44-4","text":"et","start":159.42,"end":159.773}]},{"id":"caption-group-45","frame":5,"start":159.85,"end":162,"text":"de formatage du nouveau cluster.","words":[{"id":"caption-word-45-0","text":"de","start":159.85,"end":160.203},{"id":"caption-word-45-1","text":"formatage","start":160.28,"end":160.633},{"id":"caption-word-45-2","text":"du","start":160.71,"end":161.063},{"id":"caption-word-45-3","text":"nouveau","start":161.14,"end":161.493},{"id":"caption-word-45-4","text":"cluster.","start":161.57,"end":161.923}]},{"id":"caption-group-46","frame":6,"start":166,"end":170.9,"text":"Avant l'installation, relisez le résumé:","words":[{"id":"caption-word-46-0","text":"Avant","start":166,"end":166.804},{"id":"caption-word-46-1","text":"l'installation,","start":166.98,"end":167.784},{"id":"caption-word-46-2","text":"relisez","start":167.96,"end":168.764},{"id":"caption-word-46-3","text":"le","start":168.94,"end":169.744},{"id":"caption-word-46-4","text":"résumé:","start":169.92,"end":170.724}]},{"id":"caption-group-47","frame":6,"start":170.9,"end":175.8,"text":"composants, dossiers, port et locale.","words":[{"id":"caption-word-47-0","text":"composants,","start":170.9,"end":171.704},{"id":"caption-word-47-1","text":"dossiers,","start":171.88,"end":172.684},{"id":"caption-word-47-2","text":"port","start":172.86,"end":173.664},{"id":"caption-word-47-3","text":"et","start":173.84,"end":174.644},{"id":"caption-word-47-4","text":"locale.","start":174.82,"end":175.624}]},{"id":"caption-group-48","frame":6,"start":176,"end":178.564,"text":"Utilisez Back si une valeur est","words":[{"id":"caption-word-48-0","text":"Utilisez","start":176,"end":176.35},{"id":"caption-word-48-1","text":"Back","start":176.427,"end":176.778},{"id":"caption-word-48-2","text":"si","start":176.855,"end":177.205},{"id":"caption-word-48-3","text":"une","start":177.282,"end":177.632},{"id":"caption-word-48-4","text":"valeur","start":177.709,"end":178.059},{"id":"caption-word-48-5","text":"est","start":178.136,"end":178.487}]},{"id":"caption-group-49","frame":6,"start":178.564,"end":180.7,"text":"incorrecte; sinon, cliquez sur Next.","words":[{"id":"caption-word-49-0","text":"incorrecte;","start":178.564,"end":178.914},{"id":"caption-word-49-1","text":"sinon,","start":178.991,"end":179.341},{"id":"caption-word-49-2","text":"cliquez","start":179.418,"end":179.769},{"id":"caption-word-49-3","text":"sur","start":179.845,"end":180.196},{"id":"caption-word-49-4","text":"Next.","start":180.273,"end":180.623}]},{"id":"caption-group-50","frame":6,"start":181,"end":183.567,"text":"L'assistant copie les fichiers, initialise le","words":[{"id":"caption-word-50-0","text":"L'assistant","start":181,"end":181.351},{"id":"caption-word-50-1","text":"copie","start":181.428,"end":181.779},{"id":"caption-word-50-2","text":"les","start":181.856,"end":182.206},{"id":"caption-word-50-3","text":"fichiers,","start":182.283,"end":182.634},{"id":"caption-word-50-4","text":"initialise","start":182.711,"end":183.062},{"id":"caption-word-50-5","text":"le","start":183.139,"end":183.49}]},{"id":"caption-group-51","frame":6,"start":183.567,"end":186.133,"text":"cluster et démarre PostgreSQL comme service","words":[{"id":"caption-word-51-0","text":"cluster","start":183.567,"end":183.917},{"id":"caption-word-51-1","text":"et","start":183.994,"end":184.345},{"id":"caption-word-51-2","text":"démarre","start":184.422,"end":184.773},{"id":"caption-word-51-3","text":"PostgreSQL","start":184.85,"end":185.201},{"id":"caption-word-51-4","text":"comme","start":185.278,"end":185.629},{"id":"caption-word-51-5","text":"service","start":185.706,"end":186.056}]},{"id":"caption-group-52","frame":6,"start":186.133,"end":188.7,"text":"Windows. Attendez le message de réussite.","words":[{"id":"caption-word-52-0","text":"Windows.","start":186.133,"end":186.484},{"id":"caption-word-52-1","text":"Attendez","start":186.561,"end":186.912},{"id":"caption-word-52-2","text":"le","start":186.989,"end":187.34},{"id":"caption-word-52-3","text":"message","start":187.417,"end":187.767},{"id":"caption-word-52-4","text":"de","start":187.844,"end":188.195},{"id":"caption-word-52-5","text":"réussite.","start":188.272,"end":188.623}]},{"id":"caption-group-53","frame":6,"start":189,"end":191.143,"text":"Sur le dernier écran, décochez","words":[{"id":"caption-word-53-0","text":"Sur","start":189,"end":189.351},{"id":"caption-word-53-1","text":"le","start":189.429,"end":189.78},{"id":"caption-word-53-2","text":"dernier","start":189.857,"end":190.209},{"id":"caption-word-53-3","text":"écran,","start":190.286,"end":190.637},{"id":"caption-word-53-4","text":"décochez","start":190.714,"end":191.066}]},{"id":"caption-group-54","frame":6,"start":191.143,"end":193.286,"text":"Launch Stack Builder at exit,","words":[{"id":"caption-word-54-0","text":"Launch","start":191.143,"end":191.494},{"id":"caption-word-54-1","text":"Stack","start":191.571,"end":191.923},{"id":"caption-word-54-2","text":"Builder","start":192,"end":192.351},{"id":"caption-word-54-3","text":"at","start":192.429,"end":192.78},{"id":"caption-word-54-4","text":"exit,","start":192.857,"end":193.209}]},{"id":"caption-group-55","frame":6,"start":193.286,"end":195,"text":"puis cliquez sur Finish.","words":[{"id":"caption-word-55-0","text":"puis","start":193.286,"end":193.637},{"id":"caption-word-55-1","text":"cliquez","start":193.714,"end":194.066},{"id":"caption-word-55-2","text":"sur","start":194.143,"end":194.494},{"id":"caption-word-55-3","text":"Finish.","start":194.571,"end":194.923}]},{"id":"caption-group-56","frame":6,"start":195.3,"end":197.25,"text":"Vous pourrez toujours ouvrir","words":[{"id":"caption-word-56-0","text":"Vous","start":195.3,"end":195.7},{"id":"caption-word-56-1","text":"pourrez","start":195.788,"end":196.187},{"id":"caption-word-56-2","text":"toujours","start":196.275,"end":196.675},{"id":"caption-word-56-3","text":"ouvrir","start":196.762,"end":197.162}]},{"id":"caption-group-57","frame":6,"start":197.25,"end":199.2,"text":"Stack Builder plus tard.","words":[{"id":"caption-word-57-0","text":"Stack","start":197.25,"end":197.65},{"id":"caption-word-57-1","text":"Builder","start":197.738,"end":198.137},{"id":"caption-word-57-2","text":"plus","start":198.225,"end":198.625},{"id":"caption-word-57-3","text":"tard.","start":198.712,"end":199.112}]},{"id":"caption-group-58","frame":7,"start":203.9,"end":206.267,"text":"L'installation est terminée lorsque SQL","words":[{"id":"caption-word-58-0","text":"L'installation","start":203.9,"end":204.288},{"id":"caption-word-58-1","text":"est","start":204.373,"end":204.761},{"id":"caption-word-58-2","text":"terminée","start":204.847,"end":205.235},{"id":"caption-word-58-3","text":"lorsque","start":205.32,"end":205.708},{"id":"caption-word-58-4","text":"SQL","start":205.793,"end":206.181}]},{"id":"caption-group-59","frame":7,"start":206.267,"end":208.633,"text":"Shell, psql, et pgAdmin 4","words":[{"id":"caption-word-59-0","text":"Shell,","start":206.267,"end":206.655},{"id":"caption-word-59-1","text":"psql,","start":206.74,"end":207.128},{"id":"caption-word-59-2","text":"et","start":207.213,"end":207.601},{"id":"caption-word-59-3","text":"pgAdmin","start":207.687,"end":208.075},{"id":"caption-word-59-4","text":"4","start":208.16,"end":208.548}]},{"id":"caption-group-60","frame":7,"start":208.633,"end":211,"text":"apparaissent dans le menu Démarrer.","words":[{"id":"caption-word-60-0","text":"apparaissent","start":208.633,"end":209.021},{"id":"caption-word-60-1","text":"dans","start":209.107,"end":209.495},{"id":"caption-word-60-2","text":"le","start":209.58,"end":209.968},{"id":"caption-word-60-3","text":"menu","start":210.053,"end":210.441},{"id":"caption-word-60-4","text":"Démarrer.","start":210.527,"end":210.915}]},{"id":"caption-group-61","frame":7,"start":211.3,"end":213.57,"text":"Si la commande psql n'est pas","words":[{"id":"caption-word-61-0","text":"Si","start":211.3,"end":211.61},{"id":"caption-word-61-1","text":"la","start":211.678,"end":211.988},{"id":"caption-word-61-2","text":"commande","start":212.057,"end":212.367},{"id":"caption-word-61-3","text":"psql","start":212.435,"end":212.745},{"id":"caption-word-61-4","text":"n'est","start":212.813,"end":213.123},{"id":"caption-word-61-5","text":"pas","start":213.191,"end":213.501}]},{"id":"caption-group-62","frame":7,"start":213.57,"end":215.839,"text":"reconnue dans un terminal ordinaire, ce","words":[{"id":"caption-word-62-0","text":"reconnue","start":213.57,"end":213.88},{"id":"caption-word-62-1","text":"dans","start":213.948,"end":214.258},{"id":"caption-word-62-2","text":"un","start":214.326,"end":214.636},{"id":"caption-word-62-3","text":"terminal","start":214.704,"end":215.015},{"id":"caption-word-62-4","text":"ordinaire,","start":215.083,"end":215.393},{"id":"caption-word-62-5","text":"ce","start":215.461,"end":215.771}]},{"id":"caption-group-63","frame":7,"start":215.839,"end":218.109,"text":"n'est pas un échec: l'installateur ne","words":[{"id":"caption-word-63-0","text":"n'est","start":215.839,"end":216.149},{"id":"caption-word-63-1","text":"pas","start":216.217,"end":216.528},{"id":"caption-word-63-2","text":"un","start":216.596,"end":216.906},{"id":"caption-word-63-3","text":"échec:","start":216.974,"end":217.284},{"id":"caption-word-63-4","text":"l'installateur","start":217.352,"end":217.662},{"id":"caption-word-63-5","text":"ne","start":217.73,"end":218.041}]},{"id":"caption-group-64","frame":7,"start":218.109,"end":220,"text":"modifie pas automatiquement le PATH.","words":[{"id":"caption-word-64-0","text":"modifie","start":218.109,"end":218.419},{"id":"caption-word-64-1","text":"pas","start":218.487,"end":218.797},{"id":"caption-word-64-2","text":"automatiquement","start":218.865,"end":219.175},{"id":"caption-word-64-3","text":"le","start":219.243,"end":219.554},{"id":"caption-word-64-4","text":"PATH.","start":219.622,"end":219.932}]},{"id":"caption-group-65","frame":7,"start":220.3,"end":223.55,"text":"Dans l'épisode suivant, nous utiliserons SQL","words":[{"id":"caption-word-65-0","text":"Dans","start":220.3,"end":220.744},{"id":"caption-word-65-1","text":"l'épisode","start":220.842,"end":221.286},{"id":"caption-word-65-2","text":"suivant,","start":221.383,"end":221.828},{"id":"caption-word-65-3","text":"nous","start":221.925,"end":222.369},{"id":"caption-word-65-4","text":"utiliserons","start":222.467,"end":222.911},{"id":"caption-word-65-5","text":"SQL","start":223.008,"end":223.453}]},{"id":"caption-group-66","frame":7,"start":223.55,"end":226.8,"text":"Shell pour effectuer la première connexion.","words":[{"id":"caption-word-66-0","text":"Shell","start":223.55,"end":223.994},{"id":"caption-word-66-1","text":"pour","start":224.092,"end":224.536},{"id":"caption-word-66-2","text":"effectuer","start":224.633,"end":225.078},{"id":"caption-word-66-3","text":"la","start":225.175,"end":225.619},{"id":"caption-word-66-4","text":"première","start":225.717,"end":226.161},{"id":"caption-word-66-5","text":"connexion.","start":226.258,"end":226.703}]}];
+  var DURATION = 227.6;
+
+  (function () {
+    var stage = document.getElementById("caption-stage");
+
+    // build DOM: one .caption-group per group, .caption-word per word
+    GROUPS.forEach(function (group, g) {
+      var groupEl = document.createElement("div");
+      groupEl.className = "caption-group";
+      groupEl.id = "caption-group-" + g;
+      var pill = document.createElement("div");
+      pill.className = "caption-pill";
+      var line = document.createElement("div");
+      line.className = "caption-line";
+      (group.words || []).forEach(function (w, i) {
+        var span = document.createElement("span");
+        span.className = "caption-word";
+        span.id = "caption-word-" + g + "-" + i;
+        span.textContent = String(w.text);
+        line.appendChild(span);
+      });
+      pill.appendChild(line);
+      groupEl.appendChild(pill);
+      stage.appendChild(groupEl);
+    });
+
+    window.__timelines = window.__timelines || {};
+    var tl = gsap.timeline({ paused: true });
+
+    GROUPS.forEach(function (group, g) {
+      var groupEl = document.getElementById("caption-group-" + g);
+      var words = group.words || [];
+      var next = GROUPS[g + 1];
+      var isLast = g === GROUPS.length - 1;
+      var start = Math.max(0, Number(group.start));
+      var end = isLast ? DURATION : Math.min(Number(next.start), Number(group.end) + 0.3);
+      if (end <= start) end = start + 0.01;
+
+      // group on/off — exactly one group visible at a time
+      tl.set(groupEl, { opacity: 1 }, start);
+      tl.set(groupEl, { opacity: 0 }, end);
+
+      // 3-state karaoke via className SETS — seek-safe (gsap.set applies on the
+      // engine's frame-by-frame seek; .call callbacks would NOT fire).
+      words.forEach(function (w, i) {
+        var el = document.getElementById("caption-word-" + g + "-" + i);
+        var at = Math.max(start, Number(w.start));
+        tl.set(el, { className: "caption-word" }, start); // upcoming (also resets on reverse-seek)
+        tl.set(el, { className: "caption-word is-active" }, at); // current
+        tl.fromTo(el, { scale: 0.98 }, { scale: 1, duration: 0.16, ease: "power1.out" }, at);
+        if (i + 1 < words.length) {
+          var nextAt = Math.max(start, Number(words[i + 1].start));
+          tl.set(el, { className: "caption-word is-spoken" }, nextAt); // demote when next activates
+        }
+      });
+      if (words.length) {
+        var lastEl = document.getElementById("caption-word-" + g + "-" + (words.length - 1));
+        var lastSpoken = Math.min(end, Number(words[words.length - 1].end) + 0.1);
+        tl.set(lastEl, { className: "caption-word is-spoken" }, lastSpoken);
+      }
+    });
+
+    // full-span anchor so the sub-comp timeline spans the whole video
+    tl.to({}, { duration: DURATION }, 0);
+    window.__timelines["captions"] = tl;
+  })();
+</script>
+
+<style>
+  .caption-line { line-height: 1.1 !important; }
+</style>
+</template>

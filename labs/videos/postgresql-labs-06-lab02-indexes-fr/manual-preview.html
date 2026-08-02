@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Preview - PostgreSQL labs 06</title>
+    <style>
+      @font-face { font-family: "Literata"; src: local("Literata"); }
+      @font-face { font-family: "Instrument Sans"; src: local("Instrument Sans"); }
+      @font-face { font-family: "Geist Mono"; src: local("Geist Mono"); }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #f7f4ee; color: #182126; font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif; }
+      header { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #d9dedf; background: rgba(247, 244, 238, 0.94); padding: 18px 32px; }
+      h1 { margin: 0; font-family: Literata, Georgia, serif; font-size: 34px; font-weight: 400; }
+      main { display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 24px; padding: 32px; }
+      article { min-height: 320px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 28px; box-shadow: 0 1px 3px rgba(24, 33, 38, 0.08), 0 4px 16px rgba(24, 33, 38, 0.04); }
+      .kicker { color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; }
+      h2 { margin: 12px 0 16px; font-family: Literata, Georgia, serif; font-size: 34px; font-weight: 400; }
+      p, li { font-size: 18px; line-height: 1.45; }
+      pre { overflow-x: auto; border-radius: 8px; background: #151718; color: #f7f4ee; padding: 18px; font-family: "Geist Mono", Consolas, monospace; font-size: 16px; line-height: 1.45; }
+    </style>
+  </head>
+  <body>
+    <header><h1>PostgreSQL labs 06 - Lab 02 Indexes</h1></header>
+    <main>
+      <article><div class="kicker">0-26s</div><h2>Objectif</h2><p>Presenter la roadmap du Lab 02 et la methode: mesurer avant de creer des index.</p></article>
+      <article><div class="kicker">26-60s</div><h2>Roadmap</h2><p>Inspecter, observer les index existants, mesurer les requetes, creer des index, comparer, optimiser, nettoyer.</p></article>
+      <article><div class="kicker">60-92s</div><h2>Mesurer d'abord</h2><pre>EXPLAIN ANALYZE
+SELECT * FROM film
+WHERE title = 'ACADEMY DINOSAUR';</pre><p>Le plan decide si un index est utile.</p></article>
+      <article><div class="kicker">92-124s</div><h2>Seq Scan vs Index Scan</h2><p>Seq Scan parcourt la table; Index Scan utilise une structure triee pour chercher plus directement.</p></article>
+      <article><div class="kicker">124-154s</div><h2>B-tree simple</h2><pre>CREATE INDEX idx_film_title ON film(title);</pre><p>Relancer la meme requete et comparer le plan.</p></article>
+      <article><div class="kicker">154-190s</div><h2>Lire EXPLAIN</h2><p>Node type, actual time, rows removed, buffers, execution time.</p></article>
+      <article><div class="kicker">190-224s</div><h2>Indexes avances</h2><pre>CREATE INDEX idx_category_upper_name ON category (UPPER(name));
+CREATE INDEX idx_rental_date ON rental (rental_date);
+CREATE INDEX idx_customer_name ON customer(first_name, last_name);</pre><p>Autre nom du lab: <code>idx_customer_last_name</code>.</p></article>
+      <article><div class="kicker">224-250s</div><h2>Methode</h2><p>Un bloc a la fois, plans avant/apres, notes, cleanup a la fin.</p></article>
+    </main>
+  </body>
+</html>

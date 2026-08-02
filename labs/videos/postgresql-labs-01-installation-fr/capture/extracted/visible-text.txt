@@ -1,0 +1,23 @@
+Série d’accompagnement PostgreSQL — épisode 1 : Installation
+
+Créer un explainer HyperFrames en français destiné aux débutants Windows, au format YouTube 16:9, 1920×1080, d’environ deux minutes. Le style doit reproduire en HTML, de manière simplifiée mais fidèle, l’installateur Windows. Le workflow est faceless-explainer, automatisé, avec validation du storyboard avant animation. Une voix française temporaire sert au minutage avant remplacement par la voix de l’enseignant. Les sous-titres français sont incrustés; les sons d’interface sont discrets; il n’y a aucune musique.
+
+Épisode 1 — « Installer PostgreSQL sous Windows — Bien démarrer les TP »
+
+0–8 s : Promesse — installer PostgreSQL Server, pgAdmin et les outils en ligne de commande.
+8–20 s : Préparer les droits administrateur, une connexion Internet et un endroit sûr pour conserver le mot de passe.
+20–35 s : Ouvrir la page officielle, choisir l’installateur interactif EDB et la version Windows x86-64 prise en charge.
+35–58 s : Lancer comme administrateur, conserver les dossiers par défaut et sélectionner Server, pgAdmin 4 et Command Line Tools. Présenter Stack Builder comme optionnel.
+58–82 s : Créer et conserver le mot de passe postgres, garder le port 5432 et la locale proposée.
+82–105 s : Relire le résumé, lancer l’installation et terminer sans ouvrir Stack Builder, inutile pour les premiers TP.
+105–120 s : Carte « Installation terminée » : SQL Shell et pgAdmin visibles dans le menu Démarrer, puis annonce de l’épisode psql.
+
+Chaque action comporte une consigne, une courte justification et l’état visuel attendu. Des marqueurs « Pausez ici » sont placés avant le téléchargement et la saisie du mot de passe.
+
+Transformer les fichiers tokens en variables sémantiques HyperFrames : canvas chaud, Atlantic blue principal, Pine green uniquement pour les confirmations, Walnut très ponctuel, warning/danger pour les alertes. Employer Literata pour les titres, Instrument Sans pour les explications et Geist Mono pour les chemins, ports et commandes. Aucun hexadécimal brut dans les composants.
+
+Construire six à sept fenêtres d’installateur reconnaissables, sans capture réelle ni logo externe. Les contrôles importants sont agrandis et isolés. Réserver une bande inférieure aux sous-titres. Utiliser des entrées calmes et fonctionnelles et des transitions Atlantic blue ou des transformations de fenêtre partagée. Aucun jump cut ni animation de sortie avant une transition.
+
+Vérifier le contenu contre le guide local postgresql-windows-student-guide.qmd et les sources officielles actuelles. L’installateur contient PostgreSQL Server, pgAdmin 4, Stack Builder et Command Line Tools. Le PATH n’est pas modifié automatiquement. Le script doit rester indépendant d’un numéro majeur : dire « dernière version x86-64 prise en charge ».
+
+L’épisode s’arrête après l’installation; la première connexion appartient à l’épisode 2. Public : débutants sous Windows 10/11. Langue : français, avec les libellés techniques exacts de l’installateur. Aucun logo, média photographique, musique ou publication YouTube automatique.

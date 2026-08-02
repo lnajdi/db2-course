@@ -46,3 +46,7 @@ tmp_min_files/
 *.exe
 *.dll
 *.msi
+
+# Media files
+*.wav
+*.mp4

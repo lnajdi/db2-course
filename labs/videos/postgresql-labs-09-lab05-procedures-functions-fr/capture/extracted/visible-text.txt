@@ -1,0 +1,36 @@
+Sources:
+- ../Lab05-procedures-functions/README.md
+- ../Lab05-procedures-functions/Lab-05-procedures-functions.sql
+
+Video: PostgreSQL Labs 09 - Lab 05 Procedures et fonctions.
+
+Visible kicker: 09 - Lab 05
+Visible title: Lab 05 - Procedures et fonctions
+
+The README and SQL header say Lab 04, but the folder and SQL filename identify the assignment as Lab 05. The video must use Lab 05.
+
+This video introduces the lab as a concept and roadmap. It explains reusable database logic, functions versus procedures, return values versus side effects, parameters, RETURNS, RETURN, RETURNS TABLE, RETURN QUERY, validation, exceptions, procedure calls, and safe testing.
+
+Allowed visible SQL anchors:
+CREATE OR REPLACE FUNCTION
+RETURNS
+RETURN
+SELECT function_name(...)
+RETURNS TABLE
+RETURN QUERY
+CREATE OR REPLACE PROCEDURE
+CALL
+RAISE NOTICE
+RAISE EXCEPTION
+
+Visible table names aligned with the lab:
+customer
+rental
+payment
+film
+inventory
+category
+film_category
+store
+
+Do not reveal completed solutions, fill blanks, show cleanup blocks, show bonus solutions, or reproduce long business-report / transfer procedures.

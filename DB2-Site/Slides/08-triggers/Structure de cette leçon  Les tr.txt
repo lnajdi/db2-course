@@ -1,0 +1,313 @@
+## Structure de cette leçon : **Les triggers en PostgreSQL**
+
+### 1. Introduction aux triggers
+
+* Définition d’un trigger.
+* Présentation du trigger comme une action automatique exécutée lors d’un changement dans la base de données.
+* Analogies avec un robot, un agent de sécurité ou un détecteur de fumée. 
+
+### 2. Objectifs de la leçon
+
+La leçon est organisée autour de trois grandes parties :
+
+* Fondements des triggers.
+* Types de triggers.
+* Applications pratiques, bonnes pratiques, débogage et performance. 
+
+### 3. Pourquoi utiliser des triggers
+
+* Enregistrement automatique des modifications.
+* Validation des données.
+* Calculs automatiques.
+* Journalisation des événements.
+* Mise à jour automatique de champs comme `updated_at`.
+
+### 4. Classification des triggers
+
+#### Selon le moment d’exécution
+
+* `BEFORE` : avant l’opération.
+* `AFTER` : après l’opération.
+* `INSTEAD OF` : remplace l’opération.
+
+#### Selon l’événement
+
+* `INSERT`
+* `UPDATE`
+* `DELETE` 
+
+### 5. Les triggers `INSTEAD OF`
+
+* Définition et principe de remplacement de l’opération originale.
+* Utilisation principalement avec les vues.
+* Mise à jour d’une vue.
+* Insertion dans plusieurs tables à travers une vue.
+* Implémentation du soft delete.
+* Comparaison avec les triggers `BEFORE` et `AFTER`.
+* Cas d’utilisation et limites.
+
+### 6. Structure générale d’un trigger
+
+La création d’un trigger se fait en deux étapes :
+
+1. Créer une fonction qui contient la logique.
+2. Créer le trigger qui appelle cette fonction lors d’un événement. 
+
+Structure étudiée :
+
+```sql
+CREATE OR REPLACE FUNCTION function_name()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- logique
+    RETURN NEW;
+END $$ LANGUAGE plpgsql;
+```
+
+Puis :
+
+```sql
+CREATE TRIGGER trigger_name
+BEFORE OR AFTER INSERT OR UPDATE OR DELETE
+ON table_name
+FOR EACH ROW
+EXECUTE FUNCTION function_name();
+```
+
+### 7. Premier exemple : mise à jour automatique
+
+* Création d’une fonction qui modifie `updated_at`.
+* Création d’un trigger `BEFORE UPDATE`.
+* Modification de `NEW.updated_at` avant l’enregistrement.
+
+### 8. Les variables spéciales `NEW` et `OLD`
+
+* `NEW` contient les nouvelles données.
+* `OLD` contient les anciennes données.
+* `INSERT` : seulement `NEW`.
+* `UPDATE` : `NEW` et `OLD`.
+* `DELETE` : seulement `OLD`. 
+
+### 9. Exemples fondamentaux
+
+* Création d’un historique des changements d’adresse e-mail.
+* Validation d’un montant de commande.
+* Rejet des valeurs négatives avec `RAISE EXCEPTION`.
+* Mise à jour automatique du nombre de commandes d’un client.
+
+### 10. La variable `TG_OP`
+
+* Identification de l’opération déclenchante.
+* Traitement différent selon :
+
+  * `INSERT`;
+  * `UPDATE`;
+  * `DELETE`.
+* Réutilisation d’une même fonction pour plusieurs événements.
+
+### 11. Triggers ligne par ligne et par instruction
+
+#### `FOR EACH ROW`
+
+* Exécution une fois pour chaque ligne.
+* Accès à `NEW` et `OLD`.
+* Utilisé pour la validation et les historiques détaillés.
+
+#### `FOR EACH STATEMENT`
+
+* Exécution une seule fois pour toute l’instruction SQL.
+* Pas d’accès à `NEW` et `OLD`.
+* Utilisé pour la journalisation globale et les opérations en masse. 
+
+### 12. Comparaison des niveaux de triggers
+
+* Fréquence d’exécution.
+* Disponibilité de `NEW` et `OLD`.
+* Performance.
+* Cas d’utilisation.
+* Valeur retournée.
+
+### 13. Combinaison de plusieurs types
+
+* Trigger ligne par ligne pour enregistrer chaque changement de prix.
+* Trigger par instruction pour enregistrer l’existence d’une mise à jour globale.
+* Combinaison d’un historique détaillé et d’un journal résumé.
+
+### 14. Event triggers
+
+* Définition des triggers liés aux commandes DDL.
+* Différence avec les triggers classiques.
+* Événements :
+
+  * `ddl_command_start`;
+  * `ddl_command_end`;
+  * `sql_drop`;
+  * `table_rewrite`.
+* Protection contre la suppression des tables.
+* Journalisation des modifications du schéma.
+* Application de conventions de nommage.
+
+### 15. Gestion des event triggers
+
+* Afficher les event triggers.
+* Les désactiver.
+* Les réactiver.
+* Les supprimer.
+* Précautions liées aux privilèges et à leur portée globale.
+
+### 16. Choisir entre `BEFORE` et `AFTER`
+
+#### Utiliser `BEFORE` pour
+
+* Valider les données.
+* Modifier les données avant leur sauvegarde.
+* Empêcher une opération.
+
+#### Utiliser `AFTER` pour
+
+* Enregistrer un historique.
+* Mettre à jour des tables liées.
+* Déclencher des traitements après la réussite de l’opération. 
+
+### 17. Erreurs fréquentes
+
+* Oublier l’instruction `RETURN`.
+* Utiliser `NEW` lors d’un `DELETE`.
+* Utiliser `OLD` lors d’un `INSERT`.
+* Déclarer un mauvais type de retour.
+* Créer une récursion infinie.
+* Modifier dans un trigger la même table qui l’a déclenché.
+
+### 18. Gestion des triggers
+
+* Lister les triggers d’une table.
+* Désactiver temporairement un trigger.
+* Réactiver un trigger.
+* Supprimer le trigger et sa fonction.
+
+### 19. Tests
+
+* Créer des données de test.
+* Exécuter une insertion ou une mise à jour.
+* Vérifier le résultat automatique.
+* Nettoyer les données de test.
+
+### 20. Exercices pratiques
+
+* Interdire l’insertion de notes insuffisantes le vendredi.
+* Utiliser `EXTRACT(DOW FROM CURRENT_DATE)`.
+* Créer un trigger de validation avant insertion.
+* Tester les cas autorisés et refusés.
+
+### 21. Cas réel : gestion d’un stock
+
+* Vérifier le stock disponible.
+* Empêcher une commande lorsque le stock est insuffisant.
+* Réduire automatiquement le stock.
+* Utiliser un trigger `BEFORE INSERT` sur les lignes de commande.
+
+### 22. Quand utiliser ou éviter les triggers
+
+#### Bonnes utilisations
+
+* Timestamps automatiques.
+* Historiques simples.
+* Validation obligatoire.
+* Mise à jour de compteurs.
+* Règles d’intégrité au niveau de la base.
+
+#### Utilisations déconseillées
+
+* Logique métier complexe.
+* Appels d’API.
+* Calculs lourds.
+* Envoi d’e-mails.
+* Traitements ralentissant les opérations normales. 
+
+### 23. Comparaison avec d’autres solutions
+
+* Triggers.
+* Contraintes `CHECK`, `FOREIGN KEY` et `UNIQUE`.
+* Procédures stockées.
+* Logique applicative.
+* Files de messages.
+* Vues matérialisées.
+
+Principe proposé dans la leçon :
+
+1. Utiliser d’abord les contraintes.
+2. Utiliser ensuite les triggers pour l’automatisation obligatoire.
+3. Utiliser le code applicatif pour la logique métier complexe.
+
+### 24. Anti-patterns
+
+* Boucles infinies.
+* Chaînes de triggers.
+* Logique métier cachée.
+* Opérations lentes.
+* Appels à des services externes.
+* Dépendances difficiles à comprendre.
+
+### 25. Bonnes pratiques
+
+* Garder les triggers simples et spécialisés.
+* Utiliser des noms descriptifs.
+* Documenter leur rôle.
+* Utiliser des clauses `WHEN`.
+* Tester plusieurs scénarios.
+* Gérer clairement les erreurs.
+* Éviter les chaînes de triggers.
+
+### 26. Performance
+
+* Réduire la complexité de la fonction.
+* Utiliser `WHEN` pour limiter les exécutions.
+* Ajouter des index sur les colonnes consultées.
+* Éviter les triggers qui en déclenchent d’autres.
+* Préférer un trigger par instruction lorsque les détails ligne par ligne ne sont pas nécessaires.
+
+### 27. Débogage
+
+* Vérifier que le trigger existe.
+* Vérifier qu’il est activé.
+* Ajouter des `RAISE NOTICE`.
+* Tester les requêtes indépendamment.
+* Vérifier `NEW`, `OLD` et `RETURN`.
+* Contrôler les autorisations.
+* Examiner les journaux PostgreSQL.
+
+### 28. Valeurs à retourner
+
+| Opération             | Retour                      |
+| --------------------- | --------------------------- |
+| `INSERT`              | `RETURN NEW`                |
+| `UPDATE`              | `RETURN NEW`                |
+| `DELETE`              | `RETURN OLD`                |
+| Plusieurs opérations  | `RETURN COALESCE(NEW, OLD)` |
+| Annuler une opération | `RETURN NULL`               |
+
+### 29. Fiches de référence
+
+* Choix entre `BEFORE`, `AFTER` et `INSTEAD OF`.
+* Choix entre ligne et instruction.
+* Variables spéciales :
+
+  * `NEW`;
+  * `OLD`;
+  * `TG_OP`;
+  * `TG_TABLE_NAME`;
+  * `TG_WHEN`.
+* Modèles pour les timestamps et les journaux d’audit.
+
+### 30. Synthèse finale
+
+* Un trigger répond automatiquement à un événement de base de données.
+* Il nécessite une fonction et une déclaration de trigger.
+* `NEW` et `OLD` donnent accès aux données concernées.
+* `BEFORE` sert principalement à valider ou modifier.
+* `AFTER` sert principalement à journaliser ou mettre à jour.
+* Les triggers doivent rester simples, rapides, testés et documentés. 
+
+### Progression pédagogique globale
+
+**Comprendre le concept → Identifier les types → Apprendre la syntaxe → Utiliser `NEW`, `OLD` et `TG_OP` → Comparer les niveaux → Découvrir les event triggers → Appliquer à des cas réels → Tester → Déboguer → Optimiser → Éviter les anti-patterns.**

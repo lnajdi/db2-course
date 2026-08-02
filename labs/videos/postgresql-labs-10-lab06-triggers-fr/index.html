@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>PostgreSQL labs 10 - Lab 06 Declencheurs</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Literata"; src: local("Literata"); font-weight: 400; }
+      @font-face { font-family: "Instrument Sans"; src: local("Instrument Sans"); font-weight: 400 700; }
+      @font-face { font-family: "Geist Mono"; src: local("Geist Mono"); font-weight: 400 700; }
+      * { box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #000; }
+      body { color: #182126; font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #f7f4ee; }
+      .clip { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+      .ground {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(13, 79, 104, 0.05) 1px, transparent 1px),
+          #f7f4ee;
+        background-size: 72px 72px;
+      }
+      .stage {
+        position: absolute;
+        inset: 72px 84px 220px 84px;
+        display: grid;
+        grid-template-columns: 0.92fr 1.08fr;
+        gap: 48px;
+        align-items: stretch;
+      }
+      .single { grid-template-columns: 1fr; }
+      .kicker {
+        color: #0d4f68;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 24px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 22px;
+      }
+      h1 {
+        margin: 0;
+        max-width: 1050px;
+        font-family: Literata, Georgia, serif;
+        font-size: 82px;
+        font-weight: 400;
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+      h2 {
+        margin: 0 0 26px;
+        font-family: Literata, Georgia, serif;
+        font-size: 58px;
+        font-weight: 400;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+      h3 { margin: 0 0 14px; color: #182126; font-size: 31px; line-height: 1.15; }
+      p { margin: 0; color: #4d5a60; font-size: 30px; line-height: 1.42; }
+      pre, code, .mono { font-family: "Geist Mono", Consolas, "Courier New", monospace; }
+      pre { margin: 0; white-space: pre-wrap; color: #f7f4ee; font-size: 25px; line-height: 1.42; }
+      .mini-note { margin-top: 22px; color: #5d686e; font-size: 24px; }
+      .panel {
+        border: 1px solid #d9dedf;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.86);
+        padding: 32px;
+        box-shadow: 0 1px 3px rgba(24, 33, 38, 0.08), 0 4px 16px rgba(24, 33, 38, 0.04);
+      }
+      .dark-panel {
+        border: 1px solid rgba(247, 244, 238, 0.16);
+        border-radius: 8px;
+        background: #151718;
+        color: #f7f4ee;
+        padding: 28px;
+      }
+      .titlebar {
+        display: flex;
+        justify-content: space-between;
+        margin: -28px -28px 22px;
+        padding: 16px 22px;
+        border-bottom: 1px solid rgba(247, 244, 238, 0.14);
+        border-radius: 8px 8px 0 0;
+        background: #202325;
+        color: #dce5e4;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 20px;
+      }
+      .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+      .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+      .item {
+        min-height: 118px;
+        border: 1px solid rgba(24, 33, 38, 0.12);
+        border-radius: 8px;
+        background: #fff;
+        padding: 20px;
+        color: #4d5a60;
+        font-size: 24px;
+        line-height: 1.25;
+      }
+      .item strong { display: block; margin-bottom: 8px; color: #182126; font-size: 30px; font-weight: 600; }
+      .pill {
+        display: inline-block;
+        border: 1px solid #a7c4ce;
+        border-radius: 999px;
+        background: #e8f1f4;
+        color: #0d4f68;
+        padding: 10px 18px;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+      }
+      .ok { border-color: rgba(23, 94, 74, 0.24); background: #e8f3ee; color: #175e4a; }
+      .warning { border-color: rgba(138, 101, 26, 0.24); background: #f8f0dc; color: #624a35; }
+      .danger { border-color: rgba(165, 59, 53, 0.26); background: #f8eae8; color: #a53b35; }
+      .caption-band {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 200px;
+        border-top: 1px dashed rgba(93, 104, 110, 0.35);
+        background: rgba(247, 244, 238, 0.72);
+        color: #687175;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Geist Mono", Consolas, monospace;
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .progress-wrap { position: absolute; left: 84px; right: 84px; top: 34px; height: 6px; border-radius: 999px; background: rgba(13, 79, 104, 0.12); overflow: hidden; }
+      #progress { display: block; width: 100%; height: 100%; border-radius: 999px; background: #0d4f68; transform-origin: left center; }
+      .source-note { position: absolute; left: 84px; bottom: 206px; color: #5d686e; font-family: "Geist Mono", Consolas, monospace; font-size: 18px; }
+      .flow { display: grid; grid-template-columns: 1fr 70px 1fr; align-items: center; gap: 18px; margin-top: 28px; }
+      .box { min-height: 134px; border: 1px solid rgba(13, 79, 104, 0.2); border-radius: 8px; background: #fff; padding: 20px; display: grid; place-items: center; text-align: center; color: #4d5a60; font-size: 25px; line-height: 1.25; }
+      .arrow { color: #0d4f68; font-family: Literata, Georgia, serif; font-size: 54px; text-align: center; }
+      .stack { display: grid; gap: 16px; }
+      .layer { display: grid; grid-template-columns: 235px 1fr; gap: 16px; align-items: center; min-height: 82px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 18px; font-size: 25px; color: #4d5a60; }
+      .layer b { color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-size: 22px; }
+      .compare { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+      .compare-card { min-height: 412px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 24px; }
+      .compare-card p { font-size: 24px; line-height: 1.34; }
+      .table-names { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+      .method { display: grid; gap: 14px; }
+      .method .item { min-height: 78px; display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 14px; padding: 16px; }
+      .num { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; background: #e8f1f4; color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-weight: 700; }
+      .row-card { height: 82px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; display: grid; place-items: center; color: #5d686e; font-family: "Geist Mono", Consolas, monospace; font-size: 21px; }
+      .active-row { border-color: #9ac2b4; background: #e8f3ee; color: #175e4a; font-weight: 700; }
+      .event-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+      .event-card { min-height: 405px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 24px; }
+      .event-card .big { display: block; color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-size: 34px; margin-bottom: 24px; }
+      .matrix { display: grid; grid-template-columns: 180px 1fr 1fr; gap: 12px; margin-top: 24px; }
+      .cell { min-height: 70px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; display: grid; place-items: center; text-align: center; padding: 12px; color: #4d5a60; font-size: 24px; }
+      .head { background: #e8f1f4; color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-size: 21px; }
+      .sql-key { color: #9fd3c8; }
+      .sql-name { color: #e8d978; }
+      .sql-string { color: #e8a55a; }
+      .sql-comment { color: #8fa0a5; }
+      .small-code { color:#182126; font-size:22px; line-height:1.35; }
+      .timeline { display: grid; grid-template-columns: 1fr 90px 1fr; gap: 18px; align-items: center; margin-top: 34px; }
+      .write-dot { display: grid; place-items: center; width: 90px; height: 90px; border-radius: 999px; background: #151718; color: #f7f4ee; font-family: "Geist Mono", Consolas, monospace; font-size: 20px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-10-root" id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="260">
+      <div data-hf-id="hf-10-progress-wrap" class="progress-wrap" data-layout-ignore=""><span data-hf-id="hf-10-progress" id="progress"></span></div>
+
+      <section style="z-index: 1" data-hf-id="hf-10-f01" id="frame-01" class="clip" data-start="0" data-duration="28" data-track-index="1">
+        <div data-hf-id="hf-10-f01-ground" class="ground"></div>
+        <div data-hf-id="hf-10-f01-stage" class="stage">
+          <div data-hf-id="hf-10-f01-copy">
+            <div data-hf-id="hf-10-f01-kicker" class="kicker">10 - Lab 06</div>
+            <h1 data-hf-id="hf-10-f01-title">Lab 06 - Declencheurs</h1>
+            <p data-hf-id="hf-10-f01-note" class="mini-note">Objectif: comprendre les reactions automatiques de PostgreSQL avant de coder.</p>
+          </div>
+          <div data-hf-id="hf-10-f01-panel" class="panel">
+            <h2 data-hf-id="hf-10-f01-panel-title">Avant de lancer le lab</h2>
+            <div data-hf-id="hf-10-f01-flow" class="flow">
+              <div class="box"><span><strong>changement</strong><br><span class="mono">INSERT / UPDATE / DELETE</span></span></div>
+              <div class="arrow">-></div>
+              <div class="box"><span><strong>reaction</strong><br>audit, validation, nettoyage</span></div>
+            </div>
+            <div data-hf-id="hf-10-f01-method" class="method" style="margin-top:26px;">
+              <div class="item"><span class="num">1</span><span>Pagila chargee</span></div>
+              <div class="item"><span class="num">2</span><span>fonctions PL/pgSQL revues</span></div>
+              <div class="item"><span class="num">3</span><span>tests prepares avec transaction</span></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-10-f01-source" class="source-note">sources: README.md + lab06-triggers.sql</div>
+        <div data-hf-id="hf-10-f01-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-10-f02" id="frame-02" class="clip" data-start="28" data-duration="30" data-track-index="1">
+        <div data-hf-id="hf-10-f02-ground" class="ground"></div>
+        <div data-hf-id="hf-10-f02-stage" class="stage">
+          <div data-hf-id="hf-10-f02-copy">
+            <div data-hf-id="hf-10-f02-kicker" class="kicker">Deux morceaux</div>
+            <h2 data-hf-id="hf-10-f02-title">La fonction dit quoi faire. Le trigger dit quand.</h2>
+            <p data-hf-id="hf-10-f02-p">C'est le modele PostgreSQL a garder en tete pour tous les exercices.</p>
+          </div>
+          <div data-hf-id="hf-10-f02-code" class="dark-panel">
+            <div data-hf-id="hf-10-f02-bar" class="titlebar"><span>structure minimale</span><span>pas de solution</span></div>
+            <pre data-hf-id="hf-10-f02-pre"><span class="sql-key">CREATE OR REPLACE FUNCTION</span>
+<span class="sql-key">RETURNS TRIGGER</span>
+<span class="sql-key">BEGIN</span>
+<span class="sql-key">RETURN NEW</span>
+
+<span class="sql-key">CREATE TRIGGER</span>
+<span class="sql-key">BEFORE</span> / <span class="sql-key">AFTER</span>
+<span class="sql-key">INSERT</span> / <span class="sql-key">UPDATE</span> / <span class="sql-key">DELETE</span>
+<span class="sql-key">FOR EACH ROW</span>
+<span class="sql-key">EXECUTE FUNCTION</span></pre>
+          </div>
+        </div>
+        <div data-hf-id="hf-10-f02-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-10-f03" id="frame-03" class="clip" data-start="58" data-duration="29" data-track-index="0">
+        <div data-hf-id="hf-10-f03-ground" class="ground"></div>
+        <div data-hf-id="hf-10-f03-stage" class="stage single">
+          <div data-hf-id="hf-10-f03-copy">
+            <div data-hf-id="hf-10-f03-kicker" class="kicker">Timing</div>
+            <h2 data-hf-id="hf-10-f03-title">BEFORE protege l'ecriture. AFTER observe ce qui vient d'arriver.</h2>
+            <div data-hf-id="hf-10-f03-timeline" class="timeline">
+              <div class="compare-card">
+                <span class="pill warning">BEFORE</span>
+                <h3>Avant la ligne</h3>
+                <p>Valider, normaliser, corriger ou annuler avant que la donnee soit ecrite.</p>
+                <pre class="small-code">RETURN NEW
+RETURN NULL</pre>
+              </div>
+              <div class="write-dot">write</div>
+              <div class="compare-card">
+                <span class="pill ok">AFTER</span>
+                <h3>Apres la ligne</h3>
+                <p>Auditer, journaliser, mettre a jour une trace ou signaler un evenement.</p>
+                <pre class="small-code">RETURN NEW</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-10-f03-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-10-f04" id="frame-04" class="clip" data-start="87" data-duration="29" data-track-index="2">
+        <div data-hf-id="hf-10-f04-ground" class="ground"></div>
+        <div data-hf-id="hf-10-f04-stage" class="stage single">
+          <div data-hf-id="hf-10-f04-copy">
+            <div data-hf-id="hf-10-f04-kicker" class="kicker">Event</div>
+            <h2 data-hf-id="hf-10-f04-title">Chaque evenement donne une image differente de la ligne</h2>
+            <div data-hf-id="hf-10-f04-events" class="event-map">
+              <div class="event-card">
+                <span class="big">INSERT</span>
+                <h3>Nouvelle ligne</h3>
+                <p>La ligne arrive. On lit et retourne surtout `NEW`.</p>
+                <span class="pill ok" style="margin-top:28px;">NEW</span>
+              </div>
+              <div class="event-card">
+                <span class="big">UPDATE</span>
+                <h3>Avant / apres</h3>
+                <p>La ligne change. On compare `OLD` avec `NEW`.</p>
+                <span class="pill ok" style="margin-top:28px;">OLD</span>
+                <span class="pill ok" style="margin-top:28px;">NEW</span>
+              </div>
+              <div class="event-card">
+                <span class="big">DELETE</span>
+                <h3>Ancienne ligne</h3>
+                <p>La ligne part. Il reste l'image precedente: `OLD`.</p>
+                <span class="pill ok" style="margin-top:28px;">OLD</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-10-f04-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-10-f05" id="frame-05" class="clip" data-start="116" data-duration="29" data-track-index="0">
+        <div data-hf-id="hf-10-f05-ground" class="ground"></div>
+        <div data-hf-id="hf-10-f05-stage" class="stage">
+          <div data-hf-id="hf-10-f05-copy">
+            <div data-hf-id="hf-10-f05-kicker" class="kicker">Level</div>
+            <h2 data-hf-id="hf-10-f05-title">Une fois par commande, ou une fois par ligne ?</h2>
+            <p data-hf-id="hf-10-f05-p">C'est la difference entre verifier une operation globale et suivre chaque ligne modifiee.</p>
+          </div>
+          <div data-hf-id="hf-10-f05-panel" class="panel">
+            <div data-hf-id="hf-10-f05-compare" class="compare">
+              <div class="compare-card">
+                <span class="pill">FOR EACH STATEMENT</span>
+                <h3>1 commande</h3>
+                <div class="stack" style="margin-top:24px;">
+                  <div class="row-card active-row">trigger x 1</div>
+                  <div class="row-card">row 1</div>
+                  <div class="row-card">row 2</div>
+                </div>
+              </div>
+              <div class="compare-card">
+                <span class="pill ok">FOR EACH ROW</span>
+                <h3>1 ligne touchee</h3>
+                <div class="stack" style="margin-top:24px;">
+                  <div class="row-card active-row">row 1 -> trigger</div>
+                  <div class="row-card active-row">row 2 -> trigger</div>
+                  <div class="row-card active-row">row 3 -> trigger</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-10-f05-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-10-f06" id="frame-06" class="clip" data-start="145" data-duration="29" data-track-index="1">
+        <div data-hf-id="hf-10-f06-ground" class="ground"></div>
+        <div data-hf-id="hf-10-f06-stage" class="stage">
+          <div data-hf-id="hf-10-f06-copy">
+            <div data-hf-id="hf-10-f06-kicker" class="kicker">Variables speciales</div>
+            <h2 data-hf-id="hf-10-f06-title">NEW, OLD, TG_OP: la boussole du trigger</h2>
+            <p data-hf-id="hf-10-f06-p">Le bon reflexe: choisir la variable disponible pour l'evenement, puis retourner la bonne image.</p>
+            <div class="table-names">
+              <span class="pill danger">erreur classique</span>
+              <span class="pill danger">NEW dans DELETE</span>
+              <span class="pill danger">OLD dans INSERT</span>
+            </div>
+          </div>
+          <div data-hf-id="hf-10-f06-panel" class="panel">
+            <div data-hf-id="hf-10-f06-matrix" class="matrix">
+              <div class="cell head">operation</div><div class="cell head">NEW</div><div class="cell head">OLD</div>
+              <div class="cell">INSERT</div><div class="cell ok">present</div><div class="cell danger">absent</div>
+              <div class="cell">UPDATE</div><div class="cell ok">present</div><div class="cell ok">present</div>
+              <div class="cell">DELETE</div><div class="cell danger">absent</div><div class="cell ok">present</div>
+            </div>
+            <div data-hf-id="hf-10-f06-code" class="dark-panel" style="margin-top:24px;">
+              <div class="titlebar"><span>retours</span><span>TG_OP choisit le chemin</span></div>
+              <pre><span class="sql-key">TG_OP</span>
+<span class="sql-key">RETURN NEW</span>
+<span class="sql-key">RETURN OLD</span></pre>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-10-f06-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-10-f07" id="frame-07" class="clip" data-start="174" data-duration="30" data-track-index="0">
+        <div data-hf-id="hf-10-f07-ground" class="ground"></div>
+        <div data-hf-id="hf-10-f07-stage" class="stage single">
+          <div data-hf-id="hf-10-f07-copy">
+            <div data-hf-id="hf-10-f07-kicker" class="kicker">Audit et validation</div>
+            <h2 data-hf-id="hf-10-f07-title">Le lab pratique deux familles de declencheurs</h2>
+            <div data-hf-id="hf-10-f07-grid" class="grid-3">
+              <div class="item"><span class="pill ok">audit</span><strong>salaires</strong>`employee` vers `employee_salary_audit`</div>
+              <div class="item"><span class="pill ok">audit</span><strong>emails</strong>`customer` vers `customer_email_audit`</div>
+              <div class="item"><span class="pill warning">validation</span><strong>salaires</strong>bloquer les valeurs impossibles</div>
+              <div class="item"><span class="pill warning">validation</span><strong>emails</strong>nettoyer puis refuser l'invalide</div>
+              <div class="item"><span class="pill">maintenance</span><strong>timestamps</strong>mettre a jour automatiquement</div>
+              <div class="item"><span class="pill">contexte</span><strong>film</strong>rester aligne avec Pagila</div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-10-f07-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-10-f08" id="frame-08" class="clip" data-start="204" data-duration="30" data-track-index="2">
+        <div data-hf-id="hf-10-f08-ground" class="ground"></div>
+        <div data-hf-id="hf-10-f08-stage" class="stage">
+          <div data-hf-id="hf-10-f08-copy">
+            <div data-hf-id="hf-10-f08-kicker" class="kicker">Tester sans casser</div>
+            <h2 data-hf-id="hf-10-f08-title">Une transaction rend les essais reversibles</h2>
+            <p data-hf-id="hf-10-f08-p">On provoque le trigger, on observe, puis on annule. Les messages aident a comprendre le chemin pris.</p>
+          </div>
+          <div data-hf-id="hf-10-f08-code" class="dark-panel">
+            <div data-hf-id="hf-10-f08-bar" class="titlebar"><span>test court</span><span>aucune donnee definitive</span></div>
+            <pre data-hf-id="hf-10-f08-pre"><span class="sql-key">BEGIN</span>
+
+<span class="sql-key">UPDATE</span>
+
+<span class="sql-key">RAISE NOTICE</span>
+<span class="sql-key">RAISE EXCEPTION</span>
+
+<span class="sql-key">ROLLBACK</span></pre>
+            <div data-hf-id="hf-10-f08-method" class="method" style="margin-top:18px;">
+              <div class="item"><span class="num">1</span><span>changer une seule chose</span></div>
+              <div class="item"><span class="num">2</span><span>observer audit ou notice</span></div>
+              <div class="item"><span class="num">3</span><span>annuler avec rollback</span></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-10-f08-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+
+      <section data-hf-id="hf-10-f09" id="frame-09" class="clip" data-start="234" data-duration="26" data-track-index="2">
+        <div data-hf-id="hf-10-f09-ground" class="ground"></div>
+        <div data-hf-id="hf-10-f09-stage" class="stage">
+          <div data-hf-id="hf-10-f09-copy">
+            <div data-hf-id="hf-10-f09-kicker" class="kicker">Methode</div>
+            <h2 data-hf-id="hf-10-f09-title">Reussir le lab sans transformer la video en correction</h2>
+            <p data-hf-id="hf-10-f09-p">Le bon rythme: petit trigger, test controle, verification, puis passage a l'exercice suivant.</p>
+          </div>
+          <div data-hf-id="hf-10-f09-panel" class="panel">
+            <div data-hf-id="hf-10-f09-method" class="method">
+              <div class="item"><span class="num">1</span><span>creer la fonction trigger en premier</span></div>
+              <div class="item"><span class="num">2</span><span>creer le trigger ensuite</span></div>
+              <div class="item"><span class="num">3</span><span>tester une operation a la fois</span></div>
+              <div class="item"><span class="num">4</span><span>verifier qu'il existe et reste actif</span></div>
+              <div class="item"><span class="num">5</span><span>surveiller recursion et performance</span></div>
+            </div>
+          </div>
+        </div>
+        <div data-hf-id="hf-10-f09-caption" class="caption-band" data-layout-allow-caption-zone="">zone reservee aux sous-titres</div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#progress", { scaleX: 0 }, { scaleX: 1, duration: 260, ease: "none" }, 0);
+      window.__timelines.main = tl;
+    </script>
+  </body>
+</html>

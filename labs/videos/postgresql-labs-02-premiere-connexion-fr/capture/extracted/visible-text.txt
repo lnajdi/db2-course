@@ -1,0 +1,26 @@
+Episode 02/08 - Première connexion avec SQL Shell.
+
+Les étudiants viennent d'installer PostgreSQL sous Windows. Ils doivent ouvrir SQL Shell (psql), accepter les valeurs par défaut proposées pour une connexion locale, saisir le mot de passe créé pendant l'installation, reconnaître l'invite postgres=#, lancer quelques commandes de vérification et quitter proprement.
+
+Valeurs locales:
+- Server [localhost]
+- Database [postgres]
+- Port [5432]
+- Username [postgres]
+- Password for user postgres: saisie masquée
+
+Invite de réussite:
+- postgres=#
+
+Commandes:
+- SELECT version();
+- \conninfo
+- \l
+- \q
+
+Points d'attention:
+- SQL Shell évite les problèmes de PATH parce qu'il lance directement le client installé.
+- Un terminal ordinaire peut ne pas reconnaître psql si le dossier bin de PostgreSQL n'a pas été ajouté au PATH.
+- Si le mot de passe est incorrect, recommencer avec le mot de passe créé à l'installation.
+- Si le serveur ne répond pas, vérifier que le service PostgreSQL est démarré.
+- Si le port est différent, utiliser le port choisi pendant l'installation.

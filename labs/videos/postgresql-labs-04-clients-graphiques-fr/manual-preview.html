@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Preview - PostgreSQL labs 04</title>
+    <style>
+      @font-face { font-family: "Literata"; src: local("Literata"); }
+      @font-face { font-family: "Instrument Sans"; src: local("Instrument Sans"); }
+      @font-face { font-family: "Geist Mono"; src: local("Geist Mono"); }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #f7f4ee; color: #182126; font-family: "Instrument Sans", "Segoe UI", Arial, sans-serif; }
+      header { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #d9dedf; background: rgba(247, 244, 238, 0.94); padding: 18px 32px; }
+      h1 { margin: 0; font-family: Literata, Georgia, serif; font-size: 34px; font-weight: 400; }
+      main { display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 24px; padding: 32px; }
+      article { min-height: 330px; border: 1px solid #d9dedf; border-radius: 8px; background: #fff; padding: 28px; box-shadow: 0 1px 3px rgba(24, 33, 38, 0.08), 0 4px 16px rgba(24, 33, 38, 0.04); }
+      .kicker { color: #0d4f68; font-family: "Geist Mono", Consolas, monospace; font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; }
+      h2 { margin: 12px 0 16px; font-family: Literata, Georgia, serif; font-size: 34px; font-weight: 400; }
+      p, li { font-size: 18px; line-height: 1.45; }
+      pre { overflow-x: auto; border-radius: 8px; background: #151718; color: #f7f4ee; padding: 18px; font-family: "Geist Mono", Consolas, monospace; font-size: 16px; line-height: 1.45; }
+    </style>
+  </head>
+  <body>
+    <header><h1>PostgreSQL labs 04 - Clients graphiques</h1></header>
+    <main>
+      <article><div class="kicker">0-24s</div><h2>Objectif</h2><p>Après `psql`, déjà utilisé dans les épisodes précédents, découvrir les clients graphiques GUI et connecter `pagila` avec l'utilisateur personnel.</p></article>
+      <article><div class="kicker">24-54s</div><h2>Même serveur</h2><p>Un client GUI est seulement une interface graphique: `psql`, `pgAdmin`, `DBeaver` et `VS Code` parlent au même PostgreSQL Server.</p></article>
+      <article><div class="kicker">54-88s</div><h2>Paramètres</h2><pre>host: localhost
+port: 5432
+database: pagila
+user: karim
+password: privé</pre></article>
+      <article><div class="kicker">88-134s</div><h2>pgAdmin</h2><pre>Register > Server
+Name: Pagila local
+Query Tool:
+SELECT * FROM film LIMIT 10;</pre></article>
+      <article><div class="kicker">134-178s</div><h2>DBeaver</h2><pre>New Database Connection > PostgreSQL
+Test Connection > Finish
+pagila > Schemas > public > Tables > film
+rating = 'PG'</pre></article>
+      <article><div class="kicker">178-226s</div><h2>VS Code</h2><pre>PostgreSQL for Visual Studio Code
+ms-ossdata.vscode-pgsql
+queries.sql
+SELECT title, rating FROM film WHERE rating = 'PG' LIMIT 5;</pre></article>
+      <article><div class="kicker">226-256s</div><h2>Choisir</h2><p>pgAdmin: officiel. DBeaver: exploration/export. VS Code: requêtes près du code.</p></article>
+      <article><div class="kicker">256-284s</div><h2>Dépannage</h2><pre>psql -h localhost -p 5432 -U karim -d pagila</pre><p>Vérifier service, port, base, utilisateur, mot de passe enregistré, SSL local.</p></article>
+      <article><div class="kicker">284-300s</div><h2>Clôture</h2><p>Connexion visuelle, tables consultables, premières requêtes prêtes.</p></article>
+    </main>
+  </body>
+</html>

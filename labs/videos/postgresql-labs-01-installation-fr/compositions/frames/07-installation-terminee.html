@@ -1,0 +1,73 @@
+<template>
+  <style>
+    @font-face { font-family: "Literata"; src: local("Georgia"); font-weight: 400; }
+    @font-face { font-family: "Instrument Sans"; src: local("Arial"); font-weight: 400 700; }
+    @font-face { font-family: "Geist Mono"; src: local("Consolas"); font-weight: 400 700; }
+    * { box-sizing: border-box; }
+    #root { position:relative; width:1920px; height:1080px; overflow:hidden; container-type:size; color:#182126; font-family:"Instrument Sans",sans-serif; }
+    .f07-ground { position:absolute; inset:0; background:#F7F4EE; }
+    .f07-halo { position:absolute; width:650px; height:650px; right:-160px; top:-210px; border:1px solid rgba(23,94,74,.16); border-radius:50%; box-shadow:0 0 0 70px rgba(23,94,74,.035),0 0 0 145px rgba(23,94,74,.025); }
+    .f07-shell { position:absolute; left:4.2cqw; right:4.2cqw; top:6.2cqh; bottom:20.5cqh; display:grid; grid-template-columns:55fr 45fr; gap:3.7cqw; align-items:center; }
+    .f07-left { position:relative; align-self:stretch; padding-top:9.7cqh; }
+    .f07-kicker { font-family:"Geist Mono",monospace; font-size:1.35cqw; font-weight:500; letter-spacing:.16em; color:#175E4A; }
+    .f07-kicker .f07-spike { color:#0D4F68; margin-right:.55cqw; }
+    .f07-swap { position:relative; width:48cqw; height:8.7cqh; margin-top:2.35cqh; transform-origin:50% 50%; }
+    .f07-title-state { position:absolute; inset:0; font-family:"Literata",Georgia,serif; font-size:4.6cqw; font-weight:400; letter-spacing:-.018em; line-height:1.06; transform-origin:50% 50%; }
+    #f07-outgoing { color:#5D686E; }
+    #f07-incoming { color:#182126; opacity:0; z-index:2; }
+    .f07-lede { margin:2.1cqh 0 0; max-width:39cqw; color:#5D686E; font-size:1.62cqw; line-height:1.48; }
+    .f07-path-note { margin-top:3.2cqh; max-width:39cqw; padding:1.45cqh 1.25cqw; border-left:5px solid #624A35; background:#F2ECE5; color:#182126; font-size:1.22cqw; line-height:1.36; }
+    .f07-path-note code { font-family:"Geist Mono",monospace; color:#624A35; font-weight:700; }
+    .f07-menu { position:relative; align-self:center; padding:2.15cqw; background:#E8F3EE; border:1px solid rgba(24,33,38,.15); border-radius:12px; box-shadow:0 1px 3px rgba(24,33,38,.08),0 4px 16px rgba(24,33,38,.04); }
+    .f07-menu-top { display:flex; align-items:center; gap:.75cqw; color:#5D686E; font-family:"Geist Mono",monospace; font-size:1.08cqw; letter-spacing:.08em; }
+    .f07-windows { display:grid; grid-template-columns:repeat(3,7px); gap:5px; margin-left:auto; }
+    .f07-windows i { display:block; width:7px; height:7px; background:#0D4F68; }
+    .f07-search { height:5.9cqh; margin-top:1.8cqh; padding:1.55cqh 1.25cqw; border:1px solid rgba(24,33,38,.16); border-radius:999px; background:#F7F4EE; color:#788388; font-size:1.28cqw; }
+    .f07-app { position:relative; display:flex; align-items:center; gap:1.1cqw; margin-top:1.35cqh; min-height:9.7cqh; padding:1.35cqh 1.25cqw; background:#F7F4EE; border:1px solid rgba(24,33,38,.12); border-radius:8px; }
+    .f07-app-icon { width:3.3cqw; height:3.3cqw; display:grid; place-items:center; flex:0 0 auto; border-radius:6px; background:#175E4A; color:#F7F4EE; font-family:"Geist Mono",monospace; font-size:1.15cqw; }
+    .f07-app:last-child .f07-app-icon { background:#0D4F68; }
+    .f07-app-copy { min-width:0; }
+    .f07-app-name { font-size:1.72cqw; line-height:1.1; }
+    .f07-app-meta { margin-top:.55cqh; color:#5D686E; font-family:"Geist Mono",monospace; font-size:1.02cqw; }
+    .f07-rail { position:absolute; left:4.2cqw; bottom:10.4cqh; width:45cqw; min-height:7.4cqh; display:flex; align-items:center; gap:1.15cqw; padding:1.35cqh 1.4cqw; border-left:5px solid #0D4F68; background:#E8F1F4; color:#182126; }
+    .f07-rail-index { color:#0D4F68; font-family:"Geist Mono",monospace; font-size:1.18cqw; letter-spacing:.08em; white-space:nowrap; }
+    .f07-rail-title { font-family:"Literata",Georgia,serif; font-size:1.58cqw; letter-spacing:-.012em; }
+    .f07-status { position:absolute; left:4.2cqw; right:4.2cqw; bottom:6.1cqh; height:1px; background:rgba(24,33,38,.16); }
+    .f07-status::after { content:"PSQL + PGADMIN 4 VISIBLES"; position:absolute; top:1.35cqh; right:0; color:#5D686E; font-family:"Geist Mono",monospace; font-size:1.05cqw; font-weight:500; letter-spacing:.08em; }
+  </style>
+  <div data-hf-id="hf-b7p7" id="root" data-composition-id="07-installation-terminee" data-start="0" data-duration="24.0" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-nn2b" class="clip f07-ground" data-start="0" data-duration="24.0" data-track-index="0"><div data-hf-id="hf-w250" class="f07-halo"></div></div>
+    <div data-hf-id="hf-vyuc" class="f07-shell">
+      <section data-hf-id="hf-o8zd" class="f07-left">
+        <div data-hf-id="hf-2z3t" class="f07-kicker" id="f07-kicker"><span data-hf-id="hf-x4o2" class="f07-spike">✱</span>INSTALLATION TERMINÉE</div>
+        <div data-hf-id="hf-ek7z" class="f07-swap"><div data-hf-id="hf-fgwa" class="f07-title-state" id="f07-outgoing">Installation</div><div data-hf-id="hf-eby1" class="f07-title-state" id="f07-incoming">Vous êtes prêt</div></div>
+        <p data-hf-id="hf-kgrf" class="f07-lede" id="f07-lede">Les outils essentiels sont maintenant disponibles.</p>
+        <div data-hf-id="hf-p7th" class="f07-path-note" id="f07-path-note">Si <code data-hf-id="hf-b8xc">psql</code> n'est pas reconnu dans un terminal ordinaire, ce n'est pas un echec: l'installateur ne modifie pas automatiquement le <code data-hf-id="hf-v5zf">PATH</code>.</div>
+      </section>
+      <section data-hf-id="hf-inxi" class="f07-menu" id="f07-menu">
+        <div data-hf-id="hf-9029" class="f07-menu-top"><span data-hf-id="hf-sxkk">MENU DÉMARRER</span><span data-hf-id="hf-01by" class="f07-windows"><i data-hf-id="hf-wt6k"></i><i data-hf-id="hf-zeb8"></i><i data-hf-id="hf-y7e5"></i><i data-hf-id="hf-ylp6"></i></span></div>
+        <div data-hf-id="hf-w136" class="f07-search">Rechercher des applications</div>
+        <div data-hf-id="hf-edkx" class="f07-app" id="f07-app-psql"><span data-hf-id="hf-fu5p" class="f07-app-icon">&gt;_</span><div data-hf-id="hf-kr8b" class="f07-app-copy"><div data-hf-id="hf-qcck" class="f07-app-name">SQL Shell (psql)</div><div data-hf-id="hf-6ved" class="f07-app-meta">POSTGRESQL</div></div></div>
+        <div data-hf-id="hf-whar" class="f07-app" id="f07-app-pgadmin"><span data-hf-id="hf-be0n" class="f07-app-icon">PG</span><div data-hf-id="hf-m0bf" class="f07-app-copy"><div data-hf-id="hf-xa5n" class="f07-app-name">pgAdmin 4</div><div data-hf-id="hf-h9k9" class="f07-app-meta">POSTGRESQL</div></div></div>
+      </section>
+    </div>
+    <div data-hf-id="hf-xo0y" class="f07-rail" id="f07-rail"><span data-hf-id="hf-qj3f" class="f07-rail-index">02/08</span><span data-hf-id="hf-0som" class="f07-rail-title">Premiers pas avec psql</span></div>
+    <div data-hf-id="hf-pcwk" class="f07-status"></div>
+  </div>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused:true });
+    window.__timelines["07-installation-terminee"] = tl;
+    tl.fromTo("#f07-kicker", { opacity:0, y:18 }, { opacity:1, y:0, duration:.42, ease:"power3.out" }, .08);
+    tl.to("#f07-outgoing", { scale:.72, opacity:0, duration:.38, ease:"power2.in" }, .42);
+    tl.fromTo("#f07-incoming", { scale:.72, opacity:0 }, { scale:1, opacity:1, duration:.62, ease:"back.out(1.4)" }, .64);
+    tl.fromTo("#f07-lede", { opacity:0, y:22 }, { opacity:1, y:0, duration:.45, ease:"power3.out" }, 1.28);
+    tl.fromTo("#f07-menu", { opacity:0, x:86 }, { opacity:1, x:0, duration:.58, ease:"power4.out" }, 2.02);
+    const apps = ["#f07-app-psql", "#f07-app-pgadmin"];
+    const appStarts = [2.72, 3.72];
+    apps.forEach((selector, index) => tl.fromTo(selector, { opacity:0, x:42 }, { opacity:1, x:0, duration:.42, ease:"power3.out" }, appStarts[index]));
+    tl.fromTo("#f07-path-note", { opacity:0, y:18 }, { opacity:1, y:0, duration:.52, ease:"power3.out" }, 9.2);
+    tl.fromTo("#f07-rail", { opacity:0, x:-120 }, { opacity:1, x:0, duration:.52, ease:"power4.out" }, 16.6);
+    tl.to({}, { duration:24.0 }, 0);
+  </script>
+</template>

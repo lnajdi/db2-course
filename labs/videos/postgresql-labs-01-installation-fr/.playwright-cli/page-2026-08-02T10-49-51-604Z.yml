@@ -1,0 +1,135 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e5]:
+      - link "PostgreSQL Elephant Logo" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img "PostgreSQL Elephant Logo" [ref=e7]
+      - generic [ref=e8]:
+        - list [ref=e9]:
+          - listitem [ref=e10]:
+            - link "Home" [ref=e11] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=e12]:
+            - link "About" [ref=e13] [cursor=pointer]:
+              - /url: /about/
+          - listitem [ref=e14]:
+            - link "Download" [ref=e15] [cursor=pointer]:
+              - /url: /download/
+          - listitem [ref=e16]:
+            - link "Documentation" [ref=e17] [cursor=pointer]:
+              - /url: /docs/
+          - listitem [ref=e18]:
+            - link "Community" [ref=e19] [cursor=pointer]:
+              - /url: /community/
+          - listitem [ref=e20]:
+            - link "Developers" [ref=e21] [cursor=pointer]:
+              - /url: /developer/
+          - listitem [ref=e22]:
+            - link "Support" [ref=e23] [cursor=pointer]:
+              - /url: /support/
+          - listitem [ref=e24]:
+            - link "Donate" [ref=e25] [cursor=pointer]:
+              - /url: /about/donate/
+          - listitem [ref=e26]:
+            - link "Your account" [ref=e27] [cursor=pointer]:
+              - /url: /account/
+        - search [ref=e28]:
+          - button "" [ref=e31] [cursor=pointer]:
+            - generic [ref=e32]: 
+        - button "" [ref=e34] [cursor=pointer]:
+          - generic [ref=e35]: 
+    - generic [ref=e37]:
+      - text: "July 16, 2026:"
+      - link "PostgreSQL 19 Beta 2 Released!" [ref=e38] [cursor=pointer]:
+        - /url: /about/news/postgresql-19-beta-2-released-3350/
+  - generic [ref=e40]:
+    - generic [ref=e43]:
+      - heading "Quick Links" [level=2] [ref=e44]
+      - list [ref=e45]:
+        - listitem [ref=e46]:
+          - link "Downloads" [ref=e47] [cursor=pointer]:
+            - /url: /download/
+          - list [ref=e48]:
+            - listitem [ref=e49]:
+              - link "Packages" [ref=e50] [cursor=pointer]:
+                - /url: /download/
+            - listitem [ref=e51]:
+              - link "Source" [ref=e52] [cursor=pointer]:
+                - /url: /ftp/source/
+        - listitem [ref=e53]:
+          - link "Software Catalogue" [ref=e54] [cursor=pointer]:
+            - /url: /download/product-categories/
+        - listitem [ref=e55]:
+          - link "File Browser" [ref=e56] [cursor=pointer]:
+            - /url: /ftp/
+    - generic [ref=e58]:
+      - heading "Windows installers Windows Logo" [level=1] [ref=e59]:
+        - text: Windows installers
+        - img "Windows Logo" [ref=e60]
+      - heading "Interactive installer by EDB" [level=2] [ref=e61]
+      - paragraph [ref=e62]:
+        - link "Download the installer" [ref=e63] [cursor=pointer]:
+          - /url: https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
+        - text: certified by EDB for all supported Postgres versions.
+      - paragraph [ref=e64]:
+        - strong [ref=e65]: Note!
+        - text: This installer is hosted by EDB and not on the PostgreSQL community servers. If you have issues with the website it's hosted on, please contact
+        - link "webmaster@enterprisedb.com" [ref=e66] [cursor=pointer]:
+          - /url: mailto:webmaster@enterprisedb.com
+        - text: .
+      - paragraph [ref=e67]: "This installer includes:"
+      - list [ref=e68]:
+        - listitem [ref=e69]: The PostgreSQL server
+        - listitem [ref=e70]: pgAdmin, a graphical tool for managing and developing your databases
+        - listitem [ref=e71]: StackBuilder, a package manager for downloading and installing additional PostgreSQL tools and drivers. Stackbuilder includes management, integration, migration, replication, geospatial, connectors and other tools.
+      - paragraph [ref=e72]: This installer can run in graphical or silent install modes.
+      - paragraph [ref=e73]:
+        - text: The Windows installer is designed to be a straightforward, fast way to get up and running with Postgres. In the unlikely event that you have issues with the installer, please report them on the
+        - link "installer Github page" [ref=e74] [cursor=pointer]:
+          - /url: https://github.com/EnterpriseDB/edb-installers/issues
+        - text: . Issues with the installed packages should be reported to the appropriate project directly.
+      - paragraph [ref=e75]:
+        - text: Advanced users can also download a
+        - link "zip archive" [ref=e76] [cursor=pointer]:
+          - /url: https://www.enterprisedb.com/download-postgresql-binaries
+        - text: of the binaries, without the installer. This download is intended for users who wish to include Postgres as part of another application installer.
+      - heading "Platform support" [level=3] [ref=e77]
+      - paragraph [ref=e78]: "The installers are tested by EDB on the following platforms. They can generally be expected to run on other comparable versions, for example, desktop releases of Windows:"
+      - table [ref=e79]:
+        - rowgroup [ref=e80]:
+          - row "Postgres Version 64 Bit Windows Platforms" [ref=e81]:
+            - columnheader "Postgres Version" [ref=e82]
+            - columnheader "64 Bit Windows Platforms" [ref=e83]
+        - rowgroup [ref=e84]:
+          - row "18 2025, 2022" [ref=e85]:
+            - rowheader "18" [ref=e86]
+            - cell "2025, 2022" [ref=e87]
+          - row "17 2022, 2019" [ref=e88]:
+            - rowheader "17" [ref=e89]
+            - cell "2022, 2019" [ref=e90]
+          - row "16 2022, 2019" [ref=e91]:
+            - rowheader "16" [ref=e92]
+            - cell "2022, 2019" [ref=e93]
+          - row "15 2019, 2016" [ref=e94]:
+            - rowheader "15" [ref=e95]
+            - cell "2019, 2016" [ref=e96]
+          - row "14 2019, 2016" [ref=e97]:
+            - rowheader "14" [ref=e98]
+            - cell "2019, 2016" [ref=e99]
+          - row "13 2019, 2016" [ref=e100]:
+            - rowheader "13" [ref=e101]
+            - cell "2019, 2016" [ref=e102]
+  - contentinfo [ref=e103]:
+    - generic [ref=e104]:
+      - link "Policies" [ref=e105] [cursor=pointer]:
+        - /url: /about/policies/
+      - text: "|"
+      - link "Code of Conduct" [ref=e106] [cursor=pointer]:
+        - /url: /about/policies/coc/
+      - text: "|"
+      - link "About PostgreSQL" [ref=e107] [cursor=pointer]:
+        - /url: /about/
+      - text: "|"
+      - link "Contact" [ref=e108] [cursor=pointer]:
+        - /url: /about/contact/
+      - paragraph [ref=e109]: Copyright © 1996-2026 The PostgreSQL Global Development Group
